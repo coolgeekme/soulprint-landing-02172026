@@ -7,17 +7,17 @@ const features = [
     {
         title: "Your Identity, Captured",
         description: "A deep, personality-level profile that learns how you speak, think, and create — so every AI responds in your voice, not default mode.",
-        image: "/images/feature-identity.png",
+        image: "/images/16BACDBA-C5FD-4549-B8E0-10832C3E5A12.png",
     },
     {
         title: "Works Across Every AI",
         description: "Use ChatGPT, Claude, Gemini, Perplexity. Anything. Your SoulPrint travels with you and upgrades every model instantly.",
-        image: "/images/feature-works.png",
+        image: "/images/Screenshot 2025-11-19 at 7.46.45 PM.png",
     },
     {
         title: "Fully Private. Fully Yours.",
         description: "Your data stays with you. Encrypted on your device. Nothing leaves your hands unless you choose it.",
-        image: "/images/feature-private.png",
+        image: "/images/07662748-2DAA-43D5-9147-AC14C76177F8.png",
     },
     {
         title: "Your AI, Finally Personalized",
