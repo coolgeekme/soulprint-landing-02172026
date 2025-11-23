@@ -1,70 +1,129 @@
-import Link from "next/link"
-import { Github, Twitter, Linkedin } from "lucide-react"
+import Link from "next/link";
+import { Facebook, Instagram, Youtube, MessageCircle } from "lucide-react";
+import Image from "next/image";
 
 export function Footer() {
     return (
-        <footer className="border-t border-border/40 bg-background">
-            <div className="container px-4 py-12 md:py-16">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-                    <div className="col-span-2 md:col-span-1">
-                        <Link href="/" className="flex items-center space-x-2 mb-4">
-                            <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                                SoulPrint
+        <footer className="w-full bg-neutral-100 py-12">
+            <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-12 px-6 md:px-12 lg:px-12 xl:px-24">
+                {/* Top Section */}
+                <div className="flex items-center justify-between">
+                    {/* Logo */}
+                    <div className="flex items-center">
+                        <div className="flex flex-col">
+                            <span className="font-koulen text-2xl font-normal uppercase leading-none text-black">
+                                SOULPRINT
                             </span>
-                        </Link>
-                        <p className="text-sm text-muted-foreground mb-4">
-                            Discover your unique cognitive signature through AI-powered analysis.
-                        </p>
-                        <div className="flex gap-4">
-                            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                                <Twitter className="h-5 w-5" />
-                            </Link>
-                            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                                <Github className="h-5 w-5" />
-                            </Link>
-                            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                                <Linkedin className="h-5 w-5" />
-                            </Link>
+                            <span className="font-koulen text-xs font-normal uppercase leading-none tracking-[0.2em] text-black">
+                                ENGINE
+                            </span>
                         </div>
                     </div>
 
-                    <div>
-                        <h3 className="font-semibold mb-4">Product</h3>
-                        <ul className="space-y-2 text-sm">
-                            <li><Link href="#features" className="text-muted-foreground hover:text-foreground transition-colors">Features</Link></li>
-                            <li><Link href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</Link></li>
-                            <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Roadmap</Link></li>
-                            <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Changelog</Link></li>
-                        </ul>
-                    </div>
+                    {/* Navigation Links */}
+                    <nav className="hidden items-center gap-8 md:flex">
+                        <Link
+                            href="#"
+                            className="font-inter text-sm font-normal text-black transition-colors hover:text-neutral-600"
+                        >
+                            Home
+                        </Link>
+                        <Link
+                            href="#"
+                            className="font-inter text-sm font-normal text-black transition-colors hover:text-neutral-600"
+                        >
+                            About Us
+                        </Link>
+                        <Link
+                            href="#"
+                            className="font-inter text-sm font-normal text-black transition-colors hover:text-neutral-600"
+                        >
+                            Pricing
+                        </Link>
+                        <Link
+                            href="#"
+                            className="font-inter text-sm font-normal text-black transition-colors hover:text-neutral-600"
+                        >
+                            Contact Us
+                        </Link>
+                        <Link
+                            href="#"
+                            className="font-inter text-sm font-normal text-black transition-colors hover:text-neutral-600"
+                        >
+                            FAQ
+                        </Link>
+                    </nav>
 
-                    <div>
-                        <h3 className="font-semibold mb-4">Company</h3>
-                        <ul className="space-y-2 text-sm">
-                            <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">About</Link></li>
-                            <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Blog</Link></li>
-                            <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Careers</Link></li>
-                            <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Contact</Link></li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h3 className="font-semibold mb-4">Legal</h3>
-                        <ul className="space-y-2 text-sm">
-                            <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Privacy</Link></li>
-                            <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Terms</Link></li>
-                            <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Security</Link></li>
-                            <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Cookies</Link></li>
-                        </ul>
+                    {/* Social Icons */}
+                    <div className="flex items-center gap-4">
+                        <Link
+                            href="#"
+                            className="text-black transition-colors hover:text-neutral-600"
+                        >
+                            <Facebook className="h-5 w-5" />
+                        </Link>
+                        <Link
+                            href="#"
+                            className="text-black transition-colors hover:text-neutral-600"
+                        >
+                            <Instagram className="h-5 w-5" />
+                        </Link>
+                        <Link
+                            href="#"
+                            className="text-black transition-colors hover:text-neutral-600"
+                        >
+                            <svg
+                                className="h-5 w-5"
+                                fill="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                            </svg>
+                        </Link>
+                        <Link
+                            href="#"
+                            className="text-black transition-colors hover:text-neutral-600"
+                        >
+                            <Youtube className="h-5 w-5" />
+                        </Link>
+                        <Link
+                            href="#"
+                            className="text-black transition-colors hover:text-neutral-600"
+                        >
+                            <MessageCircle className="h-5 w-5" />
+                        </Link>
                     </div>
                 </div>
 
-                <div className="border-t border-border/40 pt-8">
-                    <p className="text-center text-sm text-muted-foreground">
-                        © {new Date().getFullYear()} SoulPrint. All rights reserved.
+                {/* Bottom Section */}
+                <div className="flex items-center justify-between border-t border-neutral-300 pt-6">
+                    <p className="font-inter text-sm font-normal text-neutral-600">
+                        Copyright 2025 © soulprintengine.ai
                     </p>
+
+                    <div className="flex items-center gap-6">
+                        <Link
+                            href="#"
+                            className="font-inter text-sm font-normal text-neutral-600 transition-colors hover:text-black"
+                        >
+                            Privacy Policy
+                        </Link>
+                        <Link
+                            href="#"
+                            className="font-inter text-sm font-normal text-neutral-600 transition-colors hover:text-black"
+                        >
+                            Terms of Service
+                        </Link>
+                        <Link
+                            href="#"
+                            className="font-inter text-sm font-normal text-neutral-600 transition-colors hover:text-black"
+                        >
+                            Cookies Settings
+                        </Link>
+                    </div>
                 </div>
             </div>
         </footer>
-    )
+    );
 }

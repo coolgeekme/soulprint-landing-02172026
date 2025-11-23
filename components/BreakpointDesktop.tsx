@@ -1,64 +1,44 @@
 "use client";
 
-import * as React from "react";
-import Image from "next/image";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { ArrowRightIcon } from "@radix-ui/react-icons";
+import { ArrowRight } from "lucide-react";
+import Image from "next/image";
 
-export interface BreakpointDesktopProps {}
-
-export default function BreakpointDesktop({}: BreakpointDesktopProps) {
+export default function BreakpointDesktop() {
   return (
-    <section className="w-full bg-background py-16 lg:py-24">
-      <div className="container px-6">
-        <div className="flex flex-col items-center gap-12 lg:flex-row lg:gap-16">
-          <div className="flex flex-1 flex-col items-start gap-6 text-left lg:gap-8">
-            <div className="flex flex-col gap-6">
-              <p className="text-sm font-medium text-muted-foreground">
-                Hero section
-              </p>
-              {/* 
-                The font 'Koulen' is used in the Figma design. 
-                Ensure it is configured in your tailwind.config.js file.
-                Example: fontFamily: { koulen: ['Koulen', 'sans-serif'] }
-              */}
-              <h1 className="font-koulen text-[72px] font-normal leading-[80px] text-foreground lg:text-[112px] lg:leading-[110px]">
-                Stop using Ai
-                <br />
-                in default mode
-              </h1>
-              <p className="max-w-md text-lg text-muted-foreground">
-                Default mode is dead.
-              </p>
-            </div>
-            <div className="flex w-full flex-col items-start gap-3 lg:w-auto lg:flex-row">
-              <Button asChild className="w-full lg:w-auto" size="default">
-                <Link href="#">Break the Mold</Link>
-              </Button>
-              <Button
-                asChild
-                variant="ghost"
-                className="hidden lg:inline-flex"
-                size="default"
-              >
-                <Link href="#">
-                  Explore
-                  <ArrowRightIcon className="ml-2 size-4" />
-                </Link>
-              </Button>
-            </div>
+    <section className="flex w-full items-center justify-center bg-white py-24">
+      <div className="flex w-full max-w-[1400px] items-center justify-center px-6 md:px-12 lg:px-12 xl:px-24">
+        <div className="grid w-full grid-cols-1 gap-8 rounded-2xl bg-neutral-950 p-8 md:p-12 lg:grid-cols-2 lg:gap-16 lg:p-16">
+          {/* Left Content */}
+          <div className="flex flex-col items-start justify-center gap-6 lg:gap-8">
+            <h2 className="font-koulen text-4xl uppercase leading-tight text-orange-600 sm:text-5xl md:text-6xl lg:text-[64px] xl:text-[72px]">
+              MAKE EVERY AI YOU
+              <br />
+              USE ACTUALLY
+              <br />
+              YOURS.
+            </h2>
+
+            <Button className="inline-flex h-auto items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 text-neutral-900 transition-colors hover:bg-neutral-100">
+              <span className="font-geist text-sm font-semibold">
+                Build my Soulprint
+              </span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
-          <div className="w-full shrink-0 lg:w-[475px]">
-            <AspectRatio ratio={1 / 1}>
+
+          {/* Right Image */}
+          <div className="relative flex min-h-[250px] w-full items-center justify-center lg:min-h-[350px]">
+            <div className="relative h-full w-full max-w-[500px]">
               <Image
-                src="https://ui.shadcn.com/placeholder.svg"
-                alt="Abstract placeholder image"
-                fill
-                className="rounded-xl object-cover"
+                src="/images/Group 2.png"
+                alt="SoulPrint Logo"
+                width={500}
+                height={400}
+                className="h-auto w-full object-contain"
+                priority
               />
-            </AspectRatio>
+            </div>
           </div>
         </div>
       </div>

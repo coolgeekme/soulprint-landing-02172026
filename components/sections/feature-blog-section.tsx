@@ -12,7 +12,7 @@ const features = [
     {
         title: "Works Across Every AI",
         description: "Use ChatGPT, Claude, Gemini, Perplexity. Anything. Your SoulPrint travels with you and upgrades every model instantly.",
-        image: "/images/Screenshot 2025-11-19 at 7.46.45 PM.png",
+        image: "/images/F780675A-81CC-4A2D-93AE-3A3E7DC16F78.png",
     },
     {
         title: "Fully Private. Fully Yours.",
@@ -22,7 +22,7 @@ const features = [
     {
         title: "Your AI, Finally Personalized",
         description: "Your AI adapts to your mood, goals, tone, and pace bringing out your best thinking and your true voice.",
-        image: "/images/feature-personalized.png",
+        image: "/images/Soulprintengine-logo.png",
     },
 ];
 
