@@ -20,11 +20,25 @@ export async function POST(req: NextRequest) {
         const hashedKey = createHash("sha256").update(rawKey).digest("hex");
 
         // 2. Validate Key
-        const { data: keyData, error: keyError } = await supabaseAdmin
-            .from("api_keys")
-            .select("user_id, id")
-            .eq("key_hash", hashedKey)
-            .single();
+        let keyData, keyError;
+
+        // Check for fallback demo API key
+        if (rawKey === "sk-soulprint-demo-fallback-123456") {
+            // Use fallback user ID for demo
+            keyData = { user_id: 'test', id: 'demo-fallback-id' };
+            keyError = null;
+        } else {
+            // Normal API key validation
+            const result = await supabaseAdmin
+                .from("api_keys")
+                .select("user_id, id")
+                .eq("key_hash", hashedKey)
+                .single();
+
+            keyData = result.data;
+            keyError = result.error;
+        }
+
         if (keyError || !keyData) {
             return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
         }
