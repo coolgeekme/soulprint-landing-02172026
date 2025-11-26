@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation";
 import { SquareTerminal, Bot, CodeXml, Book, Settings2, LifeBuoy, SquareUser, Paperclip, Mic, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { generateApiKey } from "@/app/actions/api-keys";
 import { useState, useEffect, useRef } from "react";
 import { questions, getNextQuestion, getProgress } from "@/lib/questions";
 import { motion, AnimatePresence } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 
 interface Message {
     role: "bot" | "user";
@@ -22,30 +24,52 @@ export default function QuestionnairePage() {
     const [isComplete, setIsComplete] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [userEmail, setUserEmail] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const supabase = createClient();
 
     // Initial load
     useEffect(() => {
-        // Check local storage for existing progress
-        const savedAnswers = localStorage.getItem("soulprint_answers");
-        const savedQuestionId = localStorage.getItem("soulprint_current_q");
+        async function initializeUser() {
+            try {
+                // Get current authenticated user
+                const { data: { user } } = await supabase.auth.getUser();
 
-        if (savedAnswers && savedQuestionId) {
-            setAnswers(JSON.parse(savedAnswers));
-            setCurrentQuestionId(savedQuestionId);
-            // Reconstruct messages history (simplified for now, ideally we'd save messages too)
-            // For this demo, we'll just start fresh or maybe just reset to start if complex
-            // Let's just start fresh for simplicity but keep the logic ready
+                if (!user || !user.email) {
+                    console.error('No authenticated user found');
+                    router.push('/dashboard');
+                    return;
+                }
+
+                setUserEmail(user.email);
+
+                // Check local storage for existing progress
+                const savedAnswers = localStorage.getItem("soulprint_answers");
+                const savedQuestionId = localStorage.getItem("soulprint_current_q");
+
+                if (savedAnswers && savedQuestionId) {
+                    setAnswers(JSON.parse(savedAnswers));
+                    setCurrentQuestionId(savedQuestionId);
+                    // Reconstruct messages history (simplified for now, ideally we'd save messages too)
+                    // For this demo, we'll just start fresh or maybe just reset to start if complex
+                    // Let's just start fresh for simplicity but keep the logic ready
+                }
+
+                const firstQuestion = questions[0];
+                setCurrentQuestionId(firstQuestion.id);
+                setMessages([{
+                    role: "bot",
+                    content: `Welcome ${user.email}! I'm going to ask you ${questions.length} questions to create your personalized SoulPrint. This will help AI understand you better. Let's begin!\n\n${firstQuestion.question}`,
+                    timestamp: new Date()
+                }]);
+            } catch (error) {
+                console.error('Error initializing user:', error);
+                router.push('/dashboard');
+            }
         }
 
-        const firstQuestion = questions[0];
-        setCurrentQuestionId(firstQuestion.id);
-        setMessages([{
-            role: "bot",
-            content: `Welcome! I'm going to ask you ${questions.length} questions to create your personalized SoulPrint. This will help AI understand you better. Let's begin!\n\n${firstQuestion.question}`,
-            timestamp: new Date()
-        }]);
-    }, []);
+        initializeUser();
+    }, [router, supabase]);
 
     // Auto-scroll
     useEffect(() => {
@@ -130,13 +154,18 @@ export default function QuestionnairePage() {
     };
 
     const submitSoulPrint = async (finalAnswers: Record<string, string>) => {
+        if (!userEmail) {
+            throw new Error('User not authenticated');
+        }
+
+        // Submit soulprint answers
         const response = await fetch('/api/soulprint/submit', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                user_id: 'test', // Demo mode user ID
+                user_id: userEmail, // Use actual user email
                 answers: finalAnswers
             }),
         });
@@ -144,6 +173,22 @@ export default function QuestionnairePage() {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.error || 'Failed to submit soulprint');
+        }
+
+        // Generate API key for the user
+        try {
+            const { apiKey, error: keyError } = await generateApiKey("SoulPrint Questionnaire Key");
+
+            if (keyError) {
+                console.error('Failed to generate API key:', keyError);
+                // Don't throw error - soulprint was created successfully
+            } else if (apiKey) {
+                console.log('✅ API key generated successfully for user:', userEmail);
+                localStorage.setItem("soulprint_internal_key", apiKey);
+            }
+        } catch (keyError) {
+            console.error('Error generating API key:', keyError);
+            // Don't fail the whole process if API key generation fails
         }
 
         return response.json();
