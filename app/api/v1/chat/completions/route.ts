@@ -63,10 +63,10 @@ export async function POST(req: NextRequest) {
         }
 
         // Safe JSON serialization function to handle circular references
-        function safeJsonStringify(obj: any): string {
+        function safeJsonStringify(obj: unknown): string {
             try {
                 const seen = new WeakSet();
-                return JSON.stringify(obj, (key, val) => {
+                return JSON.stringify(obj, (_key, val) => {
                     if (val != null && typeof val === 'object') {
                         if (seen.has(val)) {
                             return '[Circular]';
@@ -161,7 +161,7 @@ Always stay in character based on these traits.`;
             return NextResponse.json(data);
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Proxy Error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }

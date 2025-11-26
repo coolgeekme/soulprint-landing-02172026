@@ -18,7 +18,7 @@ export default function ChatPage() {
     const [loading, setLoading] = useState(false)
     const [apiKey, setApiKey] = useState<string | null>(null)
     const [initializing, setInitializing] = useState(true)
-    const [user, setUser] = useState<any>(null)
+    const [user, setUser] = useState<{ id?: string; email?: string } | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const supabase = createClient()
 
