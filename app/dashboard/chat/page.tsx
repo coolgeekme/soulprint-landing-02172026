@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { generateApiKey, listApiKeys } from "@/app/actions/api-keys"
-import { Send, Bot, User, Loader2, Sparkles } from "lucide-react"
+import { getChatHistory, saveChatMessage, clearChatHistory } from "@/app/actions/chat-history"
+import { Send, Bot, User, Loader2, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 
@@ -22,7 +23,7 @@ export default function ChatPage() {
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const supabase = createClient()
 
-    // Initialize: Get user, API Key, and ensure soulprint exists
+    // Initialize: Get user, API Key, load chat history
     useEffect(() => {
         async function init() {
             try {
@@ -51,7 +52,20 @@ export default function ChatPage() {
                 }
                 console.log('✅ Soulprint found for user')
 
-                // 3. Get API key - check if user has one in database first
+                // 3. Load chat history
+                const history = await getChatHistory()
+                if (history.length > 0) {
+                    const formattedHistory = history
+                        .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+                        .map(msg => ({
+                            role: msg.role as "user" | "assistant",
+                            content: msg.content
+                        }))
+                    setMessages(formattedHistory)
+                    console.log('✅ Loaded chat history:', formattedHistory.length, 'messages')
+                }
+
+                // 4. Get API key - check if user has one in database first
                 const { keys, error: keysError } = await listApiKeys()
                 
                 if (keysError) {
@@ -111,45 +125,6 @@ export default function ChatPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
     }, [messages])
 
-    // Function to set demo personality (only shown for non-demo users)
-    async function handleLoadDemoData() {
-        setLoading(true)
-        try {
-            if (!user) {
-                alert("Please sign in first")
-                return
-            }
-
-            // Fetch the FIRST soulprint to be deterministic
-            const { data: soulprints } = await supabase
-                .from('soulprints')
-                .select('*')
-                .limit(1)
-
-            if (soulprints && soulprints.length > 0) {
-                const sourceSp = soulprints[0]
-
-                const { error } = await supabase
-                    .from('soulprints')
-                    .upsert({
-                        user_id: user.email,
-                        soulprint_data: sourceSp.soulprint_data
-                    }, { onConflict: 'user_id' })
-
-                if (error) throw error
-
-                setMessages(prev => [...prev, { role: "assistant", content: "✨ I've set your SoulPrint personality! I will now consistently use this persona." }])
-            } else {
-                alert("No soulprints found in database to copy.")
-            }
-        } catch (e) {
-            console.error(e)
-            alert("Failed to set demo data")
-        } finally {
-            setLoading(false)
-        }
-    }
-
     async function handleSend() {
         if (!input.trim() || !apiKey) return
 
@@ -157,6 +132,9 @@ export default function ChatPage() {
         setInput("")
         setMessages(prev => [...prev, { role: "user", content: userMsg }])
         setLoading(true)
+
+        // Save user message to database
+        await saveChatMessage({ role: "user", content: userMsg })
 
         try {
             const res = await fetch("/api/v1/chat/completions", {
@@ -185,11 +163,20 @@ export default function ChatPage() {
             } else {
                 const botMsg = data.choices[0].message.content
                 setMessages(prev => [...prev, { role: "assistant", content: botMsg }])
+                // Save assistant message to database
+                await saveChatMessage({ role: "assistant", content: botMsg })
             }
         } catch (e) {
             setMessages(prev => [...prev, { role: "assistant", content: "Error: Failed to send message." }])
         } finally {
             setLoading(false)
+        }
+    }
+
+    async function handleClearHistory() {
+        if (confirm("Are you sure you want to clear your chat history?")) {
+            await clearChatHistory()
+            setMessages([])
         }
     }
 
@@ -217,6 +204,17 @@ export default function ChatPage() {
                         </p>
                     </div>
                 </div>
+                {messages.length > 0 && (
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleClearHistory}
+                        className="text-gray-400 hover:text-red-400"
+                    >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Clear
+                    </Button>
+                )}
             </div>
 
             {/* Messages */}
