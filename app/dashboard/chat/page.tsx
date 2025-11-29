@@ -66,11 +66,11 @@ export default function ChatPage() {
                     if (typeof soulprintData === 'string') {
                         soulprintData = JSON.parse(soulprintData)
                     }
-                    // Use archetype or core_essence as personality seed
+                    // Use full_system_prompt as the primary personality seed
                     const personalityStr = 
+                        soulprintData?.full_system_prompt ||
                         soulprintData?.profile_summary?.archetype ||
                         soulprintData?.profile_summary?.core_essence ||
-                        soulprintData?.full_system_prompt?.substring(0, 100) ||
                         currentUser.email ||
                         'Default System'
                     setPersonality(personalityStr)
@@ -220,11 +220,11 @@ export default function ChatPage() {
     return (
         <div className="relative flex h-[calc(100vh-8rem)] flex-col rounded-xl border border-[#222] overflow-hidden">
             {/* Animated Background */}
-            <div className="absolute inset-0 z-0 opacity-60 pointer-events-none">
+            <div className="absolute inset-0 z-0 opacity-80 pointer-events-none">
                 <SoulprintBackground personality={personality} />
             </div>
             {/* Gradient overlay for text contrast */}
-            <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/20 via-transparent to-black/60" />
+            <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/10 via-transparent to-black/40" />
             
             {/* Main content - above background */}
             <div className="relative z-10 flex flex-col h-full bg-[#111]/60 backdrop-blur-sm">
