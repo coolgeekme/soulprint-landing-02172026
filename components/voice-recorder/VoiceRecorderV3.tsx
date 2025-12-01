@@ -61,16 +61,22 @@ interface AnalysisResult {
 
 interface VoiceRecorderV3Props {
   onAnalysisComplete?: (result: AnalysisResult) => void;
+  onError?: (error: string) => void;
   minDuration?: number; // seconds
   maxDuration?: number; // seconds
   questionText?: string;
+  autoSubmit?: boolean; // Auto-submit after analysis (for questionnaire flow)
+  compact?: boolean; // Compact mode for embedded use
 }
 
 export function VoiceRecorderV3({
   onAnalysisComplete,
+  onError,
   minDuration = 5,
   maxDuration = 120,
-  questionText
+  questionText,
+  autoSubmit = true,
+  compact = true
 }: VoiceRecorderV3Props) {
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -243,13 +249,18 @@ export function VoiceRecorderV3({
       
       setAnalysisResult(data);
       
-      if (onAnalysisComplete) {
+      // Auto-submit to parent if enabled
+      if (autoSubmit && onAnalysisComplete) {
         onAnalysisComplete(data);
       }
       
     } catch (err) {
       console.error('Analysis error:', err);
-      setError(err instanceof Error ? err.message : 'Analysis failed');
+      const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
+      setError(errorMessage);
+      if (onError) {
+        onError(errorMessage);
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -269,6 +280,134 @@ export function VoiceRecorderV3({
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+  
+  // Compact mode for questionnaire embedding
+  if (compact) {
+    return (
+      <div className="w-full">
+        {/* Recording controls - compact layout */}
+        <div className="flex items-center gap-4">
+          {/* Audio level visualization + button */}
+          <div className="relative w-20 h-20 flex items-center justify-center flex-shrink-0">
+            {/* Background rings */}
+            <div 
+              className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-500/20 to-orange-600/20 transition-transform duration-100"
+              style={{ transform: `scale(${1 + audioLevel * 0.5})` }}
+            />
+            <div 
+              className="absolute inset-1 rounded-full bg-gradient-to-br from-orange-500/30 to-orange-600/30 transition-transform duration-100"
+              style={{ transform: `scale(${1 + audioLevel * 0.3})` }}
+            />
+            
+            {/* Main button */}
+            <button
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isAnalyzing || !!analysisResult}
+              className={`
+                relative w-14 h-14 rounded-full flex items-center justify-center transition-all
+                ${isRecording 
+                  ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
+                  : analysisResult
+                    ? 'bg-green-600'
+                    : 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
+                }
+                disabled:cursor-not-allowed
+                shadow-lg hover:shadow-xl
+              `}
+            >
+              {isAnalyzing ? (
+                <Loader2 className="w-6 h-6 text-white animate-spin" />
+              ) : analysisResult ? (
+                <CheckCircle className="w-6 h-6 text-white" />
+              ) : isRecording ? (
+                <Square className="w-6 h-6 text-white" />
+              ) : (
+                <Mic className="w-6 h-6 text-white" />
+              )}
+            </button>
+          </div>
+          
+          {/* Status and timer */}
+          <div className="flex-1 min-w-0">
+            <p className="font-mono text-2xl font-bold text-white">
+              {formatTime(recordingTime)}
+            </p>
+            <p className="font-mono text-xs text-[#878791] truncate">
+              {isAnalyzing 
+                ? 'Analyzing voice signature...'
+                : isRecording 
+                  ? `Recording... (min ${minDuration}s)`
+                  : analysisResult
+                    ? 'Voice captured ✓'
+                    : audioBlob 
+                      ? 'Ready to analyze'
+                      : 'Click mic to start'
+              }
+            </p>
+          </div>
+          
+          {/* Action buttons */}
+          <div className="flex gap-2 flex-shrink-0">
+            {audioBlob && !isRecording && !analysisResult && (
+              <>
+                <button
+                  onClick={resetRecording}
+                  className="font-mono text-xs border border-[#878791] text-[#878791] px-3 py-1.5 hover:bg-[#2c2c2c] transition-colors"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={analyzeRecording}
+                  disabled={isAnalyzing}
+                  className="font-mono text-xs border border-orange-500 text-orange-500 px-3 py-1.5 hover:bg-orange-500 hover:text-white transition-colors disabled:opacity-50 flex items-center gap-1"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Processing
+                    </>
+                  ) : (
+                    'Submit'
+                  )}
+                </button>
+              </>
+            )}
+            {analysisResult && (
+              <button
+                onClick={resetRecording}
+                className="font-mono text-xs border border-[#878791] text-[#878791] px-3 py-1.5 hover:bg-[#2c2c2c] transition-colors"
+              >
+                Re-record
+              </button>
+            )}
+          </div>
+        </div>
+        
+        {/* Error display */}
+        {error && (
+          <div className="mt-3 p-3 bg-red-900/20 border border-red-500/30 text-red-400 rounded flex items-center gap-2 font-mono text-xs">
+            <XCircle className="w-4 h-4 flex-shrink-0" />
+            <p>{error}</p>
+          </div>
+        )}
+        
+        {/* Mini transcript preview when done */}
+        {analysisResult && (
+          <div className="mt-3 p-3 bg-[#19191e] border border-[#2c2c2c] rounded">
+            <p className="font-mono text-xs text-[#878791] mb-1">Transcript preview:</p>
+            <p className="font-mono text-xs text-neutral-300 italic truncate">
+              "{analysisResult.transcript.slice(0, 100)}{analysisResult.transcript.length > 100 ? '...' : ''}"
+            </p>
+            <div className="flex gap-4 mt-2 text-xs font-mono text-[#878791]">
+              <span>{analysisResult.wordCount} words</span>
+              <span>{analysisResult.emotionalSignature.tempo.wpm} WPM</span>
+              <span>{Math.round(analysisResult.confidence * 100)}% confidence</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
   
   return (
     <div className="w-full max-w-2xl mx-auto">

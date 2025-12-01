@@ -619,21 +619,13 @@ export default function QuestionnairePage() {
                                     {isVoiceQuestion ? (
                                         /* Voice Recording Interface */
                                         <div className="bg-gradient-to-r from-[#19191e] to-[#08080c] rounded border border-[#2c2c2c] p-4">
-                                            <div className="mb-4">
-                                                <p className="font-mono text-xs text-orange-400 mb-2">
-                                                    🎤 VOICE INPUT MODE
-                                                </p>
-                                                {currentQuestion?.voicePrompt && (
-                                                    <p className="font-mono text-xs text-[#878791] mb-4">
-                                                        {currentQuestion.voicePrompt}
-                                                    </p>
-                                                )}
-                                            </div>
                                             <VoiceRecorderV3
-                                                minDuration={currentQuestion?.minDuration || 5}
+                                                minDuration={currentQuestion?.minDuration || 1}
                                                 maxDuration={currentQuestion?.maxDuration || 120}
-                                                questionText={currentQuestion?.voicePrompt}
                                                 onAnalysisComplete={handleVoiceAnalysisComplete}
+                                                onError={handleVoiceError}
+                                                autoSubmit={true}
+                                                compact={true}
                                             />
                                         </div>
                                     ) : (
