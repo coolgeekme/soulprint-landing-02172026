@@ -82,7 +82,7 @@ export interface VoiceAnalysisResult {
 export class SoulPrintVoiceAnalyzer {
   private audioContext: AudioContext | null = null;
   private analyserNode: AnalyserNode | null = null;
-  private meydaAnalyzer: Meyda.MeydaAnalyzer | null = null;
+  private meydaAnalyzer: any = null;
   private pitchDetector: ReturnType<typeof PitchDetector.forFloat32Array> | null = null;
   
   private snapshots: CadenceSnapshot[] = [];
@@ -195,7 +195,7 @@ export class SoulPrintVoiceAnalyzer {
         meydaFeatures = Meyda.extract(
           ['rms', 'energy', 'spectralCentroid', 'spectralFlux', 'loudness'],
           chunk
-        ) as typeof meydaFeatures;
+        ) as unknown as typeof meydaFeatures;
       } catch (e) {
         // If Meyda fails, calculate RMS manually
         let sum = 0;

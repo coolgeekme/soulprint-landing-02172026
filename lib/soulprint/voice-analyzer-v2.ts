@@ -12,6 +12,10 @@
 // TYPES
 // ============================================================================
 
+// Type for Web Speech API SpeechRecognition
+type SpeechRecognitionType = typeof window extends { SpeechRecognition: infer T } ? T : any;
+type SpeechRecognitionInstance = InstanceType<SpeechRecognitionType> | null;
+
 export interface TranscriptSegment {
   text: string;
   confidence: number;
@@ -148,7 +152,7 @@ async function analyzeAudioBuffer(audioBlob: Blob): Promise<{
 // SPEECH TRANSCRIPTION (Web Speech API)
 // ============================================================================
 
-export function createSpeechRecognition(): SpeechRecognition | null {
+export function createSpeechRecognition(): SpeechRecognitionInstance {
   if (typeof window === 'undefined') return null;
   
   const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -170,7 +174,7 @@ export function createSpeechRecognition(): SpeechRecognition | null {
 // ============================================================================
 
 export class SoulPrintVoiceAnalyzerV2 {
-  private recognition: SpeechRecognition | null = null;
+  private recognition: SpeechRecognitionInstance = null;
   private transcriptSegments: TranscriptSegment[] = [];
   private finalTranscript = '';
   private isListening = false;
@@ -190,7 +194,7 @@ export class SoulPrintVoiceAnalyzerV2 {
   private setupRecognition() {
     if (!this.recognition) return;
     
-    this.recognition.onresult = (event) => {
+    this.recognition.onresult = (event: any) => {
       let interim = '';
       let final = '';
       
@@ -217,7 +221,7 @@ export class SoulPrintVoiceAnalyzerV2 {
       this.onTranscriptUpdate?.(this.finalTranscript + interim, !!final);
     };
     
-    this.recognition.onerror = (event) => {
+    this.recognition.onerror = (event: any) => {
       console.error('[VoiceAnalyzer] Speech recognition error:', event.error);
       this.onError?.(event.error);
     };
