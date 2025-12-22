@@ -13,7 +13,7 @@ import Image from "next/image"
 export default function NewQuestionnairePage() {
     const router = useRouter()
     const supabase = createClient()
-    
+
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
     const [answers, setAnswers] = useState<Record<string, string | number | object>>({})
     const [textInput, setTextInput] = useState("")
@@ -22,7 +22,7 @@ export default function NewQuestionnairePage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const currentQuestion = questions[currentQuestionIndex]
-    
+
     // Calculate pillar info based on question category
     const categoryToPillar: Record<string, number> = {
         communication: 1,
@@ -33,12 +33,12 @@ export default function NewQuestionnairePage() {
         conflict: 6
     }
     const currentPillar = currentQuestion ? categoryToPillar[currentQuestion.category] || 1 : 1
-    
+
     // Count questions in current pillar
     const questionsInCurrentPillar = questions.filter(q => q.category === currentQuestion?.category)
     const questionInPillar = questionsInCurrentPillar.findIndex(q => q.id === currentQuestion?.id) + 1
     const totalQuestionsInPillar = questionsInCurrentPillar.length
-    
+
     // Get pillar name
     const pillarInfo = PILLARS.find(p => p.id === currentPillar)
     const pillarName = pillarInfo?.subtitle || "Unknown"
@@ -47,7 +47,7 @@ export default function NewQuestionnairePage() {
     useEffect(() => {
         const savedAnswers = localStorage.getItem("soulprint_answers")
         const savedIndex = localStorage.getItem("soulprint_current_index")
-        
+
         if (savedAnswers) {
             setAnswers(JSON.parse(savedAnswers))
         }
@@ -85,8 +85,8 @@ export default function NewQuestionnairePage() {
 
     // Handle voice recording completion
     const handleVoiceComplete = (result: any) => {
-        const newAnswers = { 
-            ...answers, 
+        const newAnswers = {
+            ...answers,
             [currentQuestion.id]: {
                 transcript: result.transcript,
                 emotionalSignature: result.emotionalSignature
@@ -109,7 +109,7 @@ export default function NewQuestionnairePage() {
             return
         }
         const updatedAnswers = saveCurrentAnswer()
-        
+
         if (currentQuestionIndex < questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1)
         } else {
@@ -121,6 +121,23 @@ export default function NewQuestionnairePage() {
                 if (!user) {
                     router.push('/')
                     return
+                }
+
+                // Layer 2 Safety: Verify profile exists before processing
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('id', user.id)
+                    .maybeSingle();
+
+                if (!profile) {
+                    console.log('🛡️ Layer 2: Self-healing missing profile before submission');
+                    await supabase.from('profiles').insert({
+                        id: user.id,
+                        email: user.email!,
+                        full_name: user.user_metadata?.full_name || '',
+                        avatar_url: user.user_metadata?.avatar_url || ''
+                    });
                 }
 
                 // Navigate to completion page
@@ -176,7 +193,7 @@ export default function NewQuestionnairePage() {
                             ENGINE
                         </span>
                     </div>
-                    <Button 
+                    <Button
                         onClick={handleLogout}
                         className="h-9 rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600"
                     >
@@ -281,8 +298,8 @@ export default function NewQuestionnairePage() {
                         </div>
 
                         {/* Right Side - Progress Stepper */}
-                        <ProgressStepper 
-                            currentPart={currentPillar} 
+                        <ProgressStepper
+                            currentPart={currentPillar}
                             currentQuestion={questionInPillar}
                             totalQuestionsInPart={totalQuestionsInPillar}
                         />

@@ -36,25 +36,32 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // Protected routes logic - keep it simple
-    if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
-        return NextResponse.redirect(new URL('/', request.url))
+    if (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/questionnaire')) {
+        if (!user) {
+            return NextResponse.redirect(new URL('/', request.url))
+        }
+
+        // Layer 1 Safety: Ensure profile exists
+        try {
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('id', user.id)
+                .maybeSingle()
+
+            if (!profile && !profileError) {
+                console.log('🛡️ Layer 1: Creating missing profile in middleware for:', user.email)
+                await supabase.from('profiles').insert({
+                    id: user.id,
+                    email: user.email!,
+                    full_name: user.user_metadata?.full_name || '',
+                    avatar_url: user.user_metadata?.avatar_url || ''
+                })
+            }
+        } catch (e) {
+            console.error('Middleware profile sync failed:', e)
+        }
     }
-
-    // Don't redirect authenticated users from landing page
-    // They might want to see the marketing content
-
-    // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
-    // creating a new response object with NextResponse.next() make sure to:
-    // 1. Pass the request in it, like so:
-    //    const myNewResponse = NextResponse.next({ request })
-    // 2. Copy over the cookies, like so:
-    //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-    // 3. Change the myNewResponse object to fit your needs, but avoid changing
-    //    the cookies!
-    // 4. Finally:
-    //    return myNewResponse
-    // If this is not done, you may be causing the browser and server to go out
-    // of sync and terminate the user's session prematurely.
 
     return supabaseResponse
 }

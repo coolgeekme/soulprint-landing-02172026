@@ -65,7 +65,11 @@ export async function POST(request: NextRequest) {
 
         // 2. Save to Supabase soulprints table (using safe save)
         try {
-            await saveSoulPrint(supabaseAdmin, user_id, soulprintData);
+            await saveSoulPrint(supabaseAdmin, user_id, soulprintData, {
+                email: user.email,
+                full_name: user.user_metadata?.full_name,
+                avatar_url: user.user_metadata?.avatar_url
+            });
             console.log('💾 SoulPrint saved to Supabase');
         } catch (saveError) {
             console.error('Failed to save SoulPrint:', saveError);

@@ -10,7 +10,7 @@ import Image from "next/image"
 export default function QuestionnaireCompletePage() {
     const router = useRouter()
     const supabase = createClient()
-    
+
     const [status, setStatus] = useState("Generating your SoulPrint...")
     const [isGenerating, setIsGenerating] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -39,6 +39,23 @@ export default function QuestionnaireCompletePage() {
             const answers = JSON.parse(savedAnswers)
             setStatus("Processing your responses...")
 
+            // Layer 2 Safety: Final check before API call
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('id', user.id)
+                .maybeSingle();
+
+            if (!profile) {
+                console.log('🛡️ Layer 2: Final self-healing for profile on completion page');
+                await supabase.from('profiles').insert({
+                    id: user.id,
+                    email: user.email!,
+                    full_name: user.user_metadata?.full_name || '',
+                    avatar_url: user.user_metadata?.avatar_url || ''
+                });
+            }
+
             // Call the API to generate SoulPrint
             const response = await fetch('/api/soulprint/generate', {
                 method: 'POST',
@@ -53,7 +70,7 @@ export default function QuestionnaireCompletePage() {
             }
 
             setStatus("Finalizing your SoulPrint...")
-            
+
             // Clear local storage
             localStorage.removeItem("soulprint_answers")
             localStorage.removeItem("soulprint_current_index")
