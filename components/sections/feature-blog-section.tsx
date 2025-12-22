@@ -6,22 +6,17 @@ import Image from "next/image";
 const features = [
     {
         title: "Your Identity, Captured",
-        description: "A deep, personality-level profile that learns how you speak, think, and create — so every AI responds in your voice, not default mode.",
+        description: "A deep identity profile that learns your cadence, vocabulary, and decision-making style. SoulPrint doesn't just store data; it understands the nuance of who you are.",
         image: "/images/16BACDBA-C5FD-4549-B8E0-10832C3E5A12.png",
     },
     {
-        title: "Works Across Every AI",
-        description: "Use ChatGPT, Claude, Gemini, Perplexity. Anything. Your SoulPrint travels with you and upgrades every model instantly.",
+        title: "Independent by Design",
+        description: "SoulPrint is a standalone identity engine. It does not live inside any LLM. It is the bridge that carries your unique signature to any intelligence you choose to engage with.",
         image: "/images/F780675A-81CC-4A2D-93AE-3A3E7DC16F78.png",
     },
     {
-        title: "Fully Private. Fully Yours.",
-        description: "Your data stays with you. Encrypted on your device. Nothing leaves your hands unless you choose it.",
-        image: "/images/07662748-2DAA-43D5-9147-AC14C76177F8.png",
-    },
-    {
         title: "Your AI, Finally Personalized",
-        description: "Your AI adapts to your mood, goals, tone, and pace bringing out your best thinking and your true voice.",
+        description: "Persistent identity aligning to mood, goals, tone, and pace. Stop prompting from scratch. Start every interaction with an AI that already knows you.",
         image: "/images/Soulprintengine-logo.png",
     },
 ];

@@ -27,26 +27,24 @@ export function Hero() {
 
                     {/* Headline */}
                     <h1 className="w-full font-koulen text-[72px] leading-[80px] text-white uppercase tracking-tight lg:text-[clamp(40px,4vw,110px)] lg:leading-[0.9]">
-                        STOP USING AI
+                        SoulPrint is your
                         <br />
-                        IN DEFAULT MODE
+                        personal identity engine.
                     </h1>
 
                     {/* Subheading */}
                     <p className="w-full font-inter text-lg leading-7 text-[#737373] lg:mt-6 lg:max-w-xl lg:text-gray-400 lg:leading-relaxed xl:text-xl">
-                        <span className="lg:hidden">Default mode is dead. Discover your unique digital soulprint and break free from the generic.</span>
-                        <span className="hidden lg:inline">Default mode is dead.</span>
+                        It preserves your tone, behavioral patterns, and cognitive rhythm as a living presence you own and control.
                     </p>
 
                     {/* Actions */}
                     <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:mt-8 lg:gap-4">
-                        <SignUpModal>
-                            <Button
-                                className="h-9 w-full rounded-lg bg-[#EA580C] px-4 py-2 font-geist text-sm font-medium text-[#FAFAFA] hover:bg-[#EA580C]/90 sm:w-auto lg:h-auto lg:px-8 lg:py-3 lg:text-base"
-                            >
-                                Break the Mold
-                            </Button>
-                        </SignUpModal>
+                        <Button
+                            asChild
+                            className="h-9 w-full rounded-lg bg-[#EA580C] px-4 py-2 font-geist text-sm font-medium text-[#FAFAFA] hover:bg-[#EA580C]/90 sm:w-auto lg:h-auto lg:px-8 lg:py-3 lg:text-base"
+                        >
+                            <a href="mailto:waitlist@archeforge.com">Join the Waitlist</a>
+                        </Button>
                     </div>
                 </motion.div>
 

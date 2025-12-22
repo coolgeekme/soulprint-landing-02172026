@@ -31,25 +31,19 @@ export function Navbar() {
 
                     <div className="hidden md:flex gap-6">
                         <Link
-                            href="#features"
+                            href="#"
                             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                         >
                             Features
                         </Link>
                         <Link
-                            href="#pricing"
-                            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            Pricing
-                        </Link>
-                        <Link
-                            href="#faq"
+                            href="#"
                             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                         >
                             FAQ
                         </Link>
                         <Link
-                            href="#about"
+                            href="#"
                             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                         >
                             About
@@ -72,10 +66,9 @@ export function Navbar() {
                     )}
 
                     <div className="hidden md:flex gap-2">
-                        <Button variant="ghost">Sign In</Button>
-                        <SignUpModal>
-                            <Button>Get Started</Button>
-                        </SignUpModal>
+                        <Button asChild>
+                            <a href="mailto:waitlist@archeforge.com">Join the Waitlist</a>
+                        </Button>
                     </div>
                 </div>
             </div>

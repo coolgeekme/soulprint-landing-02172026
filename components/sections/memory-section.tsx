@@ -39,12 +39,10 @@ export function MemorySection() {
                             className="flex flex-1 flex-col items-start justify-start gap-3"
                         >
                             <h3 className="font-geist text-3xl font-bold leading-tight text-white">
-                                Move Across Any AI Seamlessly
+                                Independent Presence, Anywhere Intelligence Exists
                             </h3>
                             <p className="font-geist text-base leading-relaxed text-neutral-400">
-                                Your SoulPrint can follow you from ChatGPT → Claude → Gemini → Perplexity without missing a beat.
-                                <br />
-                                Switch models. Keep the same identity.
+                                Your identity isn't locked to a platform. It travels with you.
                             </p>
                         </motion.div>
                         <motion.div
@@ -55,12 +53,10 @@ export function MemorySection() {
                             className="flex flex-1 flex-col items-start justify-start gap-3"
                         >
                             <h3 className="font-geist text-3xl font-bold leading-tight text-white">
-                                Local Storage. Zero Surveillance.
+                                Local Identity. Zero Surveillance.
                             </h3>
                             <p className="font-geist text-base leading-relaxed text-neutral-400">
-                                Every conversation is saved on your device — encrypted and under your control.
-                                <br />
-                                No cloud logging. No corporate eyes. No third-party access.
+                                Your data stays yours. No tracking, no selling, just pure utility.
                             </p>
                         </motion.div>
                     </div>
@@ -75,12 +71,10 @@ export function MemorySection() {
                             className="flex flex-1 flex-col items-start justify-start gap-3"
                         >
                             <h3 className="font-geist text-3xl font-bold leading-tight text-white">
-                                Your Style, Your Tone, Your Patterns
+                                Your Cadence. Your Tone. Your Patterns.
                             </h3>
                             <p className="font-geist text-base leading-relaxed text-neutral-400">
-                                Whether you’re writing, planning, or creating, SoulPrint remembers how you think.
-                                <br />
-                                Your cognitive fingerprint becomes your AI’s operating system.
+                                The subtle details that make you, you—preserved and projected perfectly.
                             </p>
                         </motion.div>
                         <motion.div
@@ -91,12 +85,10 @@ export function MemorySection() {
                             className="flex flex-1 flex-col items-start justify-start gap-3"
                         >
                             <h3 className="font-geist text-3xl font-bold leading-tight text-white">
-                                Never Start Over Again
+                                Never Rebuild Yourself Again
                             </h3>
                             <p className="font-geist text-base leading-relaxed text-neutral-400">
-                                New model? New chat? New platform?
-                                <br />
-                                SoulPrint restores your context instantly — like stepping back into the same room, no matter where you are.
+                                Switch tools without losing your history or your voice.
                             </p>
                         </motion.div>
                     </div>
