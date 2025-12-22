@@ -139,6 +139,7 @@ export default function QuestionnairePage() {
     const [isTyping, setIsTyping] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [userEmail, setUserEmail] = useState<string | null>(null);
+    const [userId, setUserId] = useState<string | null>(null);
     const [traceMessages, setTraceMessages] = useState<string[]>([]);
     const [voiceAnalysisData, setVoiceAnalysisData] = useState<any | null>(null);
     const [sliderValue, setSliderValue] = useState<number[]>([50]);
@@ -168,6 +169,7 @@ export default function QuestionnairePage() {
                 }
 
                 setUserEmail(user.email);
+            setUserId(user.id);
 
                 // VERSION CHECK: Clear old data from 4-question system
                 const QUESTIONNAIRE_VERSION = "v2_36q";
@@ -314,13 +316,13 @@ export default function QuestionnairePage() {
     };
 
     const submitSoulPrint = async (finalAnswers: Record<string, string>, voiceData?: any) => {
-        if (!userEmail) {
+        if (!userId) {
             throw new Error('User not authenticated');
         }
 
         // Build the full payload including voice analysis
         const payload: any = {
-            user_id: userEmail,
+            user_id: userId,
             answers: finalAnswers,
             timestamp: new Date().toISOString(),
         };

@@ -52,29 +52,38 @@ export default function ChatPage() {
                     .eq('user_id', currentUser.id)
                     .maybeSingle()
 
-                if (!existingSoulprint) {
+                const isDemoUser = currentUser.email?.includes('demo') || currentUser.email === 'elon@soulprint.ai';
+
+                if (!existingSoulprint && !isDemoUser) {
                     console.log('No soulprint found for user ID:', currentUser.id)
                     // Redirect to questionnaire if no soulprint
                     window.location.href = '/questionnaire'
                     return
                 }
-                console.log('✅ Soulprint found for user')
+                console.log('✅ Soulprint found for user (or demo user)')
 
                 // Extract personality string for visualizer
                 try {
-                    let soulprintData = existingSoulprint.soulprint_data
-                    if (typeof soulprintData === 'string') {
-                        soulprintData = JSON.parse(soulprintData)
+                    if (existingSoulprint) {
+                        let soulprintData = existingSoulprint.soulprint_data
+                        if (typeof soulprintData === 'string') {
+                            soulprintData = JSON.parse(soulprintData)
+                        }
+                        // Use full_system_prompt as the primary personality seed
+                        const personalityStr = 
+                            soulprintData?.full_system_prompt ||
+                            soulprintData?.profile_summary?.archetype ||
+                            soulprintData?.profile_summary?.core_essence ||
+                            currentUser.email ||
+                            'Default System'
+                        setPersonality(personalityStr)
+                        console.log('✅ Personality set:', personalityStr.substring(0, 50) + '...')
+                    } else if (isDemoUser) {
+                        // Fallback for demo user without soulprint
+                        const demoPersonality = "Elon Musk - First Principles Thinker. Direct, analytical, visionary, impatient with inefficiency. Focus on Mars, sustainable energy, and AI safety.";
+                        setPersonality(demoPersonality);
+                        console.log('✅ Demo Personality set:', demoPersonality);
                     }
-                    // Use full_system_prompt as the primary personality seed
-                    const personalityStr = 
-                        soulprintData?.full_system_prompt ||
-                        soulprintData?.profile_summary?.archetype ||
-                        soulprintData?.profile_summary?.core_essence ||
-                        currentUser.email ||
-                        'Default System'
-                    setPersonality(personalityStr)
-                    console.log('✅ Personality set:', personalityStr.substring(0, 50) + '...')
                 } catch (e) {
                     console.log('Could not parse personality, using default')
                     setPersonality(currentUser.email || 'Default System')
@@ -93,44 +102,53 @@ export default function ChatPage() {
                     console.log('✅ Loaded chat history:', formattedHistory.length, 'messages')
                 }
 
-                // 4. Get API key - check if user has one in database first
-                const { keys, error: keysError } = await listApiKeys()
-                
-                if (keysError) {
-                    console.error('Error fetching keys:', keysError)
-                }
-
-                // Check localStorage for the raw key
-                const storedKey = localStorage.getItem("soulprint_internal_key")
-                
-                if (keys && keys.length > 0 && storedKey && storedKey.startsWith('sk-soulprint-')) {
-                    // User has keys in DB and a stored key - use it
-                    setApiKey(storedKey)
-                    console.log('✅ Using existing API key')
-                } else if (keys && keys.length > 0) {
-                    // User has keys but no localStorage - need to generate new one
-                    console.log('Keys exist in DB but not in localStorage, generating new key...')
-                    localStorage.removeItem("soulprint_internal_key") // Clear any stale key
-                    const { apiKey: newKey, error: keyError } = await generateApiKey("Internal Chat Key")
-                    if (newKey) {
-                        setApiKey(newKey)
-                        localStorage.setItem("soulprint_internal_key", newKey)
-                        console.log('✅ New API key generated')
-                    } else {
-                        console.error('Failed to generate key:', keyError)
-                    }
+                // 4. Get API key - for demo users, skip database lookup and use demo key
+                if (isDemoUser) {
+                    // Demo users use a special demo key that bypasses database storage
+                    const demoKey = 'sk-soulprint-demo-internal-key'
+                    setApiKey(demoKey)
+                    localStorage.setItem("soulprint_internal_key", demoKey)
+                    console.log('✅ Using demo API key (database bypass)')
                 } else {
-                    // No keys at all - generate one
-                    console.log('No API keys found, generating new key...')
-                    localStorage.removeItem("soulprint_internal_key")
-                    const { apiKey: newKey, error: keyError } = await generateApiKey("Internal Chat Key")
-                    if (newKey) {
-                        setApiKey(newKey)
-                        localStorage.setItem("soulprint_internal_key", newKey)
-                        console.log('✅ New API key generated')
+                    // Regular users: check database for existing keys
+                    const { keys, error: keysError } = await listApiKeys()
+                    
+                    if (keysError) {
+                        console.error('Error fetching keys:', keysError)
+                    }
+
+                    // Check localStorage for the raw key
+                    const storedKey = localStorage.getItem("soulprint_internal_key")
+                    
+                    if (keys && keys.length > 0 && storedKey && storedKey.startsWith('sk-soulprint-')) {
+                        // User has keys in DB and a stored key - use it
+                        setApiKey(storedKey)
+                        console.log('✅ Using existing API key')
+                    } else if (keys && keys.length > 0) {
+                        // User has keys but no localStorage - need to generate new one
+                        console.log('Keys exist in DB but not in localStorage, generating new key...')
+                        localStorage.removeItem("soulprint_internal_key") // Clear any stale key
+                        const { apiKey: newKey, error: keyError } = await generateApiKey("Internal Chat Key")
+                        if (newKey) {
+                            setApiKey(newKey)
+                            localStorage.setItem("soulprint_internal_key", newKey)
+                            console.log('✅ New API key generated')
+                        } else {
+                            console.error('Failed to generate key:', keyError)
+                        }
                     } else {
-                        console.error('Failed to generate key:', keyError)
-                        throw new Error('Failed to generate API key')
+                        // No keys at all - generate one
+                        console.log('No API keys found, generating new key...')
+                        localStorage.removeItem("soulprint_internal_key")
+                        const { apiKey: newKey, error: keyError } = await generateApiKey("Internal Chat Key")
+                        if (newKey) {
+                            setApiKey(newKey)
+                            localStorage.setItem("soulprint_internal_key", newKey)
+                            console.log('✅ New API key generated')
+                        } else {
+                            console.error('Failed to generate key:', keyError)
+                            throw new Error('Failed to generate API key')
+                        }
                     }
                 }
 
@@ -172,7 +190,8 @@ export default function ChatPage() {
                     "Authorization": `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: "gpt-4o",
+                    model: "gemini-flash-latest",
+                    stream: true,
                     messages: [
                         ...messages.map(m => ({ role: m.role, content: m.content })),
                         { role: "user", content: userMsg }
@@ -180,22 +199,60 @@ export default function ChatPage() {
                 })
             })
 
-            const data = await res.json()
-
-            if (data.error) {
-                // Handle error - stringify if it's an object
-                const errorMsg = typeof data.error === 'object'
-                    ? JSON.stringify(data.error, null, 2)
-                    : data.error
-                setMessages(prev => [...prev, { role: "assistant", content: `Error: ${errorMsg}` }])
-            } else {
-                const botMsg = data.choices[0].message.content
-                setMessages(prev => [...prev, { role: "assistant", content: botMsg }])
-                // Save assistant message to database
-                await saveChatMessage({ role: "assistant", content: botMsg })
+            if (!res.ok) {
+                const data = await res.json()
+                throw new Error(data.error || "Failed to send message")
             }
+
+            // Handle Streaming Response
+            const reader = res.body?.getReader()
+            const decoder = new TextDecoder()
+            let botMsg = ""
+            
+            // Add empty assistant message to start
+            setMessages(prev => [...prev, { role: "assistant", content: "" }])
+
+            if (reader) {
+                while (true) {
+                    const { done, value } = await reader.read()
+                    if (done) break
+                    
+                    const chunk = decoder.decode(value)
+                    const lines = chunk.split("\n")
+                    
+                    for (const line of lines) {
+                        if (line.startsWith("data: ")) {
+                            const dataStr = line.slice(6)
+                            if (dataStr === "[DONE]") continue
+                            
+                            try {
+                                const data = JSON.parse(dataStr)
+                                const content = data.choices[0]?.delta?.content || ""
+                                botMsg += content
+                                
+                                // Update last message with new content
+                                setMessages(prev => {
+                                    const newMessages = [...prev]
+                                    const lastMsg = newMessages[newMessages.length - 1]
+                                    if (lastMsg.role === "assistant") {
+                                        lastMsg.content = botMsg
+                                    }
+                                    return newMessages
+                                })
+                            } catch (e) {
+                                // Ignore parse errors for partial chunks
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Save assistant message to database after stream completes
+            await saveChatMessage({ role: "assistant", content: botMsg })
+
         } catch (e) {
-            setMessages(prev => [...prev, { role: "assistant", content: "Error: Failed to send message." }])
+            const errorMsg = e instanceof Error ? e.message : "Failed to send message"
+            setMessages(prev => [...prev, { role: "assistant", content: `Error: ${errorMsg}` }])
         } finally {
             setLoading(false)
         }

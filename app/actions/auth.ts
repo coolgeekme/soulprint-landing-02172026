@@ -12,12 +12,19 @@ export async function signUp(formData: FormData) {
         password: formData.get('password') as string,
     }
 
-    const { error } = await supabase.auth.signUp(data)
+    const { data: signUpData, error } = await supabase.auth.signUp(data)
 
     if (error) {
         return { error: error.message }
     }
 
+    // If user is auto-confirmed (email confirmation is off), redirect to welcome
+    if (signUpData?.user?.email_confirmed_at || signUpData?.session) {
+        revalidatePath('/', 'layout')
+        redirect('/dashboard/welcome')
+    }
+
+    // Otherwise return success (email confirmation required)
     revalidatePath('/', 'layout')
     return { success: true }
 }
@@ -51,12 +58,13 @@ export async function signInWithGoogle() {
     const supabase = await createClient()
 
     // Get the base URL (works for both local and production)
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            redirectTo: `${baseUrl}/auth/callback?next=/questionnaire`,
+            redirectTo: `${baseUrl}/auth/callback?next=/dashboard/welcome`,
         },
     })
 
@@ -67,4 +75,20 @@ export async function signInWithGoogle() {
     if (data.url) {
         redirect(data.url)
     }
+}
+
+export async function signInAsDemo() {
+    const supabase = await createClient()
+
+    const { error } = await supabase.auth.signInWithPassword({
+        email: 'demo@soulprint.ai',
+        password: 'demoPassword123!'
+    })
+
+    if (error) {
+        return { error: error.message }
+    }
+
+    revalidatePath('/', 'layout')
+    redirect('/dashboard/chat')
 }

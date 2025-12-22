@@ -2,16 +2,18 @@
 
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { signUp, signInWithGoogle } from "@/app/actions/auth";
+import { signUp, signInWithGoogle, signInAsDemo } from "@/app/actions/auth";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface SignUpModalProps {
     children: React.ReactNode;
 }
 
 export function SignUpModal({ children }: SignUpModalProps) {
+    const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -32,20 +34,32 @@ export function SignUpModal({ children }: SignUpModalProps) {
         formData.append("email", email);
         formData.append("password", password);
 
-        const result = await signUp(formData);
+        try {
+            const result = await signUp(formData);
 
-        if (result?.error) {
-            setError(result.error);
-            setLoading(false);
-        } else {
-            setSuccess(true);
-            setLoading(false);
+            if (result?.error) {
+                setError(result.error);
+                setLoading(false);
+            } else if (result?.success) {
+                // If we get here (email confirmation required), show success message
+                setSuccess(true);
+                setLoading(false);
+            }
+            // If redirect happens in server action, this won't be reached
+        } catch {
+            // Server action may have redirected
+            router.push('/dashboard/welcome');
         }
     };
 
     const handleGoogleSignIn = async () => {
         setLoading(true);
         await signInWithGoogle();
+    };
+
+    const handleDemoSignIn = async () => {
+        setLoading(true);
+        await signInAsDemo();
     };
 
     // Prevent hydration mismatch by only rendering Dialog on client
@@ -181,15 +195,15 @@ export function SignUpModal({ children }: SignUpModalProps) {
                                     </Button>
 
                                     {/* Demo Mode Button */}
-                                    <Link href="/questionnaire">
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            className="w-full h-9 text-[#5E4F7E] font-host-grotesk font-medium text-sm hover:bg-gray-50 hover:text-[#341E63]"
-                                        >
-                                            🎯 Try Demo Mode (Skip Sign Up)
-                                        </Button>
-                                    </Link>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={handleDemoSignIn}
+                                        disabled={loading}
+                                        className="w-full h-9 text-[#ea580c] font-host-grotesk font-medium text-sm hover:bg-[#ea580c]/10 hover:text-[#ea580c]"
+                                    >
+                                        🎯 Try Demo Mode (Elon Musk)
+                                    </Button>
 
                                     {/* Footer Terms */}
                                     <p className="px-8 text-center text-sm text-[#5E4F7E] font-host-grotesk">

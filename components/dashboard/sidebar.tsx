@@ -5,20 +5,19 @@ import { usePathname } from "next/navigation"
 import {
     SquareTerminal,
     Bot,
-    CodeXml,
-    Book,
+    Key,
     Settings2,
     User,
-    LifeBuoy
+    LifeBuoy,
+    Fingerprint
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import Image from "next/image"
 
 const sidebarItems = [
     { icon: SquareTerminal, label: "Questionnaire", href: "/questionnaire" },
     { icon: Bot, label: "Chat", href: "/dashboard/chat" },
-    { icon: CodeXml, label: "Identity Reactor", href: "/dashboard/reactor" },
-    { icon: Book, label: "Docs", href: "/dashboard/docs" },
+    { icon: Fingerprint, label: "My SoulPrint", href: "/dashboard/profile" },
+    { icon: Key, label: "API Keys", href: "/dashboard/bot" },
     { icon: Settings2, label: "Settings", href: "/dashboard/settings" },
 ]
 
@@ -27,18 +26,8 @@ export function Sidebar() {
 
     return (
         <div className="flex h-screen w-14 flex-col items-center justify-between border-r border-[#222] bg-[#111111] py-2">
-            {/* Logo Section */}
-            <div className="flex flex-col items-center border-b border-[#222] pb-2 w-full">
-                <div className="flex h-9 w-9 items-center justify-center rounded-md overflow-hidden shadow-sm">
-                    <Image
-                        src="/images/Soulprintengine-logo.png"
-                        alt="SoulPrint"
-                        width={36}
-                        height={36}
-                        className="object-cover"
-                    />
-                </div>
-            </div>
+            {/* Empty top section for alignment */}
+            <div className="h-[52px] w-full" />
 
             {/* Main Nav */}
             <nav className="flex flex-1 flex-col items-center gap-1 py-2">

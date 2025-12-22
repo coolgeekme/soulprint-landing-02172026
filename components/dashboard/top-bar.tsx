@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 export function TopBar() {
     const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -29,16 +30,28 @@ export function TopBar() {
     }
 
     return (
-        <header className="flex h-[52px] items-center justify-between border-b border-[#222] bg-[#171717] px-4">
-            {/* Left side - can be empty or show current section */}
-            <div className="font-koulen text-[32px] leading-[38px] text-[#f5f5f5]">
-                {/* Empty as per design */}
+        <header className="flex h-[52px] items-center justify-between border-b border-[#111111] bg-[#111111] px-4">
+            {/* Left side - SoulPrint Engine branding */}
+            <div className="flex items-center gap-2">
+                <Image
+                    src="/images/Soulprintengine-logo.png"
+                    alt="SoulPrint"
+                    width={28}
+                    height={28}
+                    className="object-contain"
+                />
+                <span className="font-koulen text-[22px] leading-[26px] text-white tracking-wide">
+                    SOULPRINT
+                </span>
+                <span className="font-cinzel font-normal text-[20px] leading-[26px] tracking-[1px] uppercase text-white -ml-1">
+                    ENGINE
+                </span>
             </div>
             
             {/* Right side - Log out button */}
             <Button
                 onClick={handleLogout}
-                className="h-9 rounded-md bg-orange-600 px-4 py-2 font-geist text-sm font-medium text-[#e5e5e5] shadow-sm hover:bg-orange-700"
+                className="h-9 rounded-lg bg-gray-700 px-4 py-2 font-geist text-sm font-medium text-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] hover:bg-gray-600"
             >
                 Log out
             </Button>

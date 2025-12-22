@@ -35,14 +35,13 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // Protected routes logic
+    // Protected routes logic - keep it simple
     if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
         return NextResponse.redirect(new URL('/', request.url))
     }
 
-    if (request.nextUrl.pathname === '/' && user) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
+    // Don't redirect authenticated users from landing page
+    // They might want to see the marketing content
 
     // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
     // creating a new response object with NextResponse.next() make sure to:

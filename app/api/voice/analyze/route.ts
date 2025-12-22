@@ -88,10 +88,10 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Validate audio size
-    if (audioBuffer.length < 1000) {
+    // Validate audio size (avoid empty / effectively-empty payloads)
+    if (audioBuffer.length < 128) {
       return NextResponse.json(
-        { error: 'Audio file too small. Please record at least 3 seconds.' },
+        { error: 'No audio captured. Please try again.' },
         { status: 400 }
       );
     }

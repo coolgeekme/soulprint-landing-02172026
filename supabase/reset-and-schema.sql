@@ -10,6 +10,8 @@
 -- =========================================
 
 -- Drop all existing tables in public schema
+DROP TABLE IF EXISTS public.proxy_usage CASCADE;
+DROP TABLE IF EXISTS public.api_keys CASCADE;
 DROP TABLE IF EXISTS public.soulprints CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
 
@@ -44,6 +46,28 @@ CREATE TABLE public.soulprints (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Create api_keys table
+CREATE TABLE public.api_keys (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id TEXT NOT NULL, -- Using TEXT to support both UUID and "test" for demo
+  label TEXT NOT NULL,
+  key_hash TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  last_used_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Create proxy_usage table
+CREATE TABLE public.proxy_usage (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  api_key_id UUID NOT NULL,
+  model TEXT NOT NULL,
+  tokens_input INTEGER DEFAULT 0,
+  tokens_output INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  FOREIGN KEY (api_key_id) REFERENCES public.api_keys(id) ON DELETE CASCADE
+);
+
 -- =========================================
 -- PART 3: ROW LEVEL SECURITY
 -- =========================================
@@ -51,6 +75,8 @@ CREATE TABLE public.soulprints (
 -- Enable RLS
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.soulprints ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.api_keys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.proxy_usage ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
 CREATE POLICY "Users can view their own profile"
@@ -81,6 +107,32 @@ CREATE POLICY "Users can update their own soulprints"
 CREATE POLICY "Users can delete their own soulprints"
   ON public.soulprints FOR DELETE
   USING (auth.uid()::text = user_id);
+
+-- API Keys policies
+CREATE POLICY "Users can view their own API keys"
+  ON public.api_keys FOR SELECT
+  USING (auth.uid()::text = user_id OR user_id = 'test');
+
+CREATE POLICY "Users can insert their own API keys"
+  ON public.api_keys FOR INSERT
+  WITH CHECK (auth.uid()::text = user_id OR user_id = 'test');
+
+CREATE POLICY "Users can update their own API keys"
+  ON public.api_keys FOR UPDATE
+  USING (auth.uid()::text = user_id OR user_id = 'test');
+
+CREATE POLICY "Users can delete their own API keys"
+  ON public.api_keys FOR DELETE
+  USING (auth.uid()::text = user_id OR user_id = 'test');
+
+-- Proxy Usage policies
+CREATE POLICY "Users can view their own proxy usage"
+  ON public.proxy_usage FOR SELECT
+  USING (auth.uid()::text = user_id OR user_id = 'test');
+
+CREATE POLICY "Users can insert their own proxy usage"
+  ON public.proxy_usage FOR INSERT
+  WITH CHECK (auth.uid()::text = user_id OR user_id = 'test');
 
 -- =========================================
 -- PART 4: FUNCTIONS & TRIGGERS

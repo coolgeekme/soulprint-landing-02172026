@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Koulen, Geist, Host_Grotesk } from "next/font/google";
+import { Inter, Koulen, Geist, Host_Grotesk, Cinzel, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,14 @@ const geist = Geist({
 const hostGrotesk = Host_Grotesk({
   subsets: ["latin"],
   variable: "--font-host-grotesk",
+});
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  variable: "--font-cinzel",
+});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
 });
 
 export const metadata: Metadata = {
@@ -36,7 +44,9 @@ export default function RootLayout({
         inter.variable,
         koulen.variable,
         geist.variable,
-        hostGrotesk.variable
+        hostGrotesk.variable,
+        cinzel.variable,
+        jetbrainsMono.variable
       )}>
         <ThemeProvider
           attribute="class"

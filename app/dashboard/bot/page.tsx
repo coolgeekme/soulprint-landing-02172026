@@ -75,7 +75,7 @@ export default function BotPage() {
                     "Authorization": `Bearer ${keyToUse}`
                 },
                 body: JSON.stringify({
-                    model: "gpt-4o-mini",
+                    model: "gemini-flash-latest",
                     messages: [
                         { role: "user", content: testMessage || "Hello, who are you?" }
                     ]

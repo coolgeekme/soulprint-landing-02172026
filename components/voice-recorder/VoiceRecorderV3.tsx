@@ -72,7 +72,7 @@ interface VoiceRecorderV3Props {
 export function VoiceRecorderV3({
   onAnalysisComplete,
   onError,
-  minDuration = 5,
+  minDuration = 0,
   maxDuration = 120,
   questionText,
   autoSubmit = true,
@@ -222,11 +222,6 @@ export function VoiceRecorderV3({
       return;
     }
     
-    if (recordingTime < minDuration) {
-      setError(`Recording too short. Please record at least ${minDuration} seconds.`);
-      return;
-    }
-    
     setIsAnalyzing(true);
     setError(null);
     
@@ -336,7 +331,7 @@ export function VoiceRecorderV3({
               {isAnalyzing 
                 ? 'Analyzing voice signature...'
                 : isRecording 
-                  ? `Recording... (min ${minDuration}s)`
+                  ? 'Recording...'
                   : analysisResult
                     ? 'Voice captured ✓'
                     : audioBlob 
@@ -439,8 +434,8 @@ export function VoiceRecorderV3({
             disabled={isAnalyzing}
             className={`
               relative w-20 h-20 rounded-full flex items-center justify-center transition-all
-              ${isRecording 
-                ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
+              ${isRecording
+                ? 'bg-red-500 hover:bg-red-600 animate-pulse'
                 : 'bg-gradient-to-br from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
               }
               disabled:opacity-50 disabled:cursor-not-allowed
@@ -462,7 +457,7 @@ export function VoiceRecorderV3({
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {isRecording 
-              ? `Recording... (min ${minDuration}s, max ${maxDuration}s)`
+              ? 'Recording...'
               : audioBlob 
                 ? 'Recording complete'
                 : 'Click to start recording'

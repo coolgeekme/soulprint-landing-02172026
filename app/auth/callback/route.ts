@@ -32,7 +32,7 @@ export async function GET(request: Request) {
             const { data: existingSoulprint } = await supabase
                 .from('soulprints')
                 .select('id')
-                .eq('user_id', user.email)
+                .eq('user_id', user.id)
                 .maybeSingle()
 
             if (existingSoulprint) {
@@ -42,6 +42,6 @@ export async function GET(request: Request) {
         }
     }
 
-    // New user - go to questionnaire
-    return NextResponse.redirect(new URL('/questionnaire', requestUrl.origin))
+    // New user - go to welcome page
+    return NextResponse.redirect(new URL('/dashboard/welcome', requestUrl.origin))
 }

@@ -25,6 +25,21 @@ export async function generateApiKey(label: string = "Default Key") {
 
     const { data: { user } } = await supabase.auth.getUser()
 
+    // Validate user authentication
+    if (!user) {
+        return { 
+            error: "Authentication required",
+            details: "User not authenticated. Please log in."
+        }
+    }
+
+    if (!user.email) {
+        return { 
+            error: "Email not available",
+            details: "User email is required but not found in session."
+        }
+    }
+
     // Generate a secure key
     // Format: sk-soulprint-[random-hex]
     const rawKey = 'sk-soulprint-' + randomBytes(24).toString('hex')
@@ -40,7 +55,7 @@ export async function generateApiKey(label: string = "Default Key") {
     const { data, error } = await supabase
         .from('api_keys')
         .insert({
-            user_id: user?.email, // Use email as primary identifier
+            user_id: user.id, // Use UUID as primary identifier
             label,
             key_hash: hashedKey,
             // We don't store the raw key!
@@ -50,7 +65,12 @@ export async function generateApiKey(label: string = "Default Key") {
 
     if (error) {
         console.error("Error creating key:", error)
-        return { error: error.message }
+        return { 
+            error: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+        }
     }
 
     // Return the RAW key to the user (one time only)
@@ -74,14 +94,28 @@ export async function listApiKeys() {
 
     const { data: { user } } = await supabase.auth.getUser()
 
+    // Validate user authentication
+    if (!user || !user.email) {
+        return { 
+            error: "Authentication required",
+            keys: [] 
+        }
+    }
+
     const { data, error } = await supabase
         .from('api_keys')
         .select('*')
-        .eq('user_id', user?.email) // Use email as primary identifier
+        .eq('user_id', user.id) // Use UUID as primary identifier
         .order('created_at', { ascending: false })
 
     if (error) {
-        return { error: error.message }
+        console.error("Error fetching keys:", error)
+        return { 
+            error: error.message,
+            code: error.code,
+            details: error.details,
+            keys: []
+        }
     }
 
     return { keys: data }
@@ -108,7 +142,12 @@ export async function revokeApiKey(id: string) {
         .eq('id', id)
 
     if (error) {
-        return { error: error.message }
+        console.error("Error revoking key:", error)
+        return { 
+            error: error.message,
+            code: error.code,
+            details: error.details
+        }
     }
 
     return { success: true }

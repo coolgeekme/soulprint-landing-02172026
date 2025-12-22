@@ -59,7 +59,15 @@ export const questions: Question[] = [
         type: "text",
         placeholder: "I am..."
     },
-
+    {
+        id: "v1",
+        question: "Tell me about a time your words were misunderstood.",
+        category: "communication",
+        type: "voice",
+        voicePrompt: "Speak naturally about a time your words were misunderstood.",
+        maxDuration: 90,
+        pillarId: "communication_style"
+    },
     // PILLAR 2: Emotional Alignment
     {
         id: "s4",

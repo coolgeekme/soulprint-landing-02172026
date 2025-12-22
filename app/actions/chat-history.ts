@@ -21,7 +21,7 @@ export async function getChatHistory(): Promise<ChatMessage[]> {
   const { data, error } = await supabase
     .from("chat_messages")
     .select("id, role, content, created_at")
-    .eq("user_id", user.email)
+    .eq("user_id", user.id)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -44,7 +44,7 @@ export async function saveChatMessage(message: ChatMessage): Promise<boolean> {
   const { error } = await supabase
     .from("chat_messages")
     .insert({
-      user_id: user.email,
+      user_id: user.id,
       role: message.role,
       content: message.content,
     });
@@ -67,7 +67,7 @@ export async function saveChatMessages(messages: ChatMessage[]): Promise<boolean
   }
 
   const messagesWithUser = messages.map(msg => ({
-    user_id: user.email,
+    user_id: user.id,
     role: msg.role,
     content: msg.content,
   }));
@@ -96,7 +96,7 @@ export async function clearChatHistory(): Promise<boolean> {
   const { error } = await supabase
     .from("chat_messages")
     .delete()
-    .eq("user_id", user.email);
+    .eq("user_id", user.id);
 
   if (error) {
     console.error("Error clearing chat history:", error);

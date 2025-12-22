@@ -16,6 +16,8 @@ const config: Config = {
                 koulen: ["var(--font-koulen)", "sans-serif"],
                 geist: ["var(--font-geist)", "sans-serif"],
                 "host-grotesk": ["var(--font-host-grotesk)", "sans-serif"],
+                cinzel: ["var(--font-cinzel)", "serif"],
+                mono: ["var(--font-jetbrains-mono)", "monospace"],
             },
             colors: {
                 border: "hsl(var(--border))",

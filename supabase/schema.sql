@@ -17,9 +17,33 @@ CREATE TABLE IF NOT EXISTS public.soulprints (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Create api_keys table
+CREATE TABLE IF NOT EXISTS public.api_keys (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  label TEXT NOT NULL,
+  key_hash TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  last_used_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Create proxy_usage table
+CREATE TABLE IF NOT EXISTS public.proxy_usage (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL,
+  api_key_id UUID NOT NULL,
+  model TEXT NOT NULL,
+  tokens_input INTEGER DEFAULT 0,
+  tokens_output INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  FOREIGN KEY (api_key_id) REFERENCES public.api_keys(id) ON DELETE CASCADE
+);
+
 -- Set up Row Level Security (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.soulprints ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.api_keys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.proxy_usage ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
 CREATE POLICY "Users can view their own profile"
@@ -50,6 +74,32 @@ CREATE POLICY "Users can update their own soulprints"
 CREATE POLICY "Users can delete their own soulprints"
   ON public.soulprints FOR DELETE
   USING (auth.uid() = user_id);
+
+-- API Keys policies
+CREATE POLICY "Users can view their own API keys"
+  ON public.api_keys FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own API keys"
+  ON public.api_keys FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own API keys"
+  ON public.api_keys FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own API keys"
+  ON public.api_keys FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Proxy Usage policies
+CREATE POLICY "Users can view their own proxy usage"
+  ON public.proxy_usage FOR SELECT
+  USING (auth.uid()::text = user_id);
+
+CREATE POLICY "Users can insert their own proxy usage"
+  ON public.proxy_usage FOR INSERT
+  WITH CHECK (auth.uid()::text = user_id);
 
 -- Create function to handle user creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
