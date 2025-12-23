@@ -12,7 +12,7 @@ export interface ChatMessage {
 // Get chat history for the current user
 export async function getChatHistory(): Promise<ChatMessage[]> {
   const supabase = await createClient();
-  
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) {
     return [];
@@ -21,7 +21,7 @@ export async function getChatHistory(): Promise<ChatMessage[]> {
   const { data, error } = await supabase
     .from("chat_messages")
     .select("id, role, content, created_at")
-    .eq("user_id", user.id)
+    .eq("user_id", user.email)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -35,7 +35,7 @@ export async function getChatHistory(): Promise<ChatMessage[]> {
 // Save a message to chat history
 export async function saveChatMessage(message: ChatMessage): Promise<boolean> {
   const supabase = await createClient();
-  
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) {
     return false;
@@ -44,7 +44,7 @@ export async function saveChatMessage(message: ChatMessage): Promise<boolean> {
   const { error } = await supabase
     .from("chat_messages")
     .insert({
-      user_id: user.id,
+      user_id: user.email,
       role: message.role,
       content: message.content,
     });
@@ -60,14 +60,14 @@ export async function saveChatMessage(message: ChatMessage): Promise<boolean> {
 // Save multiple messages at once (for batch saving)
 export async function saveChatMessages(messages: ChatMessage[]): Promise<boolean> {
   const supabase = await createClient();
-  
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) {
     return false;
   }
 
   const messagesWithUser = messages.map(msg => ({
-    user_id: user.id,
+    user_id: user.email,
     role: msg.role,
     content: msg.content,
   }));
@@ -87,7 +87,7 @@ export async function saveChatMessages(messages: ChatMessage[]): Promise<boolean
 // Clear chat history for the current user
 export async function clearChatHistory(): Promise<boolean> {
   const supabase = await createClient();
-  
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) {
     return false;
@@ -96,7 +96,7 @@ export async function clearChatHistory(): Promise<boolean> {
   const { error } = await supabase
     .from("chat_messages")
     .delete()
-    .eq("user_id", user.id);
+    .eq("user_id", user.email);
 
   if (error) {
     console.error("Error clearing chat history:", error);
@@ -109,7 +109,7 @@ export async function clearChatHistory(): Promise<boolean> {
 // Check if user has completed the questionnaire (has a soulprint)
 export async function hasCompletedQuestionnaire(): Promise<boolean> {
   const supabase = await createClient();
-  
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) {
     return false;

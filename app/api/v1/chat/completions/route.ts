@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "crypto";
-import { gemini, DEFAULT_MODEL } from "@/lib/gemini/client";
+// import { gemini, DEFAULT_MODEL } from "@/lib/gemini/client"; // Removed
 import { checkHealth, streamChatCompletion, chatCompletion, ChatMessage } from "@/lib/llm/local-client";
 import { loadMemory, buildSystemPrompt } from "@/lib/letta/soulprint-memory";
 
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
         // 4. Parse Request Body
         const body = await req.json();
-        const { messages, model = DEFAULT_MODEL, stream = false } = body;
+        const { messages, model = 'hermes3', stream = false } = body;
 
         // ============================================================
         // 🚀 LOCAL AI PATH (Hermes 3 + Letta Memory)
@@ -62,10 +62,10 @@ export async function POST(req: NextRequest) {
 
         if (isLocalUp) {
             console.log('🚀 Using Local Hermes 3 + Letta Memory');
-            
+
             // A. Load Letta Memory
             const memory = await loadMemory(keyData.user_id);
-            
+
             // B. Build "Mirror" System Prompt
             let soulprintObj = soulprint?.soulprint_data;
             if (typeof soulprintObj === 'string') {
@@ -124,121 +124,21 @@ export async function POST(req: NextRequest) {
                     }]
                 });
             }
-        }
-
-        // ============================================================
-        // ☁️ CLOUD FALLBACK (Gemini)
-        // ============================================================
-        console.log('☁️ Local AI Offline - Falling back to Gemini');
-
-        let systemMessage = "You are a helpful AI assistant.";
-
-        if (soulprint?.soulprint_data) {
-            let soulprintObj = soulprint.soulprint_data;
-            if (typeof soulprintObj === 'string') {
-                try { soulprintObj = JSON.parse(soulprintObj); } catch (e) { }
-            }
-
-            if (soulprintObj?.full_system_prompt) {
-                systemMessage = soulprintObj.full_system_prompt;
-            } else {
-                const traits = JSON.stringify(soulprintObj, null, 2);
-                systemMessage = `You are a personalized AI assistant for the user.
-Your personality and responses should be shaped by the following SoulPrint identity data:
-${traits}
-
-Always stay in character based on these traits.`;
-            }
-        }
-
-        const geminiContents = messages
-            .filter((m: { role: string }) => m.role !== 'system')
-            .map((m: { role: string; content: string }) => ({
-                role: m.role === 'assistant' ? 'model' : 'user',
-                parts: [{ text: m.content }]
-            }));
-
-        // 5. Call Gemini API
-        if (stream) {
-            // STREAMING RESPONSE
-            const result = await gemini.models.generateContentStream({
-                model: model,
-                contents: geminiContents,
-                config: {
-                    systemInstruction: systemMessage,
-                    maxOutputTokens: 2048,
-                    temperature: 0.8,
-                }
-            });
-
-            const stream = new ReadableStream({
-                async start(controller) {
-                    const encoder = new TextEncoder();
-                    try {
-                        for await (const chunk of result) {
-                            // Extract text from the candidate parts
-                            const text = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
-                            if (text) {
-                                // Send in OpenAI stream format: data: { ... }
-                                const data = JSON.stringify({
-                                    choices: [{ delta: { content: text } }]
-                                });
-                                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-                            }
-                        }
-                        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-                        controller.close();
-                    } catch (e) {
-                        controller.error(e);
-                    }
-                }
-            });
-
-            return new NextResponse(stream, {
-                headers: {
-                    'Content-Type': 'text/event-stream',
-                    'Cache-Control': 'no-cache',
-                    'Connection': 'keep-alive',
-                },
-            });
-
         } else {
-            // STANDARD RESPONSE
-            const response = await gemini.models.generateContent({
-                model: model,
-                contents: geminiContents,
-                config: {
-                    systemInstruction: systemMessage,
-                    maxOutputTokens: 2048,
-                    temperature: 0.8,
-                }
-            });
-
-            // Extract text from response candidates
-            const responseText = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
+            // ============================================================
+            // ❌ LOCAL AI OFFLINE - NO FALLBACK
+            // ============================================================
+            console.error('❌ Local AI Offline - Gemini Fallback Disabled');
             return NextResponse.json({
-                id: `chatcmpl-${Date.now()}`,
-                object: 'chat.completion',
-                created: Math.floor(Date.now() / 1000),
-                model: model,
-                choices: [{
-                    index: 0,
-                    message: {
-                        role: 'assistant',
-                        content: responseText
-                    },
-                    finish_reason: 'stop'
-                }],
-                usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
-            });
+                error: "Local AI is offline. Please ensure the SoulPrint Engine is running and accessible."
+            }, { status: 503 });
         }
 
-    } catch (geminiError: unknown) {
-        console.error('❌ Gemini API Error:', geminiError);
-        const errorMessage = geminiError instanceof Error ? geminiError.message : 'Unknown Gemini error';
+    } catch (error: unknown) {
+        console.error('❌ Chat API Error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         return NextResponse.json({
-            error: `Gemini API error: ${errorMessage}`,
+            error: `API error: ${errorMessage}`,
         }, { status: 500 });
     }
 }
