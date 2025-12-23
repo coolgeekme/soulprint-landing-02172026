@@ -39,12 +39,13 @@ export function Hero() {
 
                     {/* Actions */}
                     <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:mt-8 lg:gap-4">
-                        <Button
-                            asChild
-                            className="h-9 w-full rounded-lg bg-[#EA580C] px-4 py-2 font-geist text-sm font-medium text-[#FAFAFA] hover:bg-[#EA580C]/90 sm:w-auto lg:h-auto lg:px-8 lg:py-3 lg:text-base"
-                        >
-                            <a href="mailto:waitlist@archeforge.com">Join the Waitlist</a>
-                        </Button>
+                        <SignUpModal>
+                            <Button
+                                className="h-9 w-full rounded-lg bg-[#EA580C] px-4 py-2 font-geist text-sm font-medium text-[#FAFAFA] hover:bg-[#EA580C]/90 sm:w-auto lg:h-auto lg:px-8 lg:py-3 lg:text-base"
+                            >
+                                Join the Waitlist
+                            </Button>
+                        </SignUpModal>
                     </div>
                 </motion.div>
 

@@ -66,9 +66,9 @@ export function Navbar() {
                     )}
 
                     <div className="hidden md:flex gap-2">
-                        <Button asChild>
-                            <a href="mailto:waitlist@archeforge.com">Join the Waitlist</a>
-                        </Button>
+                        <SignUpModal>
+                            <Button>Join the Waitlist</Button>
+                        </SignUpModal>
                     </div>
                 </div>
             </div>
