@@ -15,7 +15,8 @@ if (!apiKey) {
 export const gemini = new GoogleGenAI({ apiKey: apiKey || 'dummy-key' });
 
 // Default model for generation tasks
-export const DEFAULT_MODEL = 'gemini-1.5-flash';
+// NOTE: gemini-1.5-flash was retired. Using gemini-2.0-flash (recommended successor).
+export const DEFAULT_MODEL = 'gemini-2.0-flash';
 
 // Re-export for convenience
 export { GoogleGenAI };
