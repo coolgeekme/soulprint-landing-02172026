@@ -34,7 +34,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Process SoulPrint directly (Generate, Save, Index)
-        const result = await processSoulPrint(supabaseAdmin, user.id, answers);
+        const result = await processSoulPrint(supabaseAdmin, user.id, answers, {
+            email: user.email,
+            full_name: user.user_metadata?.full_name,
+            avatar_url: user.user_metadata?.avatar_url
+        });
         
         return NextResponse.json(result);
 

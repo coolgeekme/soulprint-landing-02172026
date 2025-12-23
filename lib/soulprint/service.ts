@@ -1,26 +1,27 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { 
-    generateSoulPrint, 
     createFileSearchStore, 
     uploadToFileSearchStore, 
     soulPrintToDocument,
     QuestionnaireAnswers 
 } from '@/lib/gemini';
+import { generateSoulPrint } from '@/lib/soulprint/generator';
 import { saveSoulPrint } from './db';
 
 export async function processSoulPrint(
     supabaseAdmin: SupabaseClient,
     userId: string,
-    answers: QuestionnaireAnswers
+    answers: QuestionnaireAnswers,
+    userData?: { email?: string; full_name?: string; avatar_url?: string }
 ) {
     console.log('🧠 Generating SoulPrint for user:', userId);
 
-    // 1. Generate SoulPrint using Gemini
-    const soulprintData = await generateSoulPrint(answers);
+    // 1. Generate SoulPrint using Local LLM
+    const soulprintData = await generateSoulPrint(answers, userId);
     console.log('✅ SoulPrint generated, archetype:', soulprintData.archetype);
 
     // 2. Save to Supabase soulprints table
-    await saveSoulPrint(supabaseAdmin, userId, soulprintData);
+    await saveSoulPrint(supabaseAdmin, userId, soulprintData, userData);
     console.log('💾 SoulPrint saved to Supabase');
 
     // 3. Get or create Gemini File Search Store for user

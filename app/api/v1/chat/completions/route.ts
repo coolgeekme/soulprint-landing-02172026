@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "crypto";
 import { gemini, DEFAULT_MODEL } from "@/lib/gemini/client";
+import { checkHealth, streamChatCompletion, chatCompletion, ChatMessage } from "@/lib/llm/local-client";
+import { loadMemory, buildSystemPrompt } from "@/lib/letta/soulprint-memory";
 
 // Initialize Supabase Admin client (to bypass RLS for key check)
 const supabaseAdmin = createClient(
@@ -49,6 +51,86 @@ export async function POST(req: NextRequest) {
             .eq("user_id", keyData.user_id)
             .maybeSingle();
 
+        // 4. Parse Request Body
+        const body = await req.json();
+        const { messages, model = DEFAULT_MODEL, stream = false } = body;
+
+        // ============================================================
+        // 🚀 LOCAL AI PATH (Hermes 3 + Letta Memory)
+        // ============================================================
+        const isLocalUp = await checkHealth();
+
+        if (isLocalUp) {
+            console.log('🚀 Using Local Hermes 3 + Letta Memory');
+            
+            // A. Load Letta Memory
+            const memory = await loadMemory(keyData.user_id);
+            
+            // B. Build "Mirror" System Prompt
+            let soulprintObj = soulprint?.soulprint_data;
+            if (typeof soulprintObj === 'string') {
+                try { soulprintObj = JSON.parse(soulprintObj); } catch (e) { }
+            }
+            const systemPrompt = buildSystemPrompt(soulprintObj, memory);
+
+            // C. Prepare Messages (Prepend System Prompt)
+            const localMessages: ChatMessage[] = [
+                { role: 'system', content: systemPrompt },
+                ...messages.map((m: any) => ({ role: m.role, content: m.content }))
+            ];
+
+            // D. Stream Response
+            if (stream) {
+                const generator = streamChatCompletion(localMessages);
+                const encoder = new TextEncoder();
+
+                const stream = new ReadableStream({
+                    async start(controller) {
+                        try {
+                            for await (const text of generator) {
+                                // Match OpenAI SSE format for frontend compatibility
+                                const data = JSON.stringify({
+                                    choices: [{ delta: { content: text } }]
+                                });
+                                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                            }
+                            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                            controller.close();
+                        } catch (e) {
+                            controller.error(e);
+                        }
+                    }
+                });
+
+                return new NextResponse(stream, {
+                    headers: {
+                        'Content-Type': 'text/event-stream',
+                        'Cache-Control': 'no-cache',
+                        'Connection': 'keep-alive',
+                    },
+                });
+            } else {
+                // Standard Response
+                const content = await chatCompletion(localMessages);
+                return NextResponse.json({
+                    id: `chatcmpl-local-${Date.now()}`,
+                    object: 'chat.completion',
+                    created: Math.floor(Date.now() / 1000),
+                    model: 'hermes3',
+                    choices: [{
+                        index: 0,
+                        message: { role: 'assistant', content },
+                        finish_reason: 'stop'
+                    }]
+                });
+            }
+        }
+
+        // ============================================================
+        // ☁️ CLOUD FALLBACK (Gemini)
+        // ============================================================
+        console.log('☁️ Local AI Offline - Falling back to Gemini');
+
         let systemMessage = "You are a helpful AI assistant.";
 
         if (soulprint?.soulprint_data) {
@@ -68,10 +150,6 @@ ${traits}
 Always stay in character based on these traits.`;
             }
         }
-
-        // 4. Prepare Request for Gemini
-        const body = await req.json();
-        const { messages, model = DEFAULT_MODEL, stream = false } = body;
 
         const geminiContents = messages
             .filter((m: { role: string }) => m.role !== 'system')
