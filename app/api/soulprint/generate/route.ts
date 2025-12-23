@@ -3,8 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { processSoulPrint } from '@/lib/soulprint/service';
 
-export const maxDuration = 60; // Allow up to 60 seconds for processing
-export const runtime = 'edge'; // Use Edge Runtime for longer timeout on Hobby plan
+export const maxDuration = 300; // Allow up to 300 seconds (5 minutes) for processing
+export const runtime = 'nodejs'; // Use Node.js runtime to avoid Edge timeout limits
 
 // Supabase admin client
 const supabaseAdmin = createAdminClient(
@@ -13,23 +13,29 @@ const supabaseAdmin = createAdminClient(
 );
 
 export async function POST(request: NextRequest) {
+    const startTime = Date.now();
     try {
+        console.log('🚀 [SoulPrint API] Generation process started');
         const supabase = await createClient();
-        
+
         // Get current user
         const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
+
         if (userError || !user) {
+            console.error('❌ [SoulPrint API] Unauthorized access attempt');
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
             );
         }
 
+        console.log(`👤 [SoulPrint API] User identified: ${user.id} (${user.email})`);
+
         const body = await request.json();
         const { answers } = body;
 
         if (!answers) {
+            console.error('❌ [SoulPrint API] Missing answers in request body');
             return NextResponse.json(
                 { error: 'answers are required' },
                 { status: 400 }
@@ -37,18 +43,23 @@ export async function POST(request: NextRequest) {
         }
 
         // Process SoulPrint directly (Generate, Save, Index)
+        console.log('🧠 [SoulPrint API] Calling processSoulPrint...');
         const result = await processSoulPrint(supabaseAdmin, user.id, answers, {
             email: user.email,
             full_name: user.user_metadata?.full_name,
             avatar_url: user.user_metadata?.avatar_url
         });
-        
+
+        const duration = (Date.now() - startTime) / 1000;
+        console.log(`✅ [SoulPrint API] Success! Archetype: ${result.archetype}. Total time: ${duration.toFixed(2)}s`);
+
         return NextResponse.json(result);
 
-    } catch (error) {
-        console.error('Error generating SoulPrint:', error);
+    } catch (error: any) {
+        const duration = (Date.now() - startTime) / 1000;
+        console.error(`❌ [SoulPrint API] Critical error after ${duration.toFixed(2)}s:`, error);
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: error.message || 'Internal server error' },
             { status: 500 }
         );
     }

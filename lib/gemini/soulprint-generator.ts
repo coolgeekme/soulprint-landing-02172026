@@ -321,6 +321,9 @@ Generate the complete SoulPrint JSON profile based on these 36 responses. Output
  * Generate a SoulPrint from questionnaire answers using Gemini
  */
 export async function generateSoulPrint(answers: QuestionnaireAnswers, userId?: string): Promise<SoulPrintData> {
+  const startTime = Date.now();
+  console.log('🔮 [Gemini Generator] Starting SoulPrint generation sequence...');
+
   const userPrompt = buildUserPrompt(answers);
 
   // 1) Generate compact JSON (no full_system_prompt) to avoid truncation.
@@ -331,7 +334,11 @@ export async function generateSoulPrint(answers: QuestionnaireAnswers, userId?: 
 
   let baseSoulprint: any = null;
 
-  for (const attempt of baseAttempts) {
+  for (let i = 0; i < baseAttempts.length; i++) {
+    const attempt = baseAttempts[i];
+    const baseStartTime = Date.now();
+    console.log(`📡 [Gemini Generator] Attempt ${i + 1}: Generating base JSON (temp: ${attempt.temperature})...`);
+
     const response = await gemini.models.generateContent({
       model: DEFAULT_MODEL,
       contents: [
@@ -345,18 +352,20 @@ export async function generateSoulPrint(answers: QuestionnaireAnswers, userId?: 
       }
     });
 
+    const baseDuration = (Date.now() - baseStartTime) / 1000;
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+
     try {
       baseSoulprint = JSON.parse(text);
+      console.log(`✅ [Gemini Generator] Base JSON generated in ${baseDuration.toFixed(2)}s`);
       break;
     } catch (error) {
-      console.error('Failed to parse base SoulPrint JSON:', error);
-      console.error('Raw base response length:', text.length);
+      console.error(`❌ [Gemini Generator] Failed to parse base SoulPrint JSON on attempt ${i + 1}:`, error);
     }
   }
 
   if (!baseSoulprint) {
-    throw new Error('Failed to generate valid SoulPrint JSON');
+    throw new Error('Failed to generate valid SoulPrint JSON after multiple attempts');
   }
 
   if (!baseSoulprint.generated_at) {
@@ -366,6 +375,9 @@ export async function generateSoulPrint(answers: QuestionnaireAnswers, userId?: 
   normalizeMarkers(baseSoulprint);
 
   // 2) Generate the long full_system_prompt as plain text.
+  console.log('📡 [Gemini Generator] Phase 2: Generating full system prompt (500+ words)...');
+  const fullPromptStartTime = Date.now();
+
   const systemPromptRequest = `Write ONLY the full_system_prompt for this SoulPrint (no JSON, no markdown).\n\nRequirements:\n- 500+ words\n- Second person\n- Include: tone, cadence/pacing, what earns trust, what to avoid, how to handle disagreement/conflict\n\nSoulPrint context (JSON):\n${JSON.stringify(baseSoulprint, null, 2)}`;
 
   const systemPromptResponse = await gemini.models.generateContent({
@@ -378,8 +390,19 @@ export async function generateSoulPrint(answers: QuestionnaireAnswers, userId?: 
     }
   });
 
+  const fullPromptDuration = (Date.now() - fullPromptStartTime) / 1000;
   const fullSystemPrompt = (systemPromptResponse.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+
+  if (!fullSystemPrompt || fullSystemPrompt.length < 100) {
+    console.warn('⚠️ [Gemini Generator] Full system prompt generation returned suspiciously short content');
+  } else {
+    console.log(`✅ [Gemini Generator] Full system prompt generated in ${fullPromptDuration.toFixed(2)}s (${fullSystemPrompt.length} chars)`);
+  }
+
   baseSoulprint.full_system_prompt = fullSystemPrompt;
+
+  const totalDuration = (Date.now() - startTime) / 1000;
+  console.log(`✨ [Gemini Generator] SoulPrint sequence complete. Total time: ${totalDuration.toFixed(2)}s`);
 
   return baseSoulprint as SoulPrintData;
 }
