@@ -22,20 +22,24 @@ export function Hero() {
                     {/* Mobile Tagline - Hidden on Desktop */}
                     <div className="flex items-center gap-1 lg:hidden">
                         <span className="font-geist text-sm font-medium leading-5 text-[#737373]">
-                            SOULPRINT
+                            You don’t prompt it. You become it.
                         </span>
                     </div>
 
                     {/* Headline */}
-                    <h1 className="w-full font-koulen text-[72px] leading-[80px] text-white uppercase tracking-tight lg:text-[clamp(40px,4vw,110px)] lg:leading-[0.9]">
-                        SoulPrint is your
+                    <h1 className="w-full font-koulen text-[64px] leading-[0.9] text-white uppercase tracking-tight lg:text-[clamp(40px,4vw,100px)] lg:leading-[0.9]">
+                        SoulPrint isn’t AI.
                         <br />
-                        personal identity engine.
+                        It’s the identity layer
+                        <br />
+                        AI never had.
                     </h1>
 
                     {/* Subheading */}
-                    <p className="w-full font-inter text-lg leading-7 text-[#737373] lg:mt-6 lg:max-w-xl lg:text-gray-400 lg:leading-relaxed xl:text-xl">
-                        It preserves your tone, behavioral patterns, and cognitive rhythm as a living presence you own and control.
+                    <p className="w-full font-inter text-lg leading-7 text-[#737373] lg:mt-6 lg:max-w-2xl lg:text-gray-400 lg:leading-relaxed xl:text-xl">
+                        Persistent identity. Model-agnostic. Memory outside the model.
+                        <br className="hidden lg:block" />
+                        SoulPrint reads how you speak, how you think, and how you decide, and turns it into a persistent identity that no model can erase.
                     </p>
 
                     {/* Actions */}

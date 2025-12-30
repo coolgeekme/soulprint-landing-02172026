@@ -93,7 +93,7 @@ export function Footer() {
                 {/* Bottom Section */}
                 <div className="flex items-center justify-between border-t border-neutral-300 pt-6">
                     <p className="font-inter text-sm font-normal text-neutral-600">
-                        Copyright 2025 © soulprintengine.ai
+                        Copyright 2025 © Archeforge, LLC
                     </p>
 
                     <div className="flex items-center gap-6">
