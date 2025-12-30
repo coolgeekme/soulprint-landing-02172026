@@ -8,7 +8,7 @@ import Link from "next/link";
 
 export function Hero() {
     return (
-        <section className="relative flex w-full flex-col items-center justify-center overflow-hidden bg-[#0A0A0A] py-16 lg:min-h-[60vh] lg:bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] lg:from-neutral-900/50 lg:via-black lg:to-black lg:py-[clamp(60px,8vh,120px)]">
+        <section className="relative flex w-full flex-col items-center justify-center overflow-hidden bg-[#0A0A0A] min-h-screen lg:bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] lg:from-neutral-900/50 lg:via-black lg:to-black">
             <div className="flex w-full max-w-[1400px] flex-col items-center justify-center gap-12 px-6 md:px-12 lg:flex-row lg:gap-20 xl:px-24">
 
                 {/* Content Container */}
@@ -19,12 +19,7 @@ export function Hero() {
                     className="flex w-full max-w-[672px] flex-col items-start justify-center gap-6 lg:max-w-none lg:flex-1"
                 >
 
-                    {/* Mobile Tagline - Hidden on Desktop */}
-                    <div className="flex items-center gap-1 lg:hidden">
-                        <span className="font-geist text-sm font-medium leading-5 text-[#737373]">
-                            You don’t prompt it. You become it.
-                        </span>
-                    </div>
+
 
                     {/* Headline */}
                     <h1 className="w-full font-koulen text-[64px] leading-[0.9] text-white uppercase tracking-tight lg:text-[clamp(40px,4vw,100px)] lg:leading-[0.9]">

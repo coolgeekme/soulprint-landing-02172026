@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/sections/navbar"
 import { Hero } from "@/components/sections/hero"
-import { FeaturesBentoSection } from "@/components/sections/features-bento"
+import RuixenBentoCards from "@/components/ui/ruixen-bento-cards"
 import { FeatureBlogSection } from "@/components/sections/feature-blog-section"
 import { MemorySection } from "@/components/sections/memory-section"
 import { FaqSection } from "@/components/sections/faq-section"
@@ -13,7 +13,7 @@ export default function Home() {
     <main className="min-h-screen">
       <Navbar />
       <Hero />
-      <FeaturesBentoSection />
+      <RuixenBentoCards />
       <FeatureBlogSection />
       <MemorySection />
       <FaqSection />

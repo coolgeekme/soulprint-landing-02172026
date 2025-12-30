@@ -13,7 +13,7 @@ export function Stats() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5 }}
-                        className="flex flex-col gap-6 max-w-3xl"
+                        className="flex flex-col gap-6 max-w-4xl mx-auto text-center items-center"
                     >
                         <h2 className="font-koulen text-5xl leading-[0.9] tracking-tight text-foreground md:text-[72px] md:leading-[80px]">
                             YOUR MEMORY,
@@ -28,14 +28,14 @@ export function Stats() {
                     </motion.div>
 
                     {/* Features Grid */}
-                    <div className="grid gap-12 md:grid-cols-2 md:gap-16">
+                    <div className="grid gap-12 md:grid-cols-2 md:gap-16 max-w-5xl mx-auto">
                         {/* Feature 1 */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.5, delay: 0.2 }}
-                            className="flex flex-col gap-4"
+                            className="flex flex-col gap-4 text-center items-center"
                         >
                             <h3 className="font-geist text-2xl font-bold leading-tight text-foreground md:text-[30px] md:leading-[36px]">
                                 Move Across Any AI Seamlessly
@@ -51,7 +51,7 @@ export function Stats() {
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.5, delay: 0.4 }}
-                            className="flex flex-col gap-4"
+                            className="flex flex-col gap-4 text-center items-center"
                         >
                             <h3 className="font-geist text-2xl font-bold leading-tight text-foreground md:text-[30px] md:leading-[36px]">
                                 Local Storage. Zero Surveillance.
