@@ -21,10 +21,7 @@ export function Footer() {
                         />
                     </Link>
 
-                    {/* Desktop Enterprise CTA */}
-                    <Link href="#" className="hidden md:block font-geist text-sm font-bold text-[#171717] bg-white px-6 py-2.5 rounded-full hover:bg-gray-200 transition-colors text-center order-3">
-                        Check out our Enterprise edition: SoulPrint Studio
-                    </Link>
+                    {/* Desktop Enterprise CTA - Removed per user request */}
 
                     {/* Social Icons */}
                     <div className="flex items-center gap-6 md:gap-4 order-2">
@@ -36,12 +33,7 @@ export function Footer() {
                     </div>
                 </div>
 
-                {/* Mobile Enterprise CTA */}
-                <div className="w-full md:hidden flex justify-center">
-                    <Link href="#" className="font-geist text-sm font-bold text-white/90 hover:text-white transition-colors text-center border border-white/20 px-6 py-3 rounded-lg w-full max-w-sm bg-white/5">
-                        Check out our Enterprise edition: <span className="text-white block mt-1">SoulPrint Studio</span>
-                    </Link>
-                </div>
+                {/* Mobile Enterprise CTA - Removed per user request */}
 
 
                 {/* Separator */}
