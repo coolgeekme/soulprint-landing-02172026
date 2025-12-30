@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
-import { SignUpModal } from "@/components/auth/signup-modal";
+// import { SignUpModal } from "@/components/auth/signup-modal"; // Temporarily disabled for waitlist
+import Link from "next/link";
 
 export default function BreakpointDesktop() {
   return (
@@ -20,14 +21,14 @@ export default function BreakpointDesktop() {
               YOURS.
             </h2>
 
-            <SignUpModal>
+            <Link href="/waitlist">
               <Button className="inline-flex h-auto items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 text-neutral-900 transition-colors hover:bg-neutral-100">
                 <span className="font-geist text-sm font-semibold">
                   Build my Soulprint
                 </span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
-            </SignUpModal>
+            </Link>
           </div>
 
           {/* Right Image */}

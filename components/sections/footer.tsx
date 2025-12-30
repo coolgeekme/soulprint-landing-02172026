@@ -38,12 +38,6 @@ export function Footer() {
                             href="#"
                             className="font-inter text-sm font-normal text-black transition-colors hover:text-neutral-600"
                         >
-                            Pricing
-                        </Link>
-                        <Link
-                            href="#"
-                            className="font-inter text-sm font-normal text-black transition-colors hover:text-neutral-600"
-                        >
                             Contact Us
                         </Link>
                         <Link
@@ -103,18 +97,6 @@ export function Footer() {
                     </p>
 
                     <div className="flex items-center gap-6">
-                        <Link
-                            href="#"
-                            className="font-inter text-sm font-normal text-neutral-600 transition-colors hover:text-black"
-                        >
-                            Privacy Policy
-                        </Link>
-                        <Link
-                            href="#"
-                            className="font-inter text-sm font-normal text-neutral-600 transition-colors hover:text-black"
-                        >
-                            Terms of Service
-                        </Link>
                         <Link
                             href="#"
                             className="font-inter text-sm font-normal text-neutral-600 transition-colors hover:text-black"

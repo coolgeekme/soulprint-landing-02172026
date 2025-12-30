@@ -6,7 +6,7 @@ import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Moon, Sun } from "lucide-react"
 import { useEffect, useState } from "react"
-import { SignUpModal } from "@/components/auth/signup-modal"
+// import { SignUpModal } from "@/components/auth/signup-modal" // Temporarily disabled for waitlist
 
 export function Navbar() {
     const { theme, setTheme } = useTheme()
@@ -66,9 +66,9 @@ export function Navbar() {
                     )}
 
                     <div className="hidden md:flex gap-2">
-                        <SignUpModal>
+                        <Link href="/waitlist">
                             <Button>Join the Waitlist</Button>
-                        </SignUpModal>
+                        </Link>
                     </div>
                 </div>
             </div>
