@@ -16,9 +16,9 @@ export default function Home() {
       <RuixenBentoCards />
       <FeatureBlogSection />
       <MemorySection />
-      <FaqSection />
       <AboutSection />
       <BreakpointDesktop />
+      <FaqSection />
       <Footer />
     </main>
   )
