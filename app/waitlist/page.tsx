@@ -96,10 +96,28 @@ export default function WaitlistPage() {
               marginHeight={0}
               marginWidth={0}
               style={{ background: 'transparent' }}
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
             >
               Loading…
             </iframe>
           </div>
+
+          {/* Fallback link for Safari/Mobile users */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+            className="mt-4 text-center"
+          >
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLSd1H1Zhkncg-g1lEQatgFnthp9JEkphTvgE0aAnJFPRFUPx3g/viewform"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-neutral-500 hover:text-white underline decoration-neutral-700 underline-offset-4 transition-colors"
+            >
+              Having trouble viewing the form? Open correctly here.
+            </a>
+          </motion.div>
         </motion.div>
 
       </div>
