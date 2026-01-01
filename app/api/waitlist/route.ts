@@ -14,7 +14,7 @@ const FIELD_KEYS = {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { name, email, role, organization } = body;
+        const { name, email } = body;
 
         if (!name || !email) {
             return NextResponse.json(
@@ -48,63 +48,22 @@ export async function POST(request: Request) {
         const box = await createBoxResponse.json();
         const boxKey = box.key;
 
-        // 2. Update Fields (Role & Affiliation)
-        // We can do this in parallel
-        const fieldUpdates = [];
+        // 2. Add Email as a Comment/Note
+        const noteContent = `Lead Contact Info:\nEmail: ${email}\nName: ${name}\nNDA Agreed: YES\n\nSubmitted via Website Waitlist`;
 
-        if (role) {
-            fieldUpdates.push(
-                fetch(
-                    `https://www.streak.com/api/v1/boxes/${boxKey}/fields/${FIELD_KEYS.ROLE}`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Basic ${btoa(STREAK_API_KEY + ':')}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ value: role })
-                    }
-                )
-            );
-        }
-
-        if (organization) {
-            fieldUpdates.push(
-                fetch(
-                    `https://www.streak.com/api/v1/boxes/${boxKey}/fields/${FIELD_KEYS.AFFILIATION}`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Basic ${btoa(STREAK_API_KEY + ':')}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ value: organization })
-                    }
-                )
-            );
-        }
-
-        // 3. Add Email as a Comment/Note
-        // Because contacts are complex in Streak, adding a note with the email is the most reliable way to capture it initially.
-        const noteContent = `Lead Contact Info:\nEmail: ${email}\nName: ${name}\nRole: ${role || 'N/A'}\nOrg: ${organization || 'N/A'}\n\nSubmitted via Website Waitlist`;
-
-        fieldUpdates.push(
-            fetch(
-                `https://www.streak.com/api/v1/boxes/${boxKey}/comments`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Basic ${btoa(STREAK_API_KEY + ':')}`,
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: new URLSearchParams({
-                        message: noteContent
-                    })
-                }
-            )
+        await fetch(
+            `https://www.streak.com/api/v1/boxes/${boxKey}/comments`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Basic ${btoa(STREAK_API_KEY + ':')}`,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    message: noteContent
+                })
+            }
         );
-
-        await Promise.all(fieldUpdates);
 
         return NextResponse.json({ success: true, boxKey });
     } catch (error) {

@@ -106,8 +106,6 @@ export default function WaitlistPage() {
       const data = {
         name: formData.get('name'),
         email: formData.get('email'),
-        role: formData.get('role'),
-        organization: formData.get('organization'),
       };
 
       try {
@@ -172,28 +170,19 @@ export default function WaitlistPage() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label htmlFor="role" className="text-xs font-medium uppercase tracking-wider text-neutral-400">Role</label>
+        <div className="flex items-start gap-3 py-2">
+          <div className="flex h-5 items-center">
             <input
-              name="role"
-              id="role"
-              type="text"
-              placeholder="Founder"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-600 focus:border-white/20 focus:outline-none focus:ring-0"
+              id="nda"
+              name="nda"
+              type="checkbox"
+              required
+              className="h-4 w-4 rounded border-white/10 bg-white/5 text-white focus:ring-0 focus:ring-offset-0"
             />
           </div>
-
-          <div className="space-y-1">
-            <label htmlFor="organization" className="text-xs font-medium uppercase tracking-wider text-neutral-400">Affiliation</label>
-            <input
-              name="organization"
-              id="organization"
-              type="text"
-              placeholder="Company"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-600 focus:border-white/20 focus:outline-none focus:ring-0"
-            />
-          </div>
+          <label htmlFor="nda" className="text-xs text-neutral-400">
+            I am willing to sign a Non-Disclosure Agreement (NDA) to satisfy the confidentiality requirements of this beta program. *
+          </label>
         </div>
 
         {status === 'error' && (
