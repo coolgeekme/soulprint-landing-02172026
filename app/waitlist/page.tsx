@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import React from "react";
 
 export default function WaitlistPage() {
   return (
@@ -78,49 +79,134 @@ export default function WaitlistPage() {
           When you're ready, <span className="text-[#737373]">your SoulPrint is waiting.</span>
         </motion.p>
 
-        {/* Glass Form Container - Responsive, fits in viewport */}
+        {/* Custom Glass Form */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="relative w-full max-w-[92vw] sm:max-w-md md:max-w-lg lg:max-w-xl"
+          className="relative w-full max-w-[92vw] sm:max-w-md"
         >
-          {/* Glass effect card - very transparent */}
-          <div className="rounded-xl border border-white/10 bg-white/5 p-1 backdrop-blur-sm sm:p-1.5 sm:rounded-2xl">
-            {/* Google Form iframe - takes most of the screen */}
-            <iframe
-              src="https://docs.google.com/forms/d/e/1FAIpQLSd1H1Zhkncg-g1lEQatgFnthp9JEkphTvgE0aAnJFPRFUPx3g/viewform?embedded=true"
-              width="100%"
-              className="h-[55vh] rounded-lg sm:h-[58vh] sm:rounded-xl md:h-[62vh] lg:h-[65vh]"
-              frameBorder="0"
-              marginHeight={0}
-              marginWidth={0}
-              style={{ background: 'transparent' }}
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
-            >
-              Loading…
-            </iframe>
+          <div className="rounded-xl border border-white/10 bg-black/40 p-6 backdrop-blur-md sm:rounded-2xl">
+            <WaitlistForm />
           </div>
-
-          {/* Fallback link for Safari/Mobile users */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="mt-4 text-center"
-          >
-            <a
-              href="https://docs.google.com/forms/d/e/1FAIpQLSd1H1Zhkncg-g1lEQatgFnthp9JEkphTvgE0aAnJFPRFUPx3g/viewform"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-neutral-500 hover:text-white underline decoration-neutral-700 underline-offset-4 transition-colors"
-            >
-              Having trouble viewing the form? Open correctly here.
-            </a>
-          </motion.div>
         </motion.div>
 
       </div>
     </div>
   );
+
+  function WaitlistForm() {
+    const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+      e.preventDefault();
+      setStatus('loading');
+
+      const formData = new FormData(e.currentTarget);
+      const data = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        role: formData.get('role'),
+        organization: formData.get('organization'),
+      };
+
+      try {
+        const res = await fetch('/api/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        if (!res.ok) throw new Error('Submission failed');
+
+        setStatus('success');
+      } catch (error) {
+        console.error(error);
+        setStatus('error');
+      }
+    }
+
+    if (status === 'success') {
+      return (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20 text-green-500">
+            <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h3 className="mb-2 font-koulen text-2xl text-white">Access Requested</h3>
+          <p className="text-sm text-neutral-400">You've been added to our priority queue in Streak.</p>
+          <Link
+            href="/"
+            className="mt-6 text-xs text-neutral-500 hover:text-white transition-colors"
+          >
+            Return Home
+          </Link>
+        </div>
+      );
+    }
+
+    return (
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="space-y-1">
+          <label htmlFor="name" className="text-xs font-medium uppercase tracking-wider text-neutral-400">Name *</label>
+          <input
+            required
+            name="name"
+            id="name"
+            type="text"
+            placeholder="Jane Doe"
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-600 focus:border-white/20 focus:outline-none focus:ring-0"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="email" className="text-xs font-medium uppercase tracking-wider text-neutral-400">Email *</label>
+          <input
+            required
+            name="email"
+            id="email"
+            type="email"
+            placeholder="jane@example.com"
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-600 focus:border-white/20 focus:outline-none focus:ring-0"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label htmlFor="role" className="text-xs font-medium uppercase tracking-wider text-neutral-400">Role</label>
+            <input
+              name="role"
+              id="role"
+              type="text"
+              placeholder="Founder"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-600 focus:border-white/20 focus:outline-none focus:ring-0"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="organization" className="text-xs font-medium uppercase tracking-wider text-neutral-400">Affiliation</label>
+            <input
+              name="organization"
+              id="organization"
+              type="text"
+              placeholder="Company"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-600 focus:border-white/20 focus:outline-none focus:ring-0"
+            />
+          </div>
+        </div>
+
+        {status === 'error' && (
+          <p className="text-xs text-red-400">Something went wrong. Please try again.</p>
+        )}
+
+        <button
+          disabled={status === 'loading'}
+          className="mt-2 flex w-full items-center justify-center rounded-lg bg-white px-4 py-3 font-medium text-black transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70"
+        >
+          {status === 'loading' ? 'Joining...' : 'Join Waitlist'}
+        </button>
+      </form>
+    );
+  }
 }
