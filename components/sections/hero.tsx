@@ -22,26 +22,31 @@ export function Hero() {
 
 
                     {/* Headline */}
-                    <h1 className="w-full font-koulen text-[40px] leading-[1.0] text-white uppercase tracking-tight sm:text-[48px] lg:text-[clamp(48px,5vw,88px)] lg:leading-[0.95]">
-                        SoulPrint isn’t AI.
+                    <h1 className="w-full font-koulen text-[44px] leading-[0.95] text-white uppercase tracking-tighter sm:text-[56px] lg:text-[clamp(56px,6vw,100px)] lg:leading-[0.9]">
+                        <span className="text-[#EA580C]">SoulPrint</span> isn’t AI.
                         <br />
-                        It’s the identity layer
-                        <br />
-                        AI never had.
+                        <span className="bg-gradient-to-b from-white to-neutral-400 bg-clip-text text-transparent">
+                            It’s the identity layer
+                            <br />
+                            AI never had.
+                        </span>
                     </h1>
 
                     {/* Subheading */}
-                    <p className="w-full font-inter text-base leading-6 text-[#737373] sm:text-lg sm:leading-7 lg:mt-4 lg:max-w-2xl lg:text-gray-400 lg:leading-relaxed xl:text-xl">
-                        Persistent identity. Model-agnostic. Memory outside the model.
-                        <br className="hidden lg:block" />
-                        SoulPrint reads how you speak, how you think, and how you decide, and turns it into a persistent identity that no model can erase.
-                    </p>
+                    <div className="flex w-full flex-col gap-4 lg:mt-4">
+                        <p className="font-geist text-base font-semibold tracking-wide text-white/90 sm:text-lg lg:text-xl">
+                            Persistent identity • Model-agnostic • Private memory
+                        </p>
+                        <p className="max-w-2xl font-inter text-base leading-relaxed text-neutral-400 sm:text-lg sm:leading-7">
+                            SoulPrint reads how you speak, how you think, and how you decide, and turns it into a persistent identity that no model can erase.
+                        </p>
+                    </div>
 
                     {/* Actions */}
-                    <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:mt-8 lg:gap-4">
+                    <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:mt-6 lg:gap-4">
                         <Link href="/waitlist">
                             <Button
-                                className="h-11 w-full rounded-lg bg-[#EA580C] px-5 py-3 font-geist text-base font-medium text-[#FAFAFA] hover:bg-[#EA580C]/90 sm:w-auto lg:h-auto lg:px-8 lg:py-3"
+                                className="h-11 w-full rounded-lg bg-[#EA580C] px-5 py-3 font-geist text-base font-medium text-[#FAFAFA] transition-all hover:bg-[#EA580C]/90 hover:scale-[1.02] active:scale-[0.98] sm:w-auto lg:h-14 lg:px-10 lg:text-lg"
                             >
                                 Join the Waitlist
                             </Button>
