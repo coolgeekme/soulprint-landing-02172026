@@ -33,7 +33,8 @@ export async function testAgentSession(message: string) {
             .eq('user_id', user.id)
             .maybeSingle();
 
-        const storeNames = storeData ? [storeData.store_name] : [];
+        // Filter out null/undefined store names to avoid invalid tools config
+        const storeNames = (storeData?.store_name) ? [storeData.store_name] : [];
 
         const response = await chatWithFileSearch(
             [{ role: 'user', content: message }],

@@ -93,9 +93,12 @@ export async function POST(request: NextRequest) {
             .from('gemini_file_stores')
             .select('store_name')
             .eq('user_id', keyData.user_id)
-            .single();
+            .maybeSingle();
 
-        const storeNames = storeData?.store_name ? [storeData.store_name] : [];
+        // Filter out null/undefined/empty store names to avoid Gemini API errors
+        const storeNames = (storeData?.store_name && typeof storeData.store_name === 'string' && storeData.store_name.trim()) 
+            ? [storeData.store_name] 
+            : [];
 
         if (storeNames.length > 0) {
             console.log('📚 Using File Search Store:', storeNames[0]);

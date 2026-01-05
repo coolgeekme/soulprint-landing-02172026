@@ -120,18 +120,24 @@ export async function chatWithFileSearch(
         }
     }
 
+    // Filter out any null/undefined/empty store names
+    const validStoreNames = storeNames.filter(name => name && typeof name === 'string' && name.trim() !== '');
+
     const response = await gemini.models.generateContent({
         model: DEFAULT_MODEL,
         contents,
         config: {
             systemInstruction: systemPrompt,
-            tools: storeNames.length > 0 ? [
-                {
-                    fileSearch: {
-                        fileSearchStoreNames: storeNames
+            // Only include tools if we have valid store names
+            ...(validStoreNames.length > 0 && {
+                tools: [
+                    {
+                        fileSearch: {
+                            fileSearchStoreNames: validStoreNames
+                        }
                     }
-                }
-            ] : undefined
+                ]
+            })
         }
     });
 
