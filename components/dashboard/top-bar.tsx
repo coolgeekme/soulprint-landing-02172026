@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { SoulPrintSelector } from "@/components/dashboard/soulprint-selector"
 
 export function TopBar() {
     const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -47,14 +48,18 @@ export function TopBar() {
                     ENGINE
                 </span>
             </div>
-            
-            {/* Right side - Log out button */}
-            <Button
-                onClick={handleLogout}
-                className="h-9 rounded-lg bg-gray-700 px-4 py-2 font-geist text-sm font-medium text-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] hover:bg-gray-600"
-            >
-                Log out
-            </Button>
+
+            {/* Right side */}
+            <div className="flex items-center gap-3">
+                <SoulPrintSelector />
+                <Button
+                    onClick={handleLogout}
+                    className="h-8 rounded-lg bg-gray-700 px-3 py-1 font-geist text-xs font-medium text-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] hover:bg-gray-600"
+                    suppressHydrationWarning
+                >
+                    Log out
+                </Button>
+            </div>
         </header>
     )
 }

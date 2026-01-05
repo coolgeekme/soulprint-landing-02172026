@@ -44,16 +44,36 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
         }
 
-        // 3. Fetch User's SoulPrint (System Message)
-        const { data: soulprint } = await supabaseAdmin
+        // 3. Parse Request Body
+        const body = await req.json();
+        const { messages, model = 'hermes3', stream = false, soulprint_id } = body;
+
+        // 4. Fetch User's SoulPrint (System Message)
+        let targetSoulprintId = soulprint_id;
+
+        // If no ID provided in body, check the user's "current" selection
+        if (!targetSoulprintId) {
+            const { data: profile } = await supabaseAdmin
+                .from('profiles')
+                .select('current_soulprint_id')
+                .eq('id', keyData.user_id)
+                .single();
+
+            if (profile?.current_soulprint_id) {
+                targetSoulprintId = profile.current_soulprint_id;
+            }
+        }
+
+        let soulprintQuery = supabaseAdmin
             .from("soulprints")
             .select("soulprint_data")
-            .eq("user_id", keyData.user_id)
-            .maybeSingle();
+            .eq("user_id", keyData.user_id);
 
-        // 4. Parse Request Body
-        const body = await req.json();
-        const { messages, model = 'hermes3', stream = false } = body;
+        if (targetSoulprintId) {
+            soulprintQuery = soulprintQuery.eq('id', targetSoulprintId);
+        }
+
+        const { data: soulprint } = await soulprintQuery.maybeSingle();
 
         // ============================================================
         // 🚀 LOCAL AI PATH (Hermes 3 + Letta Memory)

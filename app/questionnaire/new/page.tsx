@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
+import { Sidebar } from "@/components/dashboard/sidebar"
 import { ProgressStepper, PILLARS } from "@/components/dashboard/progress-stepper"
 import { questions, Question } from "@/lib/questions"
 import { createClient } from "@/lib/supabase/client"
@@ -43,8 +45,29 @@ export default function NewQuestionnairePage() {
     const pillarInfo = PILLARS.find(p => p.id === currentPillar)
     const pillarName = pillarInfo?.subtitle || "Unknown"
 
-    // Load saved answers on mount
+    const [limitReached, setLimitReached] = useState(false)
+    const [hasAnySoulprint, setHasAnySoulprint] = useState(false)
+
+    // Check limits and load saved answers
     useEffect(() => {
+        async function checkLimit() {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { count } = await supabase
+                    .from('soulprints')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id)
+
+                if (count !== null) {
+                    setHasAnySoulprint(count > 0)
+                    if (count >= 2) {
+                        setLimitReached(true)
+                    }
+                }
+            }
+        }
+        checkLimit()
+
         const savedAnswers = localStorage.getItem("soulprint_answers")
         const savedIndex = localStorage.getItem("soulprint_current_index")
 
@@ -54,7 +77,7 @@ export default function NewQuestionnairePage() {
         if (savedIndex) {
             setCurrentQuestionIndex(parseInt(savedIndex))
         }
-    }, [])
+    }, [supabase])
 
     // Load current question's answer when navigating
     useEffect(() => {
@@ -156,49 +179,130 @@ export default function NewQuestionnairePage() {
         router.push('/')
     }
 
+    const handleDevFill = () => {
+        // Fast-track: Generate answers for ALL questions
+        const dummyAnswers: Record<string, string | number | object> = {}
+        questions.forEach(q => {
+            if (q.type === "slider") {
+                dummyAnswers[q.id] = 50 + Math.floor(Math.random() * 40) // Random 50-90
+            } else if (q.type === "voice") {
+                dummyAnswers[q.id] = {
+                    transcript: "Simulated voice response for dev testing. The user is expressing deep thoughts about their digital soul.",
+                    emotionalSignature: { sentiment: { score: 0.8, label: "positive" } }
+                }
+            } else {
+                dummyAnswers[q.id] = "Development testing answer: valid response text."
+            }
+        })
+
+        // Set state
+        setAnswers(dummyAnswers)
+
+        // Jump to last question
+        const lastIndex = questions.length - 1
+        setCurrentQuestionIndex(lastIndex)
+
+        // Update storage
+        localStorage.setItem("soulprint_answers", JSON.stringify(dummyAnswers))
+        localStorage.setItem("soulprint_current_index", lastIndex.toString())
+
+        // Sync local input state for the final question
+        const lastQ = questions[lastIndex]
+        if (lastQ.type === "slider") {
+            setSliderValue([dummyAnswers[lastQ.id] as number])
+        } else if (lastQ.type === "voice") {
+            setVoiceRecorded(true)
+        } else {
+            setTextInput(dummyAnswers[lastQ.id] as string)
+        }
+    }
+
     const isLastQuestion = currentQuestionIndex === questions.length - 1
     const isFirstQuestion = currentQuestionIndex === 0
+
+    if (limitReached) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-[#111] p-4 text-center">
+                <div className="max-w-md space-y-6 rounded-xl border border-[#333] bg-[#222] p-8 shadow-xl">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-900/30 text-orange-500">
+                        <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                    </div>
+                    <h1 className="font-koulen text-3xl text-white">Limit Reached</h1>
+                    <p className="text-gray-400">
+                        You have reached the maximum of 2 SoulPrints. Please delete an existing SoulPrint to create a new one.
+                    </p>
+                    <div className="flex flex-col gap-3">
+                        <Button
+                            onClick={() => router.push('/dashboard/profile')}
+                            className="bg-[#EA580C] hover:bg-orange-700 text-white"
+                        >
+                            Manage My SoulPrints
+                        </Button>
+                        <Button
+                            onClick={() => router.push('/dashboard')}
+                            variant="ghost"
+                            className="text-gray-400 hover:text-white"
+                        >
+                            Back to Dashboard
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="flex h-screen bg-[#d4d4d8]">
             {/* Sidebar */}
-            <div className="flex h-full w-14 flex-col items-center justify-between border-r border-[#111] bg-[#111] py-2">
-                <div className="h-[52px] w-full" />
-                <div className="flex flex-1 flex-col items-center gap-1 py-2">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-orange-600">
-                        <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                </div>
-                <div className="py-2" />
-            </div>
+            <Sidebar hasSoulprint={hasAnySoulprint} />
 
             {/* Main Content */}
             <div className="flex flex-1 flex-col">
                 {/* Top Bar */}
                 <header className="flex h-[52px] items-center justify-between border-b border-[#111] bg-[#111] px-4">
                     <div className="flex items-center gap-2">
-                        <Image
-                            src="/images/Soulprintengine-logo.png"
-                            alt="SoulPrint"
-                            width={28}
-                            height={28}
-                            className="object-contain"
-                        />
-                        <span className="font-koulen text-[22px] leading-[26px] text-white tracking-wide">
-                            SOULPRINT
-                        </span>
-                        <span className="font-cinzel font-normal text-[20px] leading-[26px] tracking-[1px] uppercase text-white -ml-1">
-                            ENGINE
-                        </span>
+                        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                            <Image
+                                src="/images/Soulprintengine-logo.png"
+                                alt="SoulPrint"
+                                width={28}
+                                height={28}
+                                className="object-contain"
+                            />
+                            <span className="font-koulen text-[22px] leading-[26px] text-white tracking-wide">
+                                SOULPRINT
+                            </span>
+                            <span className="font-cinzel font-normal text-[20px] leading-[26px] tracking-[1px] uppercase text-white -ml-1">
+                                ENGINE
+                            </span>
+                        </Link>
                     </div>
-                    <Button
-                        onClick={handleLogout}
-                        className="h-9 rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600"
-                    >
-                        Log out
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            onClick={handleDevFill}
+                            variant="outline"
+                            className="hidden lg:flex h-9 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                        >
+                            DEV: FILL
+                        </Button>
+                        <Button
+                            onClick={() => router.push('/dashboard/profile')}
+                            variant="ghost"
+                            className="h-9 text-gray-400 hover:text-white hover:bg-gray-800"
+                        >
+                            Exit
+                        </Button>
+                        <Button
+                            onClick={handleLogout}
+                            className="h-9 rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600"
+                        >
+                            Log out
+                        </Button>
+                    </div>
                 </header>
 
                 {/* Content Area */}

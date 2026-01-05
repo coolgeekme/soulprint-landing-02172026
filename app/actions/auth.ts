@@ -58,13 +58,29 @@ export async function signInWithGoogle() {
     const supabase = await createClient()
 
     // Get the base URL (works for both local and production)
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    // Get the base URL
+    let baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+
+    if (!baseUrl) {
+        if (process.env.NODE_ENV === 'production') {
+            // Default to custom domain in production
+            baseUrl = 'https://soulprintengine.ai'
+        } else if (process.env.VERCEL_URL) {
+            // Fallback for Vercel previews if NODE_ENV is somehow not prod or handled differently
+            baseUrl = `https://${process.env.VERCEL_URL}`
+        } else {
+            // Local development
+            baseUrl = 'http://localhost:3000'
+        }
+    }
 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
             redirectTo: `${baseUrl}/auth/callback?next=/dashboard/welcome`,
+            queryParams: {
+                prompt: 'select_account',
+            },
         },
     })
 

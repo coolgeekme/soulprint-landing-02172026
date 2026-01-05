@@ -1,0 +1,49 @@
+"use server"
+
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
+import { chatWithFileSearch } from "@/lib/gemini"
+
+export async function testAgentSession(message: string) {
+    const cookieStore = await cookies()
+
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return cookieStore.getAll()
+                },
+                setAll(cookiesToSet) { },
+            },
+        }
+    )
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { error: "Not authenticated" }
+    }
+
+    try {
+        // Fetch User's File Store for RAG context
+        const { data: storeData } = await supabase
+            .from('gemini_file_stores')
+            .select('store_name')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        const storeNames = storeData ? [storeData.store_name] : [];
+
+        const response = await chatWithFileSearch(
+            [{ role: 'user', content: message }],
+            storeNames
+        );
+
+        return { content: response.text }
+
+    } catch (e: any) {
+        console.error("Test Agent Error:", e);
+        return { error: e.message || "Failed to generate response" }
+    }
+}

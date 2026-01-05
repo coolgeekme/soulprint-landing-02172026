@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
@@ -10,13 +10,17 @@ import Image from "next/image"
 export default function QuestionnaireCompletePage() {
     const router = useRouter()
     const supabase = createClient()
+    const hasStarted = useRef(false) // Prevent double-fire in Strict Mode
 
     const [status, setStatus] = useState("Generating your SoulPrint...")
     const [isGenerating, setIsGenerating] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        generateSoulPrint()
+        if (!hasStarted.current) {
+            hasStarted.current = true
+            generateSoulPrint()
+        }
     }, [])
 
     const generateSoulPrint = async () => {

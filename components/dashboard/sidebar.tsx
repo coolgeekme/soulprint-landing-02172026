@@ -21,7 +21,11 @@ const sidebarItems = [
     { icon: Settings2, label: "Settings", href: "/dashboard/settings" },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+    hasSoulprint: boolean
+}
+
+export function Sidebar({ hasSoulprint }: SidebarProps) {
     const pathname = usePathname()
 
     return (
@@ -32,21 +36,28 @@ export function Sidebar() {
             {/* Main Nav */}
             <nav className="flex flex-1 flex-col items-center gap-1 py-2">
                 {sidebarItems.map((item) => {
+                    // Filter out items if user has no soulprint
+                    if (!hasSoulprint && item.label !== "Questionnaire") {
+                        return null
+                    }
+
                     // Check if this nav item is active
-                    const isActive = pathname === item.href || 
-                        (item.href === "/dashboard" && pathname === "/dashboard")
-                    
+                    const isActive = pathname === item.href ||
+                        (item.href === "/dashboard" && pathname === "/dashboard") ||
+                        (item.label === "Questionnaire" && pathname.startsWith("/questionnaire"))
+
                     return (
                         <Link
                             key={item.label}
-                            href={item.href}
+                            href={item.label === "Questionnaire" ? "/questionnaire/new" : item.href}
                             className={cn(
                                 "flex h-10 w-10 items-center justify-center rounded-md transition-colors",
-                                isActive 
-                                    ? "bg-orange-600 text-white" 
+                                isActive
+                                    ? "bg-orange-600 text-white"
                                     : "text-[#e5e5e5] hover:bg-white/5"
                             )}
                             title={item.label}
+                            suppressHydrationWarning
                         >
                             <item.icon className="h-5 w-5" />
                             <span className="sr-only">{item.label}</span>
@@ -57,10 +68,16 @@ export function Sidebar() {
 
             {/* Bottom Nav */}
             <div className="flex flex-col items-center gap-1 py-2">
-                <button className="flex h-10 w-10 items-center justify-center rounded-full text-[#e5e5e5] transition-colors hover:bg-white/5">
+                <button
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-[#e5e5e5] transition-colors hover:bg-white/5"
+                    suppressHydrationWarning
+                >
                     <LifeBuoy className="h-5 w-5" />
                 </button>
-                <button className="flex h-10 w-10 items-center justify-center rounded-full text-[#e5e5e5] transition-colors hover:bg-white/5">
+                <button
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-[#e5e5e5] transition-colors hover:bg-white/5"
+                    suppressHydrationWarning
+                >
                     <User className="h-5 w-5" />
                 </button>
             </div>

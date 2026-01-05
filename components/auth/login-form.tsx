@@ -38,7 +38,11 @@ export function LoginForm() {
 
     const handleGoogleSignIn = async () => {
         setLoading(true);
-        await signInWithGoogle();
+        const result = await signInWithGoogle();
+        if (result?.error) {
+            setError(result.error);
+            setLoading(false);
+        }
     };
 
     const handleDemoSignIn = async () => {

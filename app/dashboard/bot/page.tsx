@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { generateApiKey, listApiKeys, revokeApiKey } from "@/app/actions/api-keys"
+import { testAgentSession } from "@/app/actions/test-agent"
 import { Copy, Trash2, Key, Terminal, Loader2 } from "lucide-react"
 
 interface ApiKey {
@@ -10,15 +11,24 @@ interface ApiKey {
     label: string
     created_at: string
     last_used_at: string | null
+    status?: 'active' | 'inactive'
+    display_key?: string
 }
 
 export default function BotPage() {
     const [keys, setKeys] = useState<ApiKey[]>([])
     const [newKey, setNewKey] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
+
+    // Manual Key Test State
     const [testMessage, setTestMessage] = useState("")
     const [testResponse, setTestResponse] = useState("")
     const [testing, setTesting] = useState(false)
+
+    // Session Test State
+    const [sessionTestMessage, setSessionTestMessage] = useState("")
+    const [sessionTestResponse, setSessionTestResponse] = useState("")
+    const [sessionTesting, setSessionTesting] = useState(false)
 
     useEffect(() => {
         loadKeys()
@@ -49,15 +59,11 @@ export default function BotPage() {
         }
     }
 
+    // Test with Manual Key (External Simulation)
     async function handleTestKey() {
         if (!newKey && keys.length === 0) return
         setTesting(true)
         setTestResponse("")
-
-        // Use the new key or the first existing key (we can't get the raw key back, so we can only test if we just created one, or if the user pastes one. 
-        // Actually, for this demo, let's assume the user copies the key they just made.
-        // If no new key, we can't really test easily without asking user to paste it.
-        // For UX, let's just show the test UI only when a new key is generated.
 
         const keyToUse = newKey
 
@@ -93,6 +99,21 @@ export default function BotPage() {
         } finally {
             setTesting(false)
         }
+    }
+
+    // Test with Session (Internal Test)
+    async function handleSessionTest() {
+        if (!sessionTestMessage) return
+        setSessionTesting(true)
+        setSessionTestResponse("")
+
+        const result = await testAgentSession(sessionTestMessage)
+        if (result.error) {
+            setSessionTestResponse("Error: " + result.error)
+        } else {
+            setSessionTestResponse(result.content || "No response")
+        }
+        setSessionTesting(false)
     }
 
     return (
@@ -133,16 +154,45 @@ export default function BotPage() {
                     {keys.map((key) => (
                         <div key={key.id} className="flex items-center justify-between rounded-lg border border-[#222] bg-[#0A0A0A] p-4">
                             <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#222]">
-                                    <Key className="h-4 w-4 text-gray-400" />
+                                <div className={`flex h-8 w-8 items-center justify-center rounded-full ${key.status === 'inactive' ? 'bg-yellow-500/20' : 'bg-green-500/20'}`}>
+                                    <Key className={`h-4 w-4 ${key.status === 'inactive' ? 'text-yellow-500' : 'text-green-500'}`} />
                                 </div>
                                 <div>
-                                    <div className="font-medium text-white">{key.label || "SoulPrint Key"}</div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="font-medium text-white">{key.label || "SoulPrint Key"}</div>
+                                        {key.status === 'inactive' && (
+                                            <span className="rounded-full bg-yellow-500/20 px-2 py-0.5 text-[10px] text-yellow-500">
+                                                Inactive (Finish SoulPrint)
+                                            </span>
+                                        )}
+                                        {key.status === 'active' && (
+                                            <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] text-green-500">
+                                                Active
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="text-xs text-gray-500">Created: {new Date(key.created_at).toLocaleDateString()}</div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="text-xs text-gray-500 font-mono">sk-soulprint-...{key.id.slice(0, 4)}</div>
+                                {key.display_key ? (
+                                    <div className="flex items-center gap-2 mr-2">
+                                        <code className="text-[10px] bg-black/50 px-2 py-1 rounded text-orange-200/80 font-mono hidden md:block">
+                                            {key.display_key}
+                                        </code>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-6 w-6 text-gray-400 hover:text-white"
+                                            onClick={() => navigator.clipboard.writeText(key.display_key!)}
+                                            title="Copy Key"
+                                        >
+                                            <Copy className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="text-xs text-gray-500 font-mono mr-2">sk-soulprint-...{key.id.slice(0, 4)}</div>
+                                )}
                                 <Button size="icon" variant="ghost" className="text-red-400 hover:bg-red-900/20 hover:text-red-300" onClick={() => handleRevokeKey(key.id)}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -155,20 +205,53 @@ export default function BotPage() {
                 </div>
             </div>
 
-            {/* Test Interface */}
+            {/* Session Test Console */}
+            <div className="rounded-xl border border-[#222] bg-[#111] p-6">
+                <h2 className="mb-4 text-lg font-semibold text-white flex items-center gap-2">
+                    <Terminal className="h-5 w-5" />
+                    Test Your Agent (Session)
+                </h2>
+                <div className="space-y-4">
+                    <p className="text-sm text-gray-400">
+                        Test your SoulPrint agent immediately using your current login session. (No API Key needed)
+                    </p>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={sessionTestMessage}
+                            onChange={(e) => setSessionTestMessage(e.target.value)}
+                            placeholder="Ask your SoulPrint something..."
+                            className="flex-1 rounded-md border border-[#333] bg-[#0A0A0A] px-4 py-2 text-white placeholder:text-gray-600 focus:border-orange-500 focus:outline-none"
+                        />
+                        <Button onClick={handleSessionTest} disabled={sessionTesting} className="bg-gray-700 hover:bg-gray-600">
+                            {sessionTesting ? "Thinking..." : "Send"}
+                        </Button>
+                    </div>
+                    {sessionTestResponse && (
+                        <div className="rounded-md bg-[#0A0A0A] p-4 text-sm text-gray-300 whitespace-pre-wrap border border-[#222]">
+                            {sessionTestResponse}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* New Key Test Console (Only if newKey) */}
             {newKey && (
                 <div className="rounded-xl border border-[#222] bg-[#111] p-6">
                     <h2 className="mb-4 text-lg font-semibold text-white flex items-center gap-2">
                         <Terminal className="h-5 w-5" />
-                        Test Your API
+                        Test New API Key
                     </h2>
                     <div className="space-y-4">
+                        <p className="text-sm text-gray-400">
+                            Validate your NEW manual key before you lose it!
+                        </p>
                         <div className="flex gap-2">
                             <input
                                 type="text"
                                 value={testMessage}
                                 onChange={(e) => setTestMessage(e.target.value)}
-                                placeholder="Type a message to test your SoulPrint AI..."
+                                placeholder="Type a message to test..."
                                 className="flex-1 rounded-md border border-[#333] bg-[#0A0A0A] px-4 py-2 text-white placeholder:text-gray-600 focus:border-orange-500 focus:outline-none"
                             />
                             <Button onClick={handleTestKey} disabled={testing}>

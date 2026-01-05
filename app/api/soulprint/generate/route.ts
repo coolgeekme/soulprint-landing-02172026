@@ -50,6 +50,20 @@ export async function POST(request: NextRequest) {
             avatar_url: user.user_metadata?.avatar_url
         });
 
+        // Activate any pending default API keys
+        console.log('🔑 [SoulPrint API] Activating API keys...');
+        const { error: keyError } = await supabaseAdmin
+            .from('api_keys')
+            .update({ status: 'active' })
+            .eq('user_id', user.id)
+            .eq('status', 'inactive');
+
+        if (keyError) {
+            console.warn('⚠️ Failed to activate API keys:', keyError);
+        } else {
+            console.log('✅ API keys activated');
+        }
+
         const duration = (Date.now() - startTime) / 1000;
         console.log(`✅ [SoulPrint API] Success! Archetype: ${result.archetype}. Total time: ${duration.toFixed(2)}s`);
 
