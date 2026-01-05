@@ -94,8 +94,38 @@ export async function POST(req: NextRequest) {
                 ...messages.map((m: any) => ({ role: m.role, content: m.content }))
             ];
 
-            // Use Unified Client for resilient generation
-            const { unifiedChatCompletion } = await import("@/lib/llm/unified-client");
+            const { unifiedChatCompletion, unifiedStreamChatCompletion } = await import("@/lib/llm/unified-client");
+
+            if (stream) {
+                const streamResponse = new ReadableStream({
+                    async start(controller) {
+                        const encoder = new TextEncoder();
+                        try {
+                            for await (const chunk of unifiedStreamChatCompletion(processedMessages)) {
+                                const data = JSON.stringify({
+                                    choices: [{ delta: { content: chunk } }]
+                                });
+                                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                            }
+                            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                        } catch (e) {
+                            console.error("Streaming error:", e);
+                        } finally {
+                            controller.close();
+                        }
+                    }
+                });
+
+                return new Response(streamResponse, {
+                    headers: {
+                        "Content-Type": "text/event-stream",
+                        "Cache-Control": "no-cache",
+                        "Connection": "keep-alive",
+                    },
+                });
+            }
+
+            // Non-streaming path
             const content = await unifiedChatCompletion(processedMessages);
 
             return NextResponse.json({

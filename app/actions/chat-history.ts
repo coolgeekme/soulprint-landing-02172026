@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export interface ChatMessage {
   id?: string;
+  session_id?: string;
   role: "user" | "assistant" | "system";
   content: string;
   created_at?: string;
@@ -45,6 +46,7 @@ export async function saveChatMessage(message: ChatMessage): Promise<boolean> {
     .from("chat_logs")
     .insert({
       user_id: user.id,
+      session_id: message.session_id,
       role: message.role,
       content: message.content,
     });
@@ -68,6 +70,7 @@ export async function saveChatMessages(messages: ChatMessage[]): Promise<boolean
 
   const messagesWithUser = messages.map(msg => ({
     user_id: user.id,
+    session_id: msg.session_id,
     role: msg.role,
     content: msg.content,
   }));
