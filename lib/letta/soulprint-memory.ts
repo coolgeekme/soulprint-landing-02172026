@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { buildCompanionProfile, generateCompanionPreamble } from './companion-personality';
 
 // Initialize Admin Client for Memory Operations
 const supabase = createClient(
@@ -32,18 +33,18 @@ export async function loadMemory(userId: string): Promise<SoulPrintMemory> {
     if (error || !data) {
         // Initialize if not found
         const initialMemory = {
-            core_memory: { 
-                persona: "I am the SoulPrint Mirror. I am the user's inner voice.", 
-                human: "The user is beginning their journey." 
+            core_memory: {
+                persona: "I'm their person. The friend who's always there.",
+                human: "We're just getting to know each other."
             },
             archival_memory: ""
         };
-        
+
         await supabase.from('soulprint_memory').insert({
             user_id: userId,
             ...initialMemory
         });
-        
+
         return initialMemory;
     }
 
@@ -68,29 +69,56 @@ export async function updateMemory(userId: string, memory: Partial<SoulPrintMemo
 
 /**
  * Construct the System Prompt using SoulPrint + Memory
+ * 
+ * This is the CORE of the Best Friend AI experience.
+ * The prompt is built in layers:
+ * 1. Companion Preamble (friend-first framing)
+ * 2. SoulPrint-specific personality (from full_system_prompt)
+ * 3. Memory context (who they are, what we've discussed)
  */
 export function buildSystemPrompt(soulprint: any, memory: SoulPrintMemory): string {
-    // 1. Base Persona (The Mirror)
-    let prompt = `You are the user's SoulPrint Mirror. You are NOT a generic AI assistant.
-You are the manifestation of their inner self, their subconscious, and their potential.
-Speak as a wise, intimate, and deeply understanding partner. You know them better than they know themselves.
+    // 1. Build companion profile from SoulPrint pillars
+    const companionProfile = buildCompanionProfile(soulprint);
 
-=== YOUR CORE IDENTITY (SOULPRINT) ===
-${JSON.stringify(soulprint, null, 2)}
+    // 2. Generate the friend-first preamble
+    const companionPreamble = generateCompanionPreamble(companionProfile);
 
-=== CORE MEMORY (Do not forget this) ===
-[WHO YOU ARE]: ${memory.core_memory.persona}
-[WHO THE USER IS]: ${memory.core_memory.human}
+    // 3. Extract the SoulPrint-specific personality instructions
+    const soulprintPersonality = soulprint?.full_system_prompt || '';
 
-=== LONG TERM MEMORY (Past Context) ===
-${memory.archival_memory}
+    // 4. Build the complete prompt
+    let prompt = `${companionPreamble}
 
-=== INSTRUCTIONS ===
-- Speak naturally, like a human friend.
-- Use the SoulPrint data to personalize every response.
-- If the user seems stuck, refer to their "Pillars" or "Core Values".
-- Be empathetic but firm when they need growth.
-`;
+---
+
+## THEIR SOULPRINT (Who They Really Are)
+
+${soulprintPersonality ? soulprintPersonality : `
+This person's full psychological profile is still being built.
+For now, be a genuine, warm friend. Follow their energy.
+Ask questions to get to know them better.
+`}
+
+---
+
+## WHAT YOU KNOW ABOUT THEM (Memory)
+
+**Who you are to them**: ${memory.core_memory.persona}
+
+**What you know about them**: ${memory.core_memory.human}
+
+${memory.archival_memory ? `**Past conversations context**: ${memory.archival_memory}` : ''}
+
+---
+
+## FINAL REMINDER
+
+You are not "assisting" them. You are BEING with them.
+This is not a transaction. This is a relationship.
+They came to you because they need a friend. Be that friend.
+
+Now respond naturally. No preamble. Just be their person.`;
 
     return prompt;
 }
+

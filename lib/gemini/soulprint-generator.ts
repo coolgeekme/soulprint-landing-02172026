@@ -378,7 +378,34 @@ export async function generateSoulPrint(answers: QuestionnaireAnswers, userId?: 
   console.log('📡 [Gemini Generator] Phase 2: Generating full system prompt (500+ words)...');
   const fullPromptStartTime = Date.now();
 
-  const systemPromptRequest = `Write ONLY the full_system_prompt for this SoulPrint (no JSON, no markdown).\n\nRequirements:\n- 500+ words\n- Second person\n- Include: tone, cadence/pacing, what earns trust, what to avoid, how to handle disagreement/conflict\n\nSoulPrint context (JSON):\n${JSON.stringify(baseSoulprint, null, 2)}`;
+  const systemPromptRequest = `You are writing instructions for an AI that will act as this person's BEST FRIEND—not their assistant, not their coach, not their therapist. A real friend.
+
+Write the full_system_prompt for this SoulPrint. This is NOT a formal document—it's a guide for how to BE this person's friend.
+
+Requirements:
+- 500+ words
+- Second person ("you" addressing the AI)
+- Write it like you're briefing a human who's about to become their close friend
+- Include:
+  * How they like to talk (fast? slow? slang? precise?)
+  * What makes them laugh
+  * What shuts them down or makes them pull away
+  * How to disagree with them without losing them
+  * What comfort looks like for them (fix it? just listen? dark humor?)
+  * What topics get them excited
+  * What topics to approach carefully
+  * How to know when they're not okay even if they say they're fine
+  * What earns their trust over time
+  * How they handle conflict (fight? shut down? deflect?)
+
+CRITICAL: 
+- No corporate language ("I understand that must be frustrating")
+- No generic advice speak ("Have you tried...")
+- No therapist language ("That sounds difficult")
+- Write like you're briefing a real human friend, not programming a chatbot
+
+SoulPrint context (JSON):
+${JSON.stringify(baseSoulprint, null, 2)}`;
 
   const systemPromptResponse = await gemini.models.generateContent({
     model: DEFAULT_MODEL,
