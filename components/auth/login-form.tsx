@@ -6,7 +6,9 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
+
+const ACCESS_PIN = "7423";
 
 export function LoginForm() {
     const router = useRouter();
@@ -14,6 +16,20 @@ export function LoginForm() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [pin, setPin] = useState("");
+    const [pinError, setPinError] = useState("");
+    const [pinVerified, setPinVerified] = useState(false);
+
+    const handlePinSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (pin === ACCESS_PIN) {
+            setPinVerified(true);
+            setPinError("");
+        } else {
+            setPinError("Invalid PIN. Please try again.");
+            setPin("");
+        }
+    };
 
     const handleEmailSignIn = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -59,6 +75,67 @@ export function LoginForm() {
             setLoading(false);
         }
     };
+
+    // PIN Gate Screen
+    if (!pinVerified) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-[#0f0f0f] to-[#1a1a2e] px-6">
+                <div className="w-full max-w-[350px] flex flex-col items-center gap-8">
+                    {/* Logo */}
+                    <div className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-lg border-2 border-[#EA580C]/30">
+                        <Image
+                            src="/images/Soulprintengine-logo.png"
+                            alt="Logo"
+                            fill
+                            className="object-cover"
+                        />
+                    </div>
+
+                    {/* Header */}
+                    <div className="flex flex-col items-center gap-2 text-center">
+                        <Lock className="w-8 h-8 text-[#EA580C] mb-2" />
+                        <h2 className="font-host-grotesk font-semibold text-2xl text-white">
+                            Access Required
+                        </h2>
+                        <p className="font-host-grotesk font-normal text-sm text-gray-400">
+                            Enter PIN to access login
+                        </p>
+                    </div>
+
+                    {/* PIN Error */}
+                    {pinError && (
+                        <div className="w-full p-3 text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/30 rounded-xl animate-in fade-in">
+                            {pinError}
+                        </div>
+                    )}
+
+                    {/* PIN Form */}
+                    <form onSubmit={handlePinSubmit} className="w-full flex flex-col gap-4">
+                        <input
+                            type="password"
+                            placeholder="Enter PIN"
+                            value={pin}
+                            onChange={(e) => setPin(e.target.value)}
+                            maxLength={4}
+                            className="w-full h-14 px-4 bg-white/5 border border-white/10 rounded-xl text-center text-2xl tracking-[0.5em] text-white placeholder:text-gray-500 placeholder:tracking-normal placeholder:text-base focus:outline-none focus:ring-2 focus:ring-[#EA580C]/30 focus:border-[#EA580C] transition-all"
+                            autoFocus
+                        />
+                        <Button
+                            type="submit"
+                            className="w-full h-12 bg-[#EA580C] hover:bg-[#EA580C]/90 text-white font-host-grotesk font-medium rounded-xl shadow-lg transition-all active:scale-[0.98]"
+                        >
+                            Unlock
+                        </Button>
+                    </form>
+
+                    {/* Back to Home */}
+                    <Link href="/" className="text-sm text-gray-500 hover:text-white transition-colors">
+                        ← Back to Home
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col lg:flex-row w-full h-full min-h-screen bg-white">

@@ -1,7 +1,4 @@
--- Enable the pgvector extension to work with embedding vectors
-CREATE EXTENSION IF NOT EXISTS vector;
-
--- Create profiles table (handles user data linked to Auth)
+-- Create profiles table
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users(id) PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
@@ -18,18 +15,6 @@ CREATE TABLE IF NOT EXISTS public.soulprints (
   soulprint_data JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- Create chat_logs table (New!) for storing AI conversations
-CREATE TABLE IF NOT EXISTS public.chat_logs (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  session_id UUID NOT NULL, -- To group messages by session
-  role TEXT NOT NULL, -- 'user', 'assistant', 'system'
-  content TEXT NOT NULL,
-  embedding vector(1536), -- Vector embedding for search/memory (OpenAI default size)
-  metadata JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Create api_keys table
@@ -57,34 +42,64 @@ CREATE TABLE IF NOT EXISTS public.proxy_usage (
 -- Set up Row Level Security (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.soulprints ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.chat_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.api_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.proxy_usage ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
-CREATE POLICY "Users can view their own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can view their own profile"
+  ON public.profiles FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile"
+  ON public.profiles FOR UPDATE
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert their own profile"
+  ON public.profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
 
 -- Soulprints policies
-CREATE POLICY "Users can view their own soulprints" ON public.soulprints FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert their own soulprints" ON public.soulprints FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own soulprints" ON public.soulprints FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own soulprints" ON public.soulprints FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can view their own soulprints"
+  ON public.soulprints FOR SELECT
+  USING (auth.uid() = user_id);
 
--- Chat Logs policies
-CREATE POLICY "Users can view their own chat logs" ON public.chat_logs FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert their own chat logs" ON public.chat_logs FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own soulprints"
+  ON public.soulprints FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own soulprints"
+  ON public.soulprints FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own soulprints"
+  ON public.soulprints FOR DELETE
+  USING (auth.uid() = user_id);
 
 -- API Keys policies
-CREATE POLICY "Users can view their own API keys" ON public.api_keys FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert their own API keys" ON public.api_keys FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own API keys" ON public.api_keys FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own API keys" ON public.api_keys FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can view their own API keys"
+  ON public.api_keys FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own API keys"
+  ON public.api_keys FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own API keys"
+  ON public.api_keys FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own API keys"
+  ON public.api_keys FOR DELETE
+  USING (auth.uid() = user_id);
 
 -- Proxy Usage policies
-CREATE POLICY "Users can view their own proxy usage" ON public.proxy_usage FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert their own proxy usage" ON public.proxy_usage FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can view their own proxy usage"
+  ON public.proxy_usage FOR SELECT
+  USING (auth.uid()::text = user_id);
+
+CREATE POLICY "Users can insert their own proxy usage"
+  ON public.proxy_usage FOR INSERT
+  WITH CHECK (auth.uid()::text = user_id);
 
 -- Create function to handle user creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -117,8 +132,10 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create triggers for updated_at
-DROP TRIGGER IF EXISTS set_updated_at_profiles ON public.profiles;
-CREATE TRIGGER set_updated_at_profiles BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER set_updated_at_profiles
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
-DROP TRIGGER IF EXISTS set_updated_at_soulprints ON public.soulprints;
-CREATE TRIGGER set_updated_at_soulprints BEFORE UPDATE ON public.soulprints FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER set_updated_at_soulprints
+  BEFORE UPDATE ON public.soulprints
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
