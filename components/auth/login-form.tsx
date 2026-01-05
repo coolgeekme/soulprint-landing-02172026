@@ -47,8 +47,17 @@ export function LoginForm() {
     };
 
     const handleDemoSignIn = async () => {
+        // Visual feedback: pre-fill the form so the user sees something happening
+        setEmail("demo@soulprint.ai");
+        setPassword("demoPassword123!");
+
         setLoading(true);
-        await signInAsDemo();
+        const result = await signInAsDemo();
+
+        if (result?.error) {
+            setError(result.error);
+            setLoading(false);
+        }
     };
 
     return (
