@@ -2,7 +2,6 @@
 import { useMemo, useEffect } from 'react'
 import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber'
 import { shaderMaterial, useTrailTexture } from '@react-three/drei'
-import { useTheme } from 'next-themes'
 import * as THREE from 'three'
 
 const DotMaterial = shaderMaterial(
@@ -100,23 +99,11 @@ const DotMaterial = shaderMaterial(
 function Scene() {
     const size = useThree((s: any) => s.size)
     const viewport = useThree((s: any) => s.viewport)
-    const { theme } = useTheme()
 
     const rotation = 0
     const gridSize = 100
 
-    const getThemeColors = () => {
-        switch (theme) {
-            case 'dark':
-                return { dotColor: '#FFFFFF', bgColor: '#121212', dotOpacity: 0.025 }
-            case 'light':
-                return { dotColor: '#e1e1e1', bgColor: '#F4F5F5', dotOpacity: 0.15 }
-            default:
-                return { dotColor: '#FFFFFF', bgColor: '#121212', dotOpacity: 0.05 }
-        }
-    }
-
-    const themeColors = getThemeColors()
+    const themeColors = { dotColor: '#FFFFFF', bgColor: '#121212', dotOpacity: 0.025 }
 
     const [trail, onMove] = useTrailTexture({
         size: 512,
@@ -134,7 +121,7 @@ function Scene() {
         dotMaterial.uniforms.dotColor.value.set(themeColors.dotColor)
         dotMaterial.uniforms.bgColor.value.set(themeColors.bgColor)
         dotMaterial.uniforms.dotOpacity.value = themeColors.dotOpacity
-    }, [theme, dotMaterial, themeColors])
+    }, [dotMaterial, themeColors])
 
     useFrame((state) => {
         dotMaterial.uniforms.time.value = state.clock.elapsedTime

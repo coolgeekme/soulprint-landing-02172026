@@ -74,7 +74,19 @@ export function LoginForm() {
             </div>
 
             {/* Right Side - Form */}
-            <div className="flex flex-1 flex-col justify-center items-center px-6 py-12 sm:px-12 lg:p-[32px] relative w-full">
+            <div className="flex flex-1 flex-col lg:justify-center items-center px-6 py-12 sm:px-12 lg:p-[32px] relative w-full overflow-y-auto">
+                {/* Mobile Logo (Visible only on small screens) */}
+                <div className="lg:hidden mb-8 flex justify-center">
+                    <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-lg border-2 border-[#EA580C]/20">
+                        <Image
+                            src="/images/Soulprintengine-logo.png"
+                            alt="Logo"
+                            fill
+                            className="object-cover"
+                        />
+                    </div>
+                </div>
+
                 {/* Top Left Home Button */}
                 <div className="absolute top-6 left-4 sm:top-8 sm:left-8">
                     <Link href="/">
@@ -84,7 +96,7 @@ export function LoginForm() {
                     </Link>
                 </div>
 
-                <div className="w-full max-w-[350px] flex flex-col gap-8 sm:gap-6 mt-8 sm:mt-0">
+                <div className="w-full max-w-[350px] flex flex-col gap-8 sm:gap-6 mt-4 lg:mt-0">
                     {/* Header */}
                     <div className="flex flex-col gap-2 text-center">
                         <h2 className="font-host-grotesk font-semibold text-3xl sm:text-2xl leading-tight tracking-[-0.4px] text-[#341E63]">

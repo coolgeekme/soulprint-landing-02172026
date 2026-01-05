@@ -2,16 +2,14 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
-import { Moon, Sun } from "lucide-react"
 import { useEffect, useState } from "react"
-// import { SignUpModal } from "@/components/auth/signup-modal" // Temporarily disabled for waitlist
+import { Menu, X } from "lucide-react"
 
 export function Navbar() {
-    const { theme, setTheme } = useTheme()
     const [mounted, setMounted] = useState(false)
-    const LOGIN_ENABLED = true; // Toggle this to enable/disable login button
+    const [isMenuOpen, setIsMenuOpen] = useState(false)
+    const LOGIN_ENABLED = true;
 
     useEffect(() => {
         setMounted(true)
@@ -19,15 +17,15 @@ export function Navbar() {
 
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="flex h-16 w-full items-center justify-between">
-                {/* Left side: uniform gap-6 spacing (same as Features/FAQ) */}
-                <div className="flex items-center gap-6 pl-6">
+            <div className="flex h-16 w-full items-center justify-between px-6">
+                {/* Left side */}
+                <div className="flex items-center gap-6">
                     <Image
                         src="/images/vector-personalized.png"
                         alt="SoulPrint Icon"
                         width={40}
                         height={40}
-                        className="h-10 w-10"
+                        className="h-10 w-10 shrink-0"
                     />
                     <Link href="/" className="flex items-center">
                         <Image
@@ -39,53 +37,59 @@ export function Navbar() {
                     </Link>
 
                     <div className="hidden md:flex gap-6">
-                        <Link
-                            href="/#features"
-                            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            Features
-                        </Link>
-                        <Link
-                            href="/#faq"
-                            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            FAQ
-                        </Link>
-                        <Link
-                            href="/#about"
-                            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            About
-                        </Link>
+                        <Link href="/#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</Link>
+                        <Link href="/#faq" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">FAQ</Link>
+                        <Link href="/#about" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">About</Link>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4 pr-3 md:pr-6 lg:pr-12 xl:pr-16">
-                    {mounted && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                            className="rounded-full"
-                        >
-                            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                            <span className="sr-only">Toggle theme</span>
-                        </Button>
-                    )}
-
-                    <div className="hidden md:flex gap-2">
-                        {LOGIN_ENABLED && (
-                            <Link href="/login">
-                                <Button variant="ghost">Log In</Button>
-                            </Link>
-                        )}
-                        <Link href="/waitlist">
-                            <Button>Join the Waitlist</Button>
+                {/* Desktop Buttons (Hidden on mobile) */}
+                <div className="hidden md:flex items-center gap-2">
+                    {LOGIN_ENABLED && (
+                        <Link href="/login">
+                            <Button variant="ghost">Log In</Button>
                         </Link>
-                    </div>
+                    )}
+                    <Link href="/waitlist">
+                        <Button>Join the Waitlist</Button>
+                    </Link>
+                </div>
+
+                {/* Mobile Menu Toggle (Visible only on mobile) */}
+                <div className="flex md:hidden items-center">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className="rounded-xl border border-white/10"
+                    >
+                        {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                        <span className="sr-only">Toggle menu</span>
+                    </Button>
                 </div>
             </div>
+
+            {/* Mobile Dropdown Menu */}
+            {isMenuOpen && (
+                <div className="md:hidden absolute top-16 left-0 w-full bg-[#0f0f0f] border-b border-white/10 p-6 flex flex-col gap-6 animate-in slide-in-from-top-4 duration-200">
+                    <div className="flex flex-col gap-4">
+                        <Link href="/#features" onClick={() => setIsMenuOpen(false)} className="text-lg font-medium text-white/70">Features</Link>
+                        <Link href="/#faq" onClick={() => setIsMenuOpen(false)} className="text-lg font-medium text-white/70">FAQ</Link>
+                        <Link href="/#about" onClick={() => setIsMenuOpen(false)} className="text-lg font-medium text-white/70">About</Link>
+                    </div>
+                    <div className="h-px bg-white/10 w-full" />
+                    <div className="flex flex-col gap-3">
+                        {LOGIN_ENABLED && (
+                            <Link href="/login" onClick={() => setIsMenuOpen(false)}>
+                                <Button variant="outline" className="w-full h-12 text-white border-white/20">Log In</Button>
+                            </Link>
+                        )}
+                        <Link href="/waitlist" onClick={() => setIsMenuOpen(false)}>
+                            <Button className="w-full h-12">Join the Waitlist</Button>
+                        </Link>
+                    </div>
+                </div>
+            )}
         </nav>
     )
 }
