@@ -36,8 +36,8 @@ export async function processSoulPrint(
     console.log('✅ SoulPrint generated, archetype:', soulprintData.archetype);
 
     // 2. Save to Supabase soulprints table
-    await saveSoulPrint(supabaseAdmin, userId, soulprintData, userData);
-    console.log('💾 SoulPrint saved to Supabase');
+    const savedRecord = await saveSoulPrint(supabaseAdmin, userId, soulprintData, userData);
+    console.log('💾 SoulPrint saved to Supabase with ID:', savedRecord.id);
 
     // 3. Skip File Search Store operations (Gemini-specific feature removed)
     // The SoulPrint is now fully generated and saved without RAG indexing.
@@ -46,6 +46,7 @@ export async function processSoulPrint(
     return {
         success: true,
         message: 'SoulPrint generated and saved successfully',
+        soulprint_id: savedRecord.id,
         user_id: userId,
         archetype: soulprintData.archetype,
         store_name: null,

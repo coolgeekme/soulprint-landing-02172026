@@ -81,17 +81,23 @@ export async function saveSoulPrint(
                 })
                 .eq('id', latest.id);
             if (error) throw error;
+            return { id: latest.id };
         }
     } else {
         // Create NEW SoulPrint
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('soulprints')
             .insert({
                 user_id: userId,
                 soulprint_data: soulprintData,
                 updated_at: new Date().toISOString()
-            });
+            })
+            .select('id')
+            .single();
 
         if (error) throw error;
+        return { id: data.id };
     }
+    // Fallback if logic misses (shouldn't happen with updated logic)
+    return { id: '' };
 }
