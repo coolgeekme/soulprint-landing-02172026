@@ -169,7 +169,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                     "Authorization": `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: "gemini-flash-latest",
+                    model: "gpt-4o",
                     stream: true,
                     soulprint_id: selectedSoulprintId, // Pass the NEW ID
                     messages: [
