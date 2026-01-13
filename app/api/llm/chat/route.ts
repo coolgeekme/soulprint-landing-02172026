@@ -1,8 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { createHash } from 'crypto';
 import { invokeSageMaker, checkEndpointStatus, ChatMessage } from '@/lib/aws/sagemaker';
+
+// Supabase admin client for API key validation
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Validate API Key
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer sk-soulprint-')) {
+      return NextResponse.json(
+        { error: 'Missing or invalid API key' },
+        { status: 401 }
+      );
+    }
+
+    const rawKey = authHeader.replace('Bearer ', '');
+    const hashedKey = createHash('sha256').update(rawKey).digest('hex');
+
+    // 2. Verify key exists in database
+    const { data: keyData, error: keyError } = await supabaseAdmin
+      .from('api_keys')
+      .select('user_id')
+      .eq('key_hash', hashedKey)
+      .single();
+
+    if (keyError || !keyData) {
+      return NextResponse.json(
+        { error: 'Invalid API key' },
+        { status: 401 }
+      );
+    }
+
+    // 3. Parse and validate request body
     const body = await request.json();
     const { messages, temperature, max_tokens } = body as {
       messages: ChatMessage[];
@@ -17,7 +52,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Invoke SageMaker endpoint
+    // 4. Invoke SageMaker endpoint
     const responseText = await invokeSageMaker(messages, {
       temperature: temperature ?? 0.7,
       maxTokens: max_tokens ?? 512,

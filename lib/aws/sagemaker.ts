@@ -23,28 +23,62 @@ export interface SageMakerChatOptions {
   maxTokens?: number;
 }
 
-const runtimeClient = new SageMakerRuntimeClient({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+// Lazy-initialized clients (env vars must be loaded first)
+let _runtimeClient: SageMakerRuntimeClient | null = null;
+let _sagemakerClient: SageMakerClient | null = null;
 
-const sagemakerClient = new SageMakerClient({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+function getRuntimeClient(): SageMakerRuntimeClient {
+  if (!_runtimeClient) {
+    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+      throw new Error(
+        'AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in .env.local'
+      );
+    }
+    _runtimeClient = new SageMakerRuntimeClient({
+      region: process.env.AWS_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
+    });
+  }
+  return _runtimeClient;
+}
 
-const ENDPOINT_NAME = process.env.SAGEMAKER_ENDPOINT_NAME || 'soulprint-llm';
+function getSageMakerClient(): SageMakerClient {
+  if (!_sagemakerClient) {
+    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+      throw new Error(
+        'AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in .env.local'
+      );
+    }
+    _sagemakerClient = new SageMakerClient({
+      region: process.env.AWS_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
+    });
+  }
+  return _sagemakerClient;
+}
+
+function getEndpointName(): string {
+  return process.env.SAGEMAKER_ENDPOINT_NAME || 'soulprint-llm';
+}
+
 const MODEL_NAME = 'soulprint-llm-model';
 const ENDPOINT_CONFIG_NAME = 'soulprint-llm-config';
 
 /**
  * Format messages into a chat prompt for the LLM
+ *
+ * NOTE: This uses ChatML format which works with Hermes models.
+ * TinyLlama (used for pipeline testing) uses a different format,
+ * so responses may not be optimal until switched to Hermes.
+ *
+ * ChatML format: <|im_start|>role\ncontent<|im_end|>
+ * TinyLlama format: <|role|>\ncontent</s>
  */
 function formatPrompt(messages: ChatMessage[]): string {
   let prompt = '';
@@ -87,12 +121,12 @@ export async function invokeSageMaker(
   };
 
   const command = new InvokeEndpointCommand({
-    EndpointName: ENDPOINT_NAME,
+    EndpointName: getEndpointName(),
     ContentType: 'application/json',
     Body: JSON.stringify(payload),
   });
 
-  const response = await runtimeClient.send(command);
+  const response = await getRuntimeClient().send(command);
 
   if (!response.Body) {
     throw new Error('Empty response from SageMaker');
@@ -122,10 +156,10 @@ export async function checkEndpointStatus(): Promise<{
 }> {
   try {
     const command = new DescribeEndpointCommand({
-      EndpointName: ENDPOINT_NAME,
+      EndpointName: getEndpointName(),
     });
 
-    const response = await sagemakerClient.send(command);
+    const response = await getSageMakerClient().send(command);
     const status = response.EndpointStatus || 'Unknown';
 
     return {
@@ -133,7 +167,9 @@ export async function checkEndpointStatus(): Promise<{
       isReady: status === 'InService',
     };
   } catch (error: any) {
-    if (error.name === 'ResourceNotFoundException') {
+    if (error.name === 'ResourceNotFoundException' ||
+        error.name === 'ValidationException' ||
+        error.message?.includes('Could not find')) {
       return { status: 'NotFound', isReady: false };
     }
     throw error;
@@ -145,47 +181,52 @@ export async function checkEndpointStatus(): Promise<{
  * Note: This takes 10-15 minutes to spin up
  */
 export async function deployModel(): Promise<void> {
+  if (!process.env.SAGEMAKER_EXECUTION_ROLE_ARN) {
+    throw new Error(
+      'SAGEMAKER_EXECUTION_ROLE_ARN not configured. Create a SageMaker execution role in IAM and add the ARN to .env.local'
+    );
+  }
+
   const region = process.env.AWS_REGION || 'us-east-1';
 
-  // LMI container with vLLM
-  const imageUri = `763104351884.dkr.ecr.${region}.amazonaws.com/djl-inference:0.28.0-lmi11.0.0-cu124`;
+  // HuggingFace TGI container for text generation
+  const imageUri = `763104351884.dkr.ecr.${region}.amazonaws.com/huggingface-pytorch-tgi-inference:2.1.1-tgi2.0.1-gpu-py310-cu121-ubuntu22.04`;
 
-  // Create model
-  await sagemakerClient.send(new CreateModelCommand({
+  // Create model - using smaller model first to test pipeline
+  await getSageMakerClient().send(new CreateModelCommand({
     ModelName: MODEL_NAME,
     PrimaryContainer: {
       Image: imageUri,
       Environment: {
-        HF_MODEL_ID: 'NousResearch/Hermes-2-Pro-Llama-3-8B',
-        OPTION_ROLLING_BATCH: 'vllm',
-        TENSOR_PARALLEL_DEGREE: '1',
-        OPTION_MAX_ROLLING_BATCH_SIZE: '4',
-        OPTION_DTYPE: 'fp16',
+        HF_MODEL_ID: 'TinyLlama/TinyLlama-1.1B-Chat-v1.0',
+        SM_NUM_GPUS: '1',
+        MAX_INPUT_LENGTH: '1024',
+        MAX_TOTAL_TOKENS: '2048',
       },
     },
     ExecutionRoleArn: process.env.SAGEMAKER_EXECUTION_ROLE_ARN!,
   }));
 
   // Create endpoint config
-  await sagemakerClient.send(new CreateEndpointConfigCommand({
+  await getSageMakerClient().send(new CreateEndpointConfigCommand({
     EndpointConfigName: ENDPOINT_CONFIG_NAME,
     ProductionVariants: [
       {
         VariantName: 'primary',
         ModelName: MODEL_NAME,
         InitialInstanceCount: 1,
-        InstanceType: 'ml.g5.xlarge',
+        InstanceType: 'ml.g4dn.xlarge',
       },
     ],
   }));
 
   // Create endpoint
-  await sagemakerClient.send(new CreateEndpointCommand({
-    EndpointName: ENDPOINT_NAME,
+  await getSageMakerClient().send(new CreateEndpointCommand({
+    EndpointName: getEndpointName(),
     EndpointConfigName: ENDPOINT_CONFIG_NAME,
   }));
 
-  console.log(`Endpoint ${ENDPOINT_NAME} is being created. This takes 10-15 minutes.`);
+  console.log(`Endpoint ${getEndpointName()} is being created. This takes 10-15 minutes.`);
 }
 
 /**
@@ -193,19 +234,19 @@ export async function deployModel(): Promise<void> {
  */
 export async function deleteEndpoint(): Promise<void> {
   try {
-    await sagemakerClient.send(new DeleteEndpointCommand({
-      EndpointName: ENDPOINT_NAME,
+    await getSageMakerClient().send(new DeleteEndpointCommand({
+      EndpointName: getEndpointName(),
     }));
 
-    await sagemakerClient.send(new DeleteEndpointConfigCommand({
+    await getSageMakerClient().send(new DeleteEndpointConfigCommand({
       EndpointConfigName: ENDPOINT_CONFIG_NAME,
     }));
 
-    await sagemakerClient.send(new DeleteModelCommand({
+    await getSageMakerClient().send(new DeleteModelCommand({
       ModelName: MODEL_NAME,
     }));
 
-    console.log(`Endpoint ${ENDPOINT_NAME} deleted successfully.`);
+    console.log(`Endpoint ${getEndpointName()} deleted successfully.`);
   } catch (error: any) {
     if (error.name !== 'ResourceNotFoundException') {
       throw error;
