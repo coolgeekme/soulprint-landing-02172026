@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { signUp, signInWithGoogle, signInAsDemo } from "@/app/actions/auth";
+import { signUp, signInWithGoogle } from "@/app/actions/auth";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -55,11 +55,6 @@ export function SignUpModal({ children }: SignUpModalProps) {
     const handleGoogleSignIn = async () => {
         setLoading(true);
         await signInWithGoogle();
-    };
-
-    const handleDemoSignIn = async () => {
-        setLoading(true);
-        await signInAsDemo();
     };
 
     // Prevent hydration mismatch by only rendering Dialog on client
@@ -192,17 +187,6 @@ export function SignUpModal({ children }: SignUpModalProps) {
                                             />
                                         </svg>
                                         Google
-                                    </Button>
-
-                                    {/* Demo Mode Button */}
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        onClick={handleDemoSignIn}
-                                        disabled={loading}
-                                        className="w-full h-9 text-[#ea580c] font-host-grotesk font-medium text-sm hover:bg-[#ea580c]/10 hover:text-[#ea580c]"
-                                    >
-                                        🎯 Try Demo Mode (Elon Musk)
                                     </Button>
 
                                     {/* Footer Terms */}

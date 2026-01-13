@@ -23,11 +23,6 @@ export async function GET(request: Request) {
             // Check if user already has a soulprint (existing user)
             const { data: { user } } = await supabase.auth.getUser()
 
-            // Allow demo user shortcut
-            if (user?.email === 'demo@soulprint.ai') {
-                return NextResponse.redirect(new URL('/dashboard/chat', requestUrl.origin))
-            }
-
             // Check for existing soulprint
             if (user) {
                 const { count } = await supabase

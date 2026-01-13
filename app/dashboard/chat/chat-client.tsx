@@ -79,8 +79,6 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                     existingSoulprint = anySP
                 }
 
-                const isDemoUser = currentUser.email?.includes('demo') || currentUser.email === 'elon@soulprint.ai';
-
                 // Extract personality string for visualizer
                 try {
                     if (existingSoulprint) {
@@ -100,9 +98,6 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                             currentUser.email ||
                             'Default System'
                         setPersonality(personalityStr)
-                    } else if (isDemoUser) {
-                        setPersonality("Elon Musk Demo Mode");
-                        setDisplayName("Elon Musk");
                     }
                 } catch (e) {
                     setPersonality(currentUser.email || 'Default System')
@@ -112,18 +107,14 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                 // 3. Load Sessions
                 await loadSessions()
 
-                // 4. Get API key logic
-                if (isDemoUser) {
-                    setApiKey('sk-soulprint-demo-internal-key')
+                // 4. Get API key
+                const storedKey = localStorage.getItem("soulprint_internal_key")
+                if (storedKey) {
+                    setApiKey(storedKey)
                 } else {
-                    const storedKey = localStorage.getItem("soulprint_internal_key")
-                    if (storedKey) {
-                        setApiKey(storedKey)
-                    } else {
-                        const { keys } = await listApiKeys()
-                        if (keys && keys.length > 0) {
-                            setApiKey(keys[0].encrypted_key || "legacy-key-placeholder")
-                        }
+                    const { keys } = await listApiKeys()
+                    if (keys && keys.length > 0) {
+                        setApiKey(keys[0].encrypted_key || "legacy-key-placeholder")
                     }
                 }
 

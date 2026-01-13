@@ -30,10 +30,7 @@ export default function DashboardRedirect() {
                     .eq('user_id', user.id)
                     .maybeSingle()
 
-                // Only demo@soulprint.ai and elon@soulprint.ai are demo users
-                const isDemoUser = user.email === 'demo@soulprint.ai' || user.email === 'elon@soulprint.ai';
-
-                if (soulprint || isDemoUser) {
+                if (soulprint) {
                     setStatus("SoulPrint found. Redirecting to Chat...")
                     router.push('/dashboard/chat')
                 } else {

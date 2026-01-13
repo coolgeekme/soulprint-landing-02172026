@@ -1,32 +1,38 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { signIn, signInWithGoogle } from "@/app/actions/auth";
+import { signUp, signInWithGoogle } from "@/app/actions/auth";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
-export function LoginForm() {
+export default function SignUpPage() {
+    const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
 
-    const handleEmailSignIn = async (e: React.FormEvent) => {
+    const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
         setLoading(true);
 
         const formData = new FormData();
+        formData.append("name", name);
         formData.append("email", email);
         formData.append("password", password);
 
         try {
-            const result = await signIn(formData);
+            const result = await signUp(formData);
 
             if (result?.error) {
                 setError(result.error);
+                setLoading(false);
+            } else if (result?.success) {
+                setSuccess(true);
                 setLoading(false);
             }
         } catch {
@@ -42,6 +48,32 @@ export function LoginForm() {
             setLoading(false);
         }
     };
+
+    if (success) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-[#0f0f0f] to-[#1a1a2e] px-6">
+                <div className="w-full max-w-[400px] flex flex-col items-center gap-6 text-center">
+                    <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h2 className="font-host-grotesk font-semibold text-2xl text-white">
+                        Check your email
+                    </h2>
+                    <p className="text-gray-400">
+                        We sent a confirmation link to <span className="text-white">{email}</span>.
+                        Click the link to activate your account.
+                    </p>
+                    <Link href="/login">
+                        <Button variant="outline" className="mt-4">
+                            Back to Login
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col lg:flex-row w-full h-full min-h-screen bg-white">
@@ -83,10 +115,10 @@ export function LoginForm() {
                     {/* Header */}
                     <div className="flex flex-col gap-2 text-center">
                         <h2 className="font-host-grotesk font-semibold text-3xl sm:text-2xl leading-tight tracking-[-0.4px] text-[#341E63]">
-                            Welcome back
+                            Create your account
                         </h2>
                         <p className="font-host-grotesk font-normal text-base sm:text-sm leading-relaxed text-[#5E4F7E]">
-                            Enter your credentials to access your account
+                            Start building your SoulPrint today
                         </p>
                     </div>
 
@@ -98,8 +130,16 @@ export function LoginForm() {
                     )}
 
                     {/* Form */}
-                    <form onSubmit={handleEmailSignIn} className="flex flex-col gap-5 sm:gap-4">
-                        <div className="flex flex-col gap-4 sm:gap-2">
+                    <form onSubmit={handleSignUp} className="flex flex-col gap-5 sm:gap-4">
+                        <div className="flex flex-col gap-4 sm:gap-3">
+                            <input
+                                type="text"
+                                placeholder="Full name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                                className="w-full h-12 sm:h-10 px-4 bg-white border border-[#E2E8F0] rounded-xl sm:rounded-lg shadow-[0px_1px_2px_rgba(121,87,194,0.05)] font-host-grotesk text-base text-[#341E63] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] transition-all duration-200"
+                            />
                             <input
                                 type="email"
                                 placeholder="name@example.com"
@@ -110,10 +150,11 @@ export function LoginForm() {
                             />
                             <input
                                 type="password"
-                                placeholder="Password"
+                                placeholder="Password (min 6 characters)"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
+                                minLength={6}
                                 className="w-full h-12 sm:h-10 px-4 bg-white border border-[#E2E8F0] rounded-xl sm:rounded-lg shadow-[0px_1px_2px_rgba(121,87,194,0.05)] font-host-grotesk text-base text-[#341E63] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] transition-all duration-200"
                             />
                         </div>
@@ -123,7 +164,7 @@ export function LoginForm() {
                             disabled={loading}
                             className="w-full h-12 sm:h-10 bg-[#EA580C] hover:bg-[#EA580C]/90 text-[#F8FAFC] font-host-grotesk font-medium text-base sm:text-sm rounded-xl sm:rounded-[10px] shadow-[inset_0px_-2px_4px_rgba(0,0,0,0.2),0px_2px_8px_rgba(234,88,12,0.25)] disabled:opacity-70 transition-all active:scale-[0.98]"
                         >
-                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Log In"}
+                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Account"}
                         </Button>
                     </form>
 
@@ -166,11 +207,11 @@ export function LoginForm() {
                         Google
                     </Button>
 
-                    {/* Sign Up Link */}
+                    {/* Login Link */}
                     <p className="text-center text-sm text-[#5E4F7E]">
-                        Don&apos;t have an account?{" "}
-                        <Link href="/signup" className="text-[#EA580C] font-medium hover:underline">
-                            Sign up
+                        Already have an account?{" "}
+                        <Link href="/login" className="text-[#EA580C] font-medium hover:underline">
+                            Log in
                         </Link>
                     </p>
                 </div>
