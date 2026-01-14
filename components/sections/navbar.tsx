@@ -5,10 +5,12 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
 import { Menu, X } from "lucide-react"
+import { SecurityAccessModal } from "@/components/auth/security-access-modal"
 
 export function Navbar() {
     const [mounted, setMounted] = useState(false)
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+    const [showSecurityModal, setShowSecurityModal] = useState(false)
     const LOGIN_ENABLED = true;
 
     useEffect(() => {
@@ -45,9 +47,12 @@ export function Navbar() {
 
                 {/* Desktop Buttons (Hidden on mobile) */}
                 <div className="hidden md:flex items-center gap-2">
-                    <Link href="/enter">
-                        <Button className="bg-[#EA580C] text-white hover:bg-[#EA580C]/90">Enter SoulPrint</Button>
-                    </Link>
+                    <Button
+                        onClick={() => setShowSecurityModal(true)}
+                        className="bg-[#EA580C] text-white hover:bg-[#EA580C]/90"
+                    >
+                        Enter SoulPrint
+                    </Button>
                 </div>
 
                 {/* Mobile Menu Toggle (Visible only on mobile) */}
@@ -74,12 +79,19 @@ export function Navbar() {
                     </div>
                     <div className="h-px bg-white/10 w-full" />
                     <div className="flex flex-col gap-3">
-                        <Link href="/enter" onClick={() => setIsMenuOpen(false)}>
-                            <Button className="w-full h-12 bg-[#EA580C] text-white hover:bg-[#EA580C]/90">Enter SoulPrint</Button>
-                        </Link>
+                        <Button
+                            onClick={() => {
+                                setIsMenuOpen(false)
+                                setShowSecurityModal(true)
+                            }}
+                            className="w-full h-12 bg-[#EA580C] text-white hover:bg-[#EA580C]/90"
+                        >
+                            Enter SoulPrint
+                        </Button>
                     </div>
                 </div>
             )}
+            <SecurityAccessModal isOpen={showSecurityModal} onOpenChange={setShowSecurityModal} />
         </nav>
     )
 }

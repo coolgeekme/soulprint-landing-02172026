@@ -23,22 +23,11 @@ export async function POST(req: NextRequest) {
         const hashedKey = createHash("sha256").update(rawKey).digest("hex");
 
         // 2. Validate API Key & Get User
-        let keyData;
-        let keyError;
-
-        if (rawKey === "sk-soulprint-demo-fallback-123456" || rawKey === "sk-soulprint-demo-internal-key") {
-            // Use Elon's UUID for demo mode
-            keyData = { user_id: 'dadb8b23-5684-4d86-9021-e457267e75c7', id: 'demo-fallback-id' };
-            keyError = null;
-        } else {
-            const result = await supabaseAdmin
-                .from("api_keys")
-                .select("user_id, id")
-                .eq("key_hash", hashedKey)
-                .single();
-            keyData = result.data;
-            keyError = result.error;
-        }
+        const { data: keyData, error: keyError } = await supabaseAdmin
+            .from("api_keys")
+            .select("user_id, id")
+            .eq("key_hash", hashedKey)
+            .single();
 
         if (keyError || !keyData) {
             return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
@@ -47,29 +36,26 @@ export async function POST(req: NextRequest) {
         // ===================================
         // 🚦 USAGE LIMIT CHECK (Gate Logic)
         // ===================================
-        // Skip limit for Demo User (Elon)
-        if (keyData.user_id !== 'dadb8b23-5684-4d86-9021-e457267e75c7') {
-            const { data: profile } = await supabaseAdmin
-                .from('profiles')
-                .select('usage_count, usage_limit')
-                .eq('id', keyData.user_id)
-                .single();
+        const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('usage_count, usage_limit')
+            .eq('id', keyData.user_id)
+            .single();
 
-            const limit = profile?.usage_limit ?? 20; // Default hard limit
-            const count = profile?.usage_count ?? 0;
+        const limit = profile?.usage_limit ?? 20; // Default hard limit
+        const count = profile?.usage_count ?? 0;
 
-            if (count >= limit) {
-                return NextResponse.json({
-                    error: "SoulPrint Trial Limit Reached (20 Interactions). Access is currently restricted."
-                }, { status: 403 });
-            }
-
-            // Increment Usage (Blocking to ensure enforcement)
-            await supabaseAdmin
-                .from('profiles')
-                .update({ usage_count: count + 1 })
-                .eq('id', keyData.user_id);
+        if (count >= limit) {
+            return NextResponse.json({
+                error: "SoulPrint Trial Limit Reached (20 Interactions). Access is currently restricted."
+            }, { status: 403 });
         }
+
+        // Increment Usage (Blocking to ensure enforcement)
+        await supabaseAdmin
+            .from('profiles')
+            .update({ usage_count: count + 1 })
+            .eq('id', keyData.user_id);
 
 
         // 3. Parse Request Body

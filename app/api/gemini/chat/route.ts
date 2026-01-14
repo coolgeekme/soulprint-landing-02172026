@@ -26,27 +26,18 @@ export async function POST(request: NextRequest) {
 
         console.log('🔑 Validating API key for Gemini chat...');
 
-        // 2. Validate Key
-        let keyData: { user_id: string } | null = null;
+        // 2. Validate Key against database
+        const { data: keyData, error } = await supabaseAdmin
+            .from('api_keys')
+            .select('user_id')
+            .eq('key_hash', hashedKey)
+            .single();
 
-        // Check for demo fallback key
-        if (rawKey === 'sk-soulprint-demo-fallback-123456') {
-            keyData = { user_id: '4316c8f3-a383-4260-8cbc-daadea2ad142' };
-            console.log('🎭 Demo mode activated');
-        } else {
-            const { data, error } = await supabaseAdmin
-                .from('api_keys')
-                .select('user_id')
-                .eq('key_hash', hashedKey)
-                .single();
-
-            if (error || !data) {
-                return NextResponse.json(
-                    { error: 'Invalid API key' },
-                    { status: 401 }
-                );
-            }
-            keyData = data;
+        if (error || !keyData) {
+            return NextResponse.json(
+                { error: 'Invalid API key' },
+                { status: 401 }
+            );
         }
 
         console.log('✅ API key valid for user:', keyData.user_id);

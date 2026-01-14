@@ -73,30 +73,31 @@ const ENDPOINT_CONFIG_NAME = 'soulprint-llm-config';
 /**
  * Format messages into a chat prompt for the LLM
  *
- * NOTE: This uses ChatML format which works with Hermes models.
- * TinyLlama (used for pipeline testing) uses a different format,
- * so responses may not be optimal until switched to Hermes.
+ * Supports multiple formats based on deployed model:
+ * - Mistral: <s>[INST] {system} {user} [/INST]
+ * - ChatML (Hermes): <|im_start|>role\ncontent<|im_end|>
  *
- * ChatML format: <|im_start|>role\ncontent<|im_end|>
- * TinyLlama format: <|role|>\ncontent</s>
+ * Currently configured for Mistral 7B Instruct (JumpStart default)
  */
 function formatPrompt(messages: ChatMessage[]): string {
-  let prompt = '';
+  // Mistral Instruct format
+  let systemPrompt = '';
+  let conversation = '';
 
   for (const msg of messages) {
     if (msg.role === 'system') {
-      prompt += `<|im_start|>system\n${msg.content}<|im_end|>\n`;
+      systemPrompt = msg.content;
     } else if (msg.role === 'user') {
-      prompt += `<|im_start|>user\n${msg.content}<|im_end|>\n`;
+      // Include system prompt with first user message
+      const prefix = systemPrompt ? `${systemPrompt}\n\n` : '';
+      conversation += `<s>[INST] ${prefix}${msg.content} [/INST]`;
+      systemPrompt = ''; // Only include once
     } else if (msg.role === 'assistant') {
-      prompt += `<|im_start|>assistant\n${msg.content}<|im_end|>\n`;
+      conversation += ` ${msg.content}</s>`;
     }
   }
 
-  // Add assistant prefix for response
-  prompt += '<|im_start|>assistant\n';
-
-  return prompt;
+  return conversation;
 }
 
 /**
@@ -116,7 +117,6 @@ export async function invokeSageMaker(
       max_new_tokens: maxTokens,
       temperature: temperature,
       do_sample: true,
-      stop: ['<|im_end|>'],
     },
   };
 
