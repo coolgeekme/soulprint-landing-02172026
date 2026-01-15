@@ -106,16 +106,12 @@ export async function* invokeSoulPrintModelStream(
     for await (const chunk of response.Body) {
       if (chunk.PayloadPart && chunk.PayloadPart.Bytes) {
         const decodedChunk = decoder.decode(chunk.PayloadPart.Bytes);
+
+        // Try to parse as structured data first
         try {
-          // TGI Stream Format: data: {...}
-          // We need to parse multiple lines if they come together
           const lines = decodedChunk.split('\n').filter(line => line.trim() !== '');
           for (const line of lines) {
-            // TGI style often sends raw JSON or SSE 'data: ' lines depending on config.
-            // Let's assume standard JSON chunks for now, typically expected as:
-            // {"token": {"text": "..."}}
-            // OR simplified SSE.
-            // Let's first try to parse the chunk directly as JSON.
+            // SSE format: data: {...}
             if (line.startsWith('data:')) {
               const jsonStr = line.substring(5).trim();
               if (jsonStr === '[DONE]') continue;
@@ -123,20 +119,30 @@ export async function* invokeSoulPrintModelStream(
               if (data.token?.text) {
                 yield data.token.text;
               } else if (data.choices && data.choices[0]?.delta?.content) {
-                // Some mimics OpenAI
                 yield data.choices[0].delta.content;
+              } else if (typeof data === 'string') {
+                yield data;
               }
             } else {
               // Try raw JSON parse
               const data = JSON.parse(line);
               if (data.token?.text) {
                 yield data.token.text;
+              } else if (data.generated_text) {
+                // Non-streaming response format
+                yield data.generated_text;
+              } else if (typeof data === 'string') {
+                yield data;
               }
             }
           }
-        } catch (e) {
-          // Fallback: yield raw text if parsing fails (dangerous but helpful for debugging)
-          // console.warn("Failed to parse stream chunk", decodedChunk);
+        } catch {
+          // Fallback: yield raw decoded text if parsing fails
+          // This handles cases where TGI sends plain text
+          if (decodedChunk.trim()) {
+            console.log('[SageMaker Stream] Raw chunk (no JSON):', decodedChunk.slice(0, 100));
+            yield decodedChunk;
+          }
         }
       }
     }
