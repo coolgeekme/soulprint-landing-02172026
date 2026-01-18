@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { sendConfirmationEmail } from "@/lib/email"
 
 const STREAK_API_KEY = process.env.STREAK_API_KEY
 const STREAK_PIPELINE_KEY = process.env.STREAK_PIPELINE_KEY
@@ -62,20 +63,15 @@ export async function POST(req: NextRequest) {
 
         const box = JSON.parse(responseText)
 
-        // Trigger n8n workflow to send confirmation email
+        // Send confirmation email via direct Gmail integration
         try {
-            const n8nWebhookUrl = process.env.N8N_WAITLIST_WEBHOOK_URL;
-            if (n8nWebhookUrl) {
-                await fetch(n8nWebhookUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ name, email }),
-                })
-            } else {
-                console.warn("N8N_WAITLIST_WEBHOOK_URL not configured")
-            }
+            // Ideally we'd await this, but to keep the response fast we can fire and forget
+            // or await it if reliability is more important than speed.
+            // Given the serverless environment, better to await or use a background job.
+            // For now, we await it to ensure it sends before the lambda freezes.
+            await sendConfirmationEmail(email, name);
         } catch (emailError) {
-            console.error("Failed to trigger email webhook:", emailError)
+            console.error("Failed to send confirmation email:", emailError)
             // Don't fail the request if email fails - user is still on waitlist
         }
 
