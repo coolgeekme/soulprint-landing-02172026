@@ -132,12 +132,13 @@ export function PremiumSlider({
 
                     {/* Liquid Fill Element - This uses the SVG filter */}
                     <div className="absolute inset-y-0 left-0 w-full pointer-events-none" style={{ filter: 'url(#goo)' }}>
-                        {/* The fill itself */}
+                        {/* The fill itself - starts from center, extends left or right */}
                         <motion.div
-                            className="absolute top-0 bottom-0 left-0 bg-[#E8632B]"
+                            className="absolute top-0 bottom-0 bg-[#E8632B]"
                             style={{
-                                width: `${progress * 100}%`,
-                                opacity: 0.8
+                                left: progress < 0.5 ? `${progress * 100}%` : '50%',
+                                width: `${Math.abs(progress - 0.5) * 100}%`,
+                                opacity: isNeutral ? 0.3 : 0.8
                             }}
                         />
 
