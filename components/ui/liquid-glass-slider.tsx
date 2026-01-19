@@ -40,6 +40,23 @@ export function LiquidGlassSlider({
 }: LiquidGlassSliderProps) {
     const [isDragging, setIsDragging] = React.useState(false);
     const containerRef = React.useRef<HTMLDivElement>(null);
+    const [mousePos, setMousePos] = React.useState({ x: 0, y: 0 });
+
+    // Track mouse position relative to container for liquid glass effect
+    React.useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (containerRef.current) {
+                const rect = containerRef.current.getBoundingClientRect();
+                setMousePos({
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                });
+            }
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, []);
 
     // Derived values
     const progress = (value[0] - min) / (max - min);
@@ -137,10 +154,12 @@ export function LiquidGlassSlider({
                             blurAmount={0.08}
                             saturation={120}
                             aberrationIntensity={isDragging ? 3 : 1.5}
-                            elasticity={0.25}
+                            elasticity={0.35}
                             cornerRadius={999}
                             padding="0"
                             overLight={true}
+                            mouseContainer={containerRef}
+                            globalMousePos={mousePos}
                             className="w-14 h-14 flex items-center justify-center"
                         >
                             {/* Inner Core */}
