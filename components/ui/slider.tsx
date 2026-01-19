@@ -112,7 +112,7 @@ export function Slider({
                     isDragging && "scale-110"
                 )}
                 style={{
-                    filter: intensity > 0.1 ? `drop-shadow(0 0 ${8 + 12 * intensity}px rgba(${BRAND_ORANGE_RGB}, ${0.4 + 0.4 * intensity}))` : 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
+                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
                 }}
             >
                 {/* Pulse ring animation when dragging */}
