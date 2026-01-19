@@ -19,6 +19,7 @@ function getRuntimeClient() {
       credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+        sessionToken: process.env.AWS_SESSION_TOKEN || undefined,
       },
     });
   }
@@ -32,6 +33,7 @@ function getSagemakerClient() {
       credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+        sessionToken: process.env.AWS_SESSION_TOKEN || undefined,
       },
     });
   }
@@ -199,8 +201,8 @@ export async function deployModel() {
       Environment: {
         "HF_MODEL_ID": "NousResearch/Hermes-2-Pro-Llama-3-8B",
         "SM_NUM_GPUS": "1",
-        "MAX_INPUT_LENGTH": "1024",
-        "MAX_TOTAL_TOKENS": "2048",
+        "MAX_INPUT_LENGTH": "3072",
+        "MAX_TOTAL_TOKENS": "4096",
       }
     }
   }));
@@ -252,7 +254,7 @@ export async function invokeSageMaker(
   const response = await invokeSoulPrintModel({
     inputs: prompt,
     parameters: {
-      max_new_tokens: options.maxTokens ?? 1024,
+      max_new_tokens: options.maxTokens ?? 512,
       temperature: options.temperature ?? 0.7,
       details: false
     }
