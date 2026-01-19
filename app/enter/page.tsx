@@ -22,6 +22,7 @@ export default function EnterPage() {
     // Waitlist form state
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
+    const [ndaOptIn, setNdaOptIn] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -44,13 +45,19 @@ export default function EnterPage() {
     const handleWaitlistSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
+
+        if (!ndaOptIn) {
+            setError("Please agree to the NDA to continue");
+            return;
+        }
+
         setLoading(true);
 
         try {
             const res = await fetch("/api/waitlist", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, email }),
+                body: JSON.stringify({ name, email, ndaOptIn }),
             });
 
             const data = await res.json();
@@ -164,14 +171,6 @@ export default function EnterPage() {
                             <Mail className="h-4 w-4" />
                             Join the Waitlist
                         </button>
-
-                        {/* Already have account */}
-                        <p className="text-center text-sm text-zinc-500">
-                            Already have an account?{" "}
-                            <Link href="/login" className="text-[#EA580C] font-medium hover:underline">
-                                Log in
-                            </Link>
-                        </p>
                     </div>
                 )}
 
@@ -213,6 +212,32 @@ export default function EnterPage() {
                                 required
                                 className="w-full h-12 px-4 bg-zinc-900/50 border border-white/10 rounded-xl text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#EA580C]/30 focus:border-[#EA580C] transition-all"
                             />
+
+                            {/* NDA Opt-in Checkbox */}
+                            <label className="flex items-start gap-3 cursor-pointer group">
+                                <div className="relative flex items-center justify-center mt-0.5">
+                                    <input
+                                        type="checkbox"
+                                        checked={ndaOptIn}
+                                        onChange={(e) => setNdaOptIn(e.target.checked)}
+                                        className="sr-only"
+                                    />
+                                    <div className={`w-5 h-5 rounded border-2 transition-all flex items-center justify-center ${
+                                        ndaOptIn 
+                                            ? "bg-[#EA580C] border-[#EA580C]" 
+                                            : "border-zinc-600 group-hover:border-zinc-400"
+                                    }`}>
+                                        {ndaOptIn && (
+                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                </div>
+                                <span className="text-sm text-zinc-400 leading-relaxed group-hover:text-zinc-300 transition-colors">
+                                    I agree to the <a href="/legal/terms" target="_blank" className="text-[#EA580C] hover:underline">NDA and Terms</a> and understand that SoulPrint is in beta.
+                                </span>
+                            </label>
 
                             <Button
                                 type="submit"
