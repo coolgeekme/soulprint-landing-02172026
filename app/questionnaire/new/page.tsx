@@ -434,17 +434,6 @@ export default function NewQuestionnairePage() {
                                                     <span className="text-2xl font-bold text-center leading-tight" style={{ color: '#E8632B' }}>
                                                         {currentQuestion.leftLabel}
                                                     </span>
-                                                    <div className="mt-3 flex items-center gap-2">
-                                                        <div className="h-1.5 w-24 bg-gray-200 rounded-full overflow-hidden">
-                                                            <div 
-                                                                className="h-full rounded-full"
-                                                                style={{ width: `${(50 - sliderValue[0]) * 2}%`, backgroundColor: '#E8632B' }}
-                                                            />
-                                                        </div>
-                                                        <span className="text-sm font-semibold text-gray-500">
-                                                            {Math.round((50 - sliderValue[0]) * 2)}%
-                                                        </span>
-                                                    </div>
                                                 </>
                                             ) : (
                                                 <>
@@ -454,17 +443,6 @@ export default function NewQuestionnairePage() {
                                                     <span className="text-2xl font-bold text-center leading-tight" style={{ color: '#E8632B' }}>
                                                         {currentQuestion.rightLabel}
                                                     </span>
-                                                    <div className="mt-3 flex items-center gap-2">
-                                                        <div className="h-1.5 w-24 bg-gray-200 rounded-full overflow-hidden">
-                                                            <div 
-                                                                className="h-full rounded-full"
-                                                                style={{ width: `${(sliderValue[0] - 50) * 2}%`, backgroundColor: '#E8632B' }}
-                                                            />
-                                                        </div>
-                                                        <span className="text-sm font-semibold text-gray-500">
-                                                            {Math.round((sliderValue[0] - 50) * 2)}%
-                                                        </span>
-                                                    </div>
                                                 </>
                                             )}
                                         </div>
