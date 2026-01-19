@@ -4,9 +4,10 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Download, Loader2, Brain, Heart, Scale, Users, Cpu, Shield, Plus, Trash2, ArrowLeft, Pencil, Check, X } from "lucide-react"
+import { Download, Loader2, Brain, Heart, Scale, Users, Cpu, Shield, Plus, Trash2, ArrowLeft, Pencil, Check, X, Share2, Link2, Globe } from "lucide-react"
 import { listMySoulPrints } from "@/app/actions/soulprint-selection"
 import { deleteSoulPrint, updateSoulPrintName } from "@/app/actions/soulprint-management"
+import { togglePublicProfile, getPublicProfileStatus } from "@/app/actions/public-profile"
 import type { SoulPrintData, SoulPrintPillar } from "@/lib/soulprint/types"
 
 const pillarIcons: Record<string, React.ReactNode> = {
@@ -46,6 +47,12 @@ export default function ProfilePage() {
     const [editingId, setEditingId] = useState<string | null>(null)
     const [editingName, setEditingName] = useState("")
 
+    // Share state
+    const [selectedId, setSelectedId] = useState<string | null>(null)
+    const [isPublic, setIsPublic] = useState(false)
+    const [shareUrl, setShareUrl] = useState<string | null>(null)
+    const [copied, setCopied] = useState(false)
+
     // Load list on mount
     useEffect(() => {
         loadList()
@@ -70,18 +77,39 @@ export default function ProfilePage() {
 
     async function handleViewDetail(id: string) {
         setLoading(true)
-        // Fetch full detail
-        const { data } = await supabase
-            .from('soulprints')
-            .select('soulprint_data')
-            .eq('id', id)
-            .single()
+        setSelectedId(id)
 
-        if (data?.soulprint_data) {
-            setSelectedSoulprint(data.soulprint_data as SoulPrintData)
+        // Fetch full detail and public status in parallel
+        const [detailResult, publicStatus] = await Promise.all([
+            supabase.from('soulprints').select('soulprint_data').eq('id', id).single(),
+            getPublicProfileStatus(id)
+        ])
+
+        if (detailResult.data?.soulprint_data) {
+            setSelectedSoulprint(detailResult.data.soulprint_data as SoulPrintData)
+            setIsPublic(publicStatus.isPublic)
+            setShareUrl(publicStatus.shareUrl || null)
             setView('detail')
         }
         setLoading(false)
+    }
+
+    async function handleToggleShare() {
+        if (!selectedId) return
+        setActionLoading(true)
+        const result = await togglePublicProfile(selectedId)
+        if (result.success) {
+            setIsPublic(result.isPublic)
+            setShareUrl(result.shareUrl || null)
+        }
+        setActionLoading(false)
+    }
+
+    function handleCopyLink() {
+        if (!shareUrl) return
+        navigator.clipboard.writeText(shareUrl)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
     }
 
     async function handleDelete(id: string) {
@@ -259,9 +287,45 @@ export default function ProfilePage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
+                    {/* Share Toggle */}
+                    <Button
+                        onClick={handleToggleShare}
+                        disabled={actionLoading}
+                        variant="outline"
+                        className={isPublic ? "border-orange-500 bg-orange-500/10 text-orange-500 hover:bg-orange-500/20" : "border-[#333] text-white hover:bg-[#222]"}
+                    >
+                        {actionLoading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Globe className="mr-2 h-4 w-4" />
+                        )}
+                        {isPublic ? "Public" : "Make Public"}
+                    </Button>
+
+                    {/* Copy Link (only shown when public) */}
+                    {isPublic && shareUrl && (
+                        <Button
+                            onClick={handleCopyLink}
+                            variant="outline"
+                            className="border-[#333] text-white hover:bg-[#222]"
+                        >
+                            {copied ? (
+                                <>
+                                    <Check className="mr-2 h-4 w-4 text-green-500" />
+                                    Copied!
+                                </>
+                            ) : (
+                                <>
+                                    <Link2 className="mr-2 h-4 w-4" />
+                                    Copy Link
+                                </>
+                            )}
+                        </Button>
+                    )}
+
                     <Button onClick={handleExport} variant="outline" className="border-[#333] text-white hover:bg-[#222]">
                         <Download className="mr-2 h-4 w-4" />
-                        Export JSON
+                        Export
                     </Button>
                 </div>
             </div>

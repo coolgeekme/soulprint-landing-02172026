@@ -5,14 +5,12 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { Menu, X } from "lucide-react"
-import { WaitlistModal } from "@/components/auth/waitlist-modal"
 
 export function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
-    const [showWaitlistModal, setShowWaitlistModal] = useState(false)
 
     return (
-        <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-black">
             <div className="flex h-16 w-full items-center justify-between px-6">
                 {/* Left side */}
                 <div className="flex items-center gap-6">
@@ -42,12 +40,11 @@ export function Navbar() {
 
                 {/* Desktop Buttons (Hidden on mobile) */}
                 <div className="hidden md:flex items-center gap-2">
-                    <Button
-                        onClick={() => setShowWaitlistModal(true)}
-                        className="bg-[#EA580C] text-white hover:bg-[#EA580C]/90"
-                    >
-                        Enter SoulPrint
-                    </Button>
+                    <Link href="/enter">
+                        <Button className="bg-[#EA580C] text-white hover:bg-[#EA580C]/90">
+                            Enter SoulPrint
+                        </Button>
+                    </Link>
                 </div>
 
                 {/* Mobile Menu Toggle (Visible only on mobile) */}
@@ -74,19 +71,14 @@ export function Navbar() {
                     </div>
                     <div className="h-px bg-white/10 w-full" />
                     <div className="flex flex-col gap-3">
-                        <Button
-                            onClick={() => {
-                                setIsMenuOpen(false)
-                                setShowWaitlistModal(true)
-                            }}
-                            className="w-full h-12 bg-[#EA580C] text-white hover:bg-[#EA580C]/90"
-                        >
-                            Enter SoulPrint
-                        </Button>
+                        <Link href="/enter" onClick={() => setIsMenuOpen(false)}>
+                            <Button className="w-full h-12 bg-[#EA580C] text-white hover:bg-[#EA580C]/90">
+                                Enter SoulPrint
+                            </Button>
+                        </Link>
                     </div>
                 </div>
             )}
-            <WaitlistModal isOpen={showWaitlistModal} onOpenChange={setShowWaitlistModal} />
         </nav>
     )
 }

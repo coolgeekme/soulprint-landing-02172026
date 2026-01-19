@@ -50,7 +50,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
                 <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
                     <a href="/" className="flex items-center gap-2">
                         <span className="font-koulen text-2xl text-white">SOULPRINT</span>
-                        <span className="font-inter italic font-thin text-xl text-white">Studio</span>
+                        <span className="font-inter italic font-thin text-xl text-white">Engine</span>
                     </a>
                     <a
                         href="/enter"

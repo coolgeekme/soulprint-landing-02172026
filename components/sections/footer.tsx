@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Instagram, Twitter, Linkedin, Youtube } from "lucide-react";
+import { Instagram, Twitter, Linkedin } from "lucide-react";
 import Image from "next/image";
 
 export function Footer() {
@@ -21,20 +21,13 @@ export function Footer() {
                         />
                     </Link>
 
-                    {/* Desktop Enterprise CTA - Removed per user request */}
-
                     {/* Social Icons */}
                     <div className="flex items-center gap-6 md:gap-4 order-2">
-                        {/* Using social icons based on standard set, as dump didn't specify exact platforms beyond generics */}
-                        <SocialLink href="#" icon={<Twitter className="h-5 w-5" />} />
-                        <SocialLink href="#" icon={<Instagram className="h-5 w-5" />} />
-                        <SocialLink href="#" icon={<Linkedin className="h-5 w-5" />} />
-                        <SocialLink href="#" icon={<Youtube className="h-5 w-5" />} />
+                        <SocialLink href="https://twitter.com/soulprintengine" icon={<Twitter className="h-5 w-5" />} label="Twitter" />
+                        <SocialLink href="https://instagram.com/soulprintengine" icon={<Instagram className="h-5 w-5" />} label="Instagram" />
+                        <SocialLink href="https://linkedin.com/company/soulprintengine" icon={<Linkedin className="h-5 w-5" />} label="LinkedIn" />
                     </div>
                 </div>
-
-                {/* Mobile Enterprise CTA - Removed per user request */}
-
 
                 {/* Separator */}
                 <div className="h-px w-full bg-[#737373]/30" />
@@ -43,14 +36,13 @@ export function Footer() {
                 <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
                     {/* Links */}
                     <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 order-2 md:order-1">
-                        <FooterLink href="#">Privacy Policy</FooterLink>
-                        <FooterLink href="#">Terms of Service</FooterLink>
-                        <FooterLink href="#">Cookies Settings</FooterLink>
+                        <FooterLink href="/legal/privacy">Privacy Policy</FooterLink>
+                        <FooterLink href="/legal/terms">Terms of Service</FooterLink>
                     </div>
 
                     {/* Copyright */}
                     <p className="font-geist text-sm font-normal text-[#737373] order-3 md:order-2 text-center md:text-left">
-                        Copyright 2026 © soulprintengine.ai
+                        © 2026 SoulPrint Engine. All rights reserved.
                     </p>
                 </div>
             </div>
@@ -58,9 +50,15 @@ export function Footer() {
     );
 }
 
-function SocialLink({ href, icon }: { href: string; icon: React.ReactNode }) {
+function SocialLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
     return (
-        <Link href={href} className="text-[#737373] hover:text-white transition-colors p-2 md:p-0">
+        <Link
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#737373] hover:text-white transition-colors p-2 md:p-0"
+            aria-label={label}
+        >
             {icon}
         </Link>
     );

@@ -2,12 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { WaitlistModal } from "@/components/auth/waitlist-modal";
+import Link from "next/link";
 
 export function Hero() {
-    const [showWaitlistModal, setShowWaitlistModal] = useState(false);
-
     return (
         <section className="relative flex w-full flex-col items-center justify-start overflow-hidden bg-[#0A0A0A] min-h-[calc(100dvh-64px)] pt-8 sm:pt-12 sm:justify-center lg:bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] lg:from-neutral-900/50 lg:via-black lg:to-black">
             <div className="flex w-full max-w-[1400px] flex-col items-center justify-center gap-8 px-5 sm:gap-10 sm:px-6 md:px-12 lg:flex-row lg:gap-16 xl:px-24">
@@ -24,10 +21,10 @@ export function Hero() {
 
                     {/* Headline */}
                     <h1 className="w-full font-koulen text-[44px] leading-[0.95] text-white uppercase tracking-tighter sm:text-[56px] lg:text-[clamp(56px,6vw,100px)] lg:leading-[0.9]">
-                        <span className="text-[#EA580C]">SoulPrint</span> isn’t AI.
+                        <span className="text-[#EA580C]">SoulPrint</span> isn't AI.
                         <br />
                         <span className="bg-gradient-to-b from-white to-neutral-400 bg-clip-text text-transparent">
-                            It’s the identity layer
+                            It's the identity layer
                             <br />
                             AI never had.
                         </span>
@@ -45,14 +42,12 @@ export function Hero() {
 
                     {/* Actions */}
                     <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:mt-6 lg:gap-4">
-                        <Button
-                            onClick={() => setShowWaitlistModal(true)}
-                            className="h-11 w-full rounded-lg bg-[#EA580C] px-5 py-3 font-geist text-base font-medium text-[#FAFAFA] transition-all hover:bg-[#EA580C]/90 hover:scale-[1.02] active:scale-[0.98] sm:w-auto lg:h-14 lg:px-10 lg:text-lg"
-                        >
-                            Enter SoulPrint
-                        </Button>
+                        <Link href="/enter">
+                            <Button className="h-11 w-full rounded-lg bg-[#EA580C] px-5 py-3 font-geist text-base font-medium text-[#FAFAFA] transition-all hover:bg-[#EA580C]/90 hover:scale-[1.02] active:scale-[0.98] sm:w-auto lg:h-14 lg:px-10 lg:text-lg">
+                                Enter SoulPrint
+                            </Button>
+                        </Link>
                     </div>
-                    <WaitlistModal isOpen={showWaitlistModal} onOpenChange={setShowWaitlistModal} />
                 </motion.div>
 
                 {/* Image/Visual Container */}

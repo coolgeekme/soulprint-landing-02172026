@@ -8,7 +8,8 @@ import {
     Send, Bot, User, Loader2, Trash2, Plus, MessageSquare,
     ChevronLeft, ChevronRight, Menu, Globe, Paperclip,
     AudioLines, Folder, GalleryVerticalEnd,
-    ChevronsUpDown, X, Download, FileJson, FileText, FileCode
+    ChevronsUpDown, X, Download, FileJson, FileText, FileCode,
+    Sparkles, Target, CheckCircle2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -57,8 +58,10 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
     const [displayName, setDisplayName] = useState<string>("SoulPrint")
     const [shouldAutoScroll, setShouldAutoScroll] = useState(false)
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const [expandedFolders, setExpandedFolders] = useState<string[]>(["Settings"])
+    const [expandedFolders, setExpandedFolders] = useState<string[]>([])
     const [exportMenuOpen, setExportMenuOpen] = useState(false)
+    const [coachingMode, setCoachingMode] = useState(false)
+    const [coachingGoal, setCoachingGoal] = useState<string | null>(null)
 
     // Initialize sidebar state based on screen width
     useEffect(() => {
@@ -235,7 +238,9 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                     model: "gpt-4o",
                     stream: true,
                     soulprint_id: selectedSoulprintId,
-                    session_id: sessionIdToUse, // Pass session ID to API if needed (though API mostly uses history)
+                    session_id: sessionIdToUse,
+                    coaching_mode: coachingMode,
+                    coaching_goal: coachingGoal,
                     messages: [
                         ...messages.map(m => ({ role: m.role, content: m.content })),
                         { role: "user", content: userMsg }
@@ -454,50 +459,12 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                 </Button>
                             </div>
 
-                            {/* Folders Section */}
-                            <div className="p-2">
-                                <div className="px-2 h-8 flex items-center opacity-70">
-                                    <span className="text-xs font-medium text-zinc-900">Folders</span>
-                                </div>
-                                
-                                {["Playground", "Models", "Documentation", "Settings"].map((folder) => (
-                                    <div key={folder}>
-                                        <button 
-                                            onClick={() => toggleFolder(folder)}
-                                            className="w-full h-8 px-2 rounded-lg flex items-center gap-2 hover:bg-zinc-200 transition-colors"
-                                        >
-                                            <Folder className="h-4 w-4 text-zinc-900" />
-                                            <span className="flex-1 text-sm text-zinc-900 text-left">{folder}</span>
-                                            <ChevronRight className={cn(
-                                                "h-4 w-4 text-zinc-900 transition-transform",
-                                                expandedFolders.includes(folder) && "rotate-90"
-                                            )} />
-                                        </button>
-                                        {expandedFolders.includes(folder) && folder === "Settings" && (
-                                            <div className="ml-6 border-l border-zinc-300 pl-2 py-1 space-y-1">
-                                                {["General", "Team", "API", "Limits"].map((sub) => (
-                                                    <div 
-                                                        key={sub}
-                                                        className={cn(
-                                                            "h-7 px-2 rounded-lg flex items-center text-sm cursor-pointer",
-                                                            sub === "API" ? "opacity-40 text-zinc-700" : "text-zinc-900 hover:bg-zinc-200"
-                                                        )}
-                                                    >
-                                                        {sub}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Sessions Section */}
+                            {/* Recent Chats Section - Moved to top */}
                             <div className="p-2">
                                 <div className="px-2 h-8 flex items-center opacity-70">
                                     <span className="text-xs font-medium text-zinc-900">Recent Chats</span>
                                 </div>
-                                
+
                                 {sessions.length === 0 ? (
                                     <div className="px-2 py-4 text-xs text-center text-zinc-500">
                                         No saved sessions
@@ -524,6 +491,56 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                         </button>
                                     ))
                                 )}
+                            </div>
+
+                            {/* Quick Actions Section */}
+                            <div className="p-2 border-t border-zinc-200">
+                                <div className="px-2 h-8 flex items-center opacity-70">
+                                    <span className="text-xs font-medium text-zinc-900">Quick Actions</span>
+                                </div>
+
+                                <button
+                                    onClick={() => {
+                                        setCoachingMode(!coachingMode);
+                                        if (!coachingMode) {
+                                            setInput("I'd like to start a coaching session. Help me set a goal and work toward it.");
+                                        }
+                                    }}
+                                    className={cn(
+                                        "w-full h-8 px-2 rounded-lg flex items-center gap-2 transition-colors",
+                                        coachingMode
+                                            ? "bg-orange-100 text-orange-700"
+                                            : "text-zinc-900 hover:bg-zinc-200"
+                                    )}
+                                >
+                                    <Sparkles className="h-4 w-4" />
+                                    <span className="flex-1 text-sm text-left">Coaching Mode</span>
+                                    {coachingMode && <CheckCircle2 className="h-4 w-4" />}
+                                </button>
+
+                                <button
+                                    onClick={() => window.open('/dashboard/profile', '_self')}
+                                    className="w-full h-8 px-2 rounded-lg flex items-center gap-2 hover:bg-zinc-200 transition-colors"
+                                >
+                                    <Target className="h-4 w-4 text-zinc-900" />
+                                    <span className="flex-1 text-sm text-zinc-900 text-left">My SoulPrint</span>
+                                </button>
+
+                                <button
+                                    onClick={() => window.open('/dashboard/insights', '_self')}
+                                    className="w-full h-8 px-2 rounded-lg flex items-center gap-2 hover:bg-zinc-200 transition-colors"
+                                >
+                                    <Folder className="h-4 w-4 text-zinc-900" />
+                                    <span className="flex-1 text-sm text-zinc-900 text-left">Insights</span>
+                                </button>
+
+                                <button
+                                    onClick={() => window.open('/dashboard/settings', '_self')}
+                                    className="w-full h-8 px-2 rounded-lg flex items-center gap-2 hover:bg-zinc-200 transition-colors"
+                                >
+                                    <Folder className="h-4 w-4 text-zinc-900" />
+                                    <span className="flex-1 text-sm text-zinc-900 text-left">Settings</span>
+                                </button>
                             </div>
                         </div>
 
@@ -560,7 +577,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                     </button>
                     <div className="flex-1 flex items-center justify-center gap-1">
                         <span className="font-koulen text-xl text-black">SOULPRINT</span>
-                        <span className="font-inter italic font-thin text-lg text-black -ml-0.5">Studio</span>
+                        <span className="font-inter italic font-thin text-lg text-black -ml-0.5">Engine</span>
                     </div>
                     {messages.length > 0 && (
                         <div className="flex items-center gap-1">
@@ -630,7 +647,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                 SOULPRINT
                             </span>
                             <span className="font-inter italic font-thin text-3xl md:text-4xl text-black tracking-tight -ml-1">
-                                Studio
+                                Engine
                             </span>
                         </div>
 
@@ -649,31 +666,17 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                 {/* Action Buttons Row */}
                                 <div className="flex items-center gap-2 mt-4">
                                     <Button
-                                        size="sm"
-                                        className="bg-orange-600 hover:bg-orange-700 text-white text-xs gap-1.5 h-8 px-3 rounded-lg shadow-sm"
-                                    >
-                                        <Globe className="h-4 w-4" />
-                                        <span className="hidden sm:inline">Deeper Research</span>
-                                    </Button>
-                                    
-                                    <Button
                                         variant="ghost"
                                         size="icon"
+                                        onClick={() => alert("File attachments coming soon!")}
                                         className="h-8 w-8 text-neutral-500 hover:text-neutral-700 hover:bg-zinc-100 rounded-lg"
+                                        title="Attach file (Coming Soon)"
                                     >
                                         <Paperclip className="h-4 w-4" />
                                     </Button>
-                                    
+
                                     <div className="flex-1" />
-                                    
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-neutral-500 hover:text-neutral-700 hover:bg-zinc-100 rounded-lg"
-                                    >
-                                        <AudioLines className="h-4 w-4" />
-                                    </Button>
-                                    
+
                                     <Button
                                         size="icon"
                                         onClick={handleSend}
@@ -842,7 +845,9 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                     <Button
                                         variant="ghost"
                                         size="icon"
+                                        onClick={() => alert("File attachments coming soon!")}
                                         className="h-8 w-8 text-neutral-500 hover:text-neutral-700 shrink-0"
+                                        title="Attach file (Coming Soon)"
                                     >
                                         <Paperclip className="h-4 w-4" />
                                     </Button>
@@ -857,7 +862,9 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                     <Button
                                         variant="ghost"
                                         size="icon"
+                                        onClick={() => alert("Voice input coming soon!")}
                                         className="h-8 w-8 text-neutral-500 hover:text-neutral-700 shrink-0"
+                                        title="Voice input (Coming Soon)"
                                     >
                                         <AudioLines className="h-4 w-4" />
                                     </Button>

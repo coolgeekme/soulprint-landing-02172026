@@ -73,7 +73,7 @@ export default function QuestionnaireIntroPage() {
                                     SOULPRINT
                                 </span>
                                 <span className="font-inter font-thin italic text-[54px] leading-[52px] text-white tracking-[-2px]">
-                                    Studio
+                                    Engine
                                 </span>
                             </div>
 

@@ -9,13 +9,13 @@ import {
     Key,
     Settings2,
     User,
-    LifeBuoy,
+    HelpCircle,
     Fingerprint,
     BarChart3,
+    GitCompareArrows,
     LucideIcon
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 interface SidebarItem {
     icon: LucideIcon
@@ -28,6 +28,7 @@ const sidebarItems: SidebarItem[] = [
     { icon: Bot, label: "Chat", href: "/dashboard/chat" },
     { icon: Fingerprint, label: "My SoulPrint", href: "/dashboard/profile" },
     { icon: BarChart3, label: "Insights", href: "/dashboard/insights" },
+    { icon: GitCompareArrows, label: "Compare", href: "/dashboard/compare" },
     { icon: Key, label: "API Keys", href: "/dashboard/bot" },
     { icon: Settings2, label: "Settings", href: "/dashboard/settings" },
 ]
@@ -93,17 +94,20 @@ export function Sidebar({ hasSoulprint }: SidebarProps) {
 
             {/* Bottom Nav */}
             <div className="flex flex-col items-center gap-1 py-2">
-                <ThemeToggle />
-                <button
+                <a
+                    href="mailto:support@soulprint.ai?subject=SoulPrint%20Support%20Request"
                     className="flex h-10 w-10 items-center justify-center rounded-full text-[#e5e5e5] transition-colors hover:bg-white/5"
+                    title="Get Help"
                 >
-                    {mounted ? <LifeBuoy className="h-5 w-5" /> : <div className="h-5 w-5" />}
-                </button>
-                <button
+                    {mounted ? <HelpCircle className="h-5 w-5" /> : <div className="h-5 w-5" />}
+                </a>
+                <Link
+                    href="/dashboard/settings"
                     className="flex h-10 w-10 items-center justify-center rounded-full text-[#e5e5e5] transition-colors hover:bg-white/5"
+                    title="Settings & Account"
                 >
                     {mounted ? <User className="h-5 w-5" /> : <div className="h-5 w-5" />}
-                </button>
+                </Link>
             </div>
         </div>
     )
