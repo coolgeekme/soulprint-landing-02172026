@@ -1,8 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+import { cookies } from 'next/headers'
 import { ensureDefaultApiKey } from '@/app/actions/api-keys'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
     const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
     const error = requestUrl.searchParams.get('error')
@@ -13,10 +14,28 @@ export async function GET(request: Request) {
     }
 
     if (code) {
-        const supabase = await createClient()
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        const cookieStore = await cookies()
+        
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return cookieStore.getAll()
+                    },
+                    setAll(cookiesToSet) {
+                        cookiesToSet.forEach(({ name, value, options }) => {
+                            cookieStore.set(name, value, options)
+                        })
+                    },
+                },
+            }
+        )
 
-        if (!error) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+        if (!exchangeError) {
             // Ensure every new user gets a default (inactive) API key
             await ensureDefaultApiKey()
 
