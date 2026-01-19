@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
     SquareTerminal,
-    Bot,
+    Home,
     Key,
     Settings2,
     User,
@@ -24,8 +24,8 @@ interface SidebarItem {
 }
 
 const sidebarItems: SidebarItem[] = [
+    { icon: Home, label: "Home", href: "/dashboard/chat" },
     { icon: SquareTerminal, label: "Questionnaire", href: "/questionnaire" },
-    { icon: Bot, label: "Chat", href: "/dashboard/chat" },
     { icon: Fingerprint, label: "My SoulPrint", href: "/dashboard/profile" },
     { icon: BarChart3, label: "Insights", href: "/dashboard/insights" },
     { icon: GitCompareArrows, label: "Compare", href: "/dashboard/compare" },
@@ -49,7 +49,7 @@ export function Sidebar({ hasSoulprint }: SidebarProps) {
     // Filter items based on hasSoulprint - do this consistently
     const visibleItems = hasSoulprint 
         ? sidebarItems 
-        : sidebarItems.filter(item => item.label === "Questionnaire")
+        : sidebarItems.filter(item => item.label === "Questionnaire" || item.label === "Home")
 
     return (
         <div className="flex h-screen w-14 flex-col items-center justify-between border-r border-[#222] bg-[#111111] py-2">
@@ -70,7 +70,8 @@ export function Sidebar({ hasSoulprint }: SidebarProps) {
                     
                     // Check if this nav item is active
                     const isActive = pathname === item.href ||
-                        (item.href === "/dashboard" && pathname === "/dashboard") ||
+                        (item.href === "/dashboard/chat" && pathname === "/dashboard") ||
+                        (item.label === "Home" && pathname.startsWith("/dashboard/chat")) ||
                         (item.label === "Questionnaire" && pathname.startsWith("/questionnaire"))
 
                     return (
@@ -80,7 +81,7 @@ export function Sidebar({ hasSoulprint }: SidebarProps) {
                             className={cn(
                                 "flex h-10 w-10 items-center justify-center rounded-md transition-colors",
                                 isActive
-                                    ? "bg-orange-600 text-white"
+                                    ? "bg-[#E8632B] text-white"
                                     : "text-[#e5e5e5] hover:bg-white/5"
                             )}
                             title={item.label}

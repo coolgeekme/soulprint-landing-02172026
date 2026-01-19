@@ -7,9 +7,9 @@ import { getChatHistory, saveChatMessage, clearChatHistory, getChatSessions, typ
 import {
     Send, Bot, User, Loader2, Trash2, Plus, MessageSquare,
     ChevronLeft, ChevronRight, Menu, Globe, Paperclip,
-    AudioLines, Folder, GalleryVerticalEnd,
+    AudioLines,
     ChevronsUpDown, X, Download, FileJson, FileText, FileCode,
-    Sparkles, Target, CheckCircle2
+    Sparkles, CheckCircle2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -420,7 +420,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
 
             {/* Light Sidebar */}
             <div className={cn(
-                "flex flex-col bg-zinc-100 transition-all duration-300 ease-in-out z-50",
+                "flex flex-col bg-white transition-all duration-300 ease-in-out z-50 border-r border-zinc-200",
                 "fixed inset-y-0 left-0 lg:relative lg:inset-auto",
                 sidebarOpen 
                     ? "w-[280px] translate-x-0" 
@@ -428,138 +428,110 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
             )}>
                 {sidebarOpen && (
                     <div className="flex flex-col h-full w-[280px] overflow-hidden">
-                        {/* Sidebar Header */}
-                        <div className="p-2 bg-zinc-100">
-                            <div className="flex items-center gap-2 p-2 rounded-lg">
-                                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-                                    <GalleryVerticalEnd className="h-4 w-4 text-zinc-100" />
+                        {/* Sidebar Header - Your SoulPrint Identity */}
+                        <div className="p-4 bg-gradient-to-br from-zinc-900 to-zinc-800">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-[#E8632B] flex items-center justify-center shadow-lg">
+                                    <Sparkles className="h-5 w-5 text-white" />
                                 </div>
-                                <span className="text-sm font-semibold text-zinc-900 flex-1">
-                                    {displayName}
-                                </span>
+                                <div className="flex-1 min-w-0">
+                                    <span className="text-base font-semibold text-white block truncate">
+                                        {displayName}
+                                    </span>
+                                    <span className="text-xs text-zinc-400">AI Companion</span>
+                                </div>
                                 <button 
                                     onClick={() => setSidebarOpen(false)}
-                                    className="lg:hidden p-1 hover:bg-zinc-200 rounded"
+                                    className="lg:hidden p-1.5 hover:bg-white/10 rounded-lg transition-colors"
                                 >
-                                    <X className="h-4 w-4 text-zinc-600" />
+                                    <X className="h-4 w-4 text-zinc-300" />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Sidebar Content */}
-                        <div className="flex-1 overflow-y-auto">
-                            {/* New Chat Button */}
-                            <div className="px-2 py-2">
-                                <Button
-                                    onClick={handleNewChat}
-                                    className="w-full bg-orange-600 hover:bg-orange-700 text-white gap-2 h-9"
-                                >
-                                    <Plus className="h-4 w-4" />
-                                    New Chat
-                                </Button>
-                            </div>
+                        {/* New Conversation Button */}
+                        <div className="p-3 border-b border-zinc-100">
+                            <Button
+                                onClick={handleNewChat}
+                                className="w-full bg-[#E8632B] hover:bg-[#d55a26] text-white gap-2 h-10 font-medium shadow-sm"
+                            >
+                                <Plus className="h-4 w-4" />
+                                New Conversation
+                            </Button>
+                        </div>
 
-                            {/* Recent Chats Section - Moved to top */}
-                            <div className="p-2">
-                                <div className="px-2 h-8 flex items-center opacity-70">
-                                    <span className="text-xs font-medium text-zinc-900">Recent Chats</span>
+                        {/* Conversations List */}
+                        <div className="flex-1 overflow-y-auto">
+                            <div className="p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">History</span>
+                                    {sessions.length > 0 && (
+                                        <span className="text-xs text-zinc-400">{sessions.length}</span>
+                                    )}
                                 </div>
 
                                 {sessions.length === 0 ? (
-                                    <div className="px-2 py-4 text-xs text-center text-zinc-500">
-                                        No saved sessions
+                                    <div className="py-8 text-center">
+                                        <MessageSquare className="h-8 w-8 text-zinc-300 mx-auto mb-2" />
+                                        <p className="text-sm text-zinc-400">No conversations yet</p>
+                                        <p className="text-xs text-zinc-400 mt-1">Start chatting to see history</p>
                                     </div>
                                 ) : (
-                                    sessions.slice(0, 5).map((session) => (
-                                        <button
-                                            key={session.session_id}
-                                            onClick={() => {
-                                                setCurrentSessionId(session.session_id);
-                                                if (typeof window !== 'undefined' && window.innerWidth < 1024) setSidebarOpen(false);
-                                            }}
-                                            className={cn(
-                                                "w-full h-8 px-2 rounded-lg flex items-center gap-2 transition-colors text-left",
-                                                currentSessionId === session.session_id
-                                                    ? "bg-zinc-200 text-zinc-900"
-                                                    : "text-zinc-700 hover:bg-zinc-200"
-                                            )}
-                                        >
-                                            <MessageSquare className="h-4 w-4 shrink-0" />
-                                            <span className="flex-1 text-sm truncate">
-                                                {session.last_message?.slice(0, 25) || "New Chat"}
-                                            </span>
-                                        </button>
-                                    ))
+                                    <div className="space-y-1">
+                                        {sessions.map((session) => (
+                                            <button
+                                                key={session.session_id}
+                                                onClick={() => {
+                                                    setCurrentSessionId(session.session_id);
+                                                    if (typeof window !== 'undefined' && window.innerWidth < 1024) setSidebarOpen(false);
+                                                }}
+                                                className={cn(
+                                                    "w-full px-3 py-2.5 rounded-lg flex items-center gap-3 transition-all text-left group",
+                                                    currentSessionId === session.session_id
+                                                        ? "bg-[#E8632B]/10 border border-[#E8632B]/20"
+                                                        : "hover:bg-zinc-50 border border-transparent"
+                                                )}
+                                            >
+                                                <MessageSquare className={cn(
+                                                    "h-4 w-4 shrink-0 transition-colors",
+                                                    currentSessionId === session.session_id
+                                                        ? "text-[#E8632B]"
+                                                        : "text-zinc-400 group-hover:text-zinc-600"
+                                                )} />
+                                                <span className={cn(
+                                                    "flex-1 text-sm truncate",
+                                                    currentSessionId === session.session_id
+                                                        ? "text-[#E8632B] font-medium"
+                                                        : "text-zinc-700"
+                                                )}>
+                                                    {session.last_message?.slice(0, 30) || "New Conversation"}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
                                 )}
-                            </div>
-
-                            {/* Quick Actions Section */}
-                            <div className="p-2 border-t border-zinc-200">
-                                <div className="px-2 h-8 flex items-center opacity-70">
-                                    <span className="text-xs font-medium text-zinc-900">Quick Actions</span>
-                                </div>
-
-                                <button
-                                    onClick={() => {
-                                        setCoachingMode(!coachingMode);
-                                        if (!coachingMode) {
-                                            setInput("I'd like to start a coaching session. Help me set a goal and work toward it.");
-                                        }
-                                    }}
-                                    className={cn(
-                                        "w-full h-8 px-2 rounded-lg flex items-center gap-2 transition-colors",
-                                        coachingMode
-                                            ? "bg-orange-100 text-orange-700"
-                                            : "text-zinc-900 hover:bg-zinc-200"
-                                    )}
-                                >
-                                    <Sparkles className="h-4 w-4" />
-                                    <span className="flex-1 text-sm text-left">Coaching Mode</span>
-                                    {coachingMode && <CheckCircle2 className="h-4 w-4" />}
-                                </button>
-
-                                <button
-                                    onClick={() => window.open('/dashboard/profile', '_self')}
-                                    className="w-full h-8 px-2 rounded-lg flex items-center gap-2 hover:bg-zinc-200 transition-colors"
-                                >
-                                    <Target className="h-4 w-4 text-zinc-900" />
-                                    <span className="flex-1 text-sm text-zinc-900 text-left">My SoulPrint</span>
-                                </button>
-
-                                <button
-                                    onClick={() => window.open('/dashboard/insights', '_self')}
-                                    className="w-full h-8 px-2 rounded-lg flex items-center gap-2 hover:bg-zinc-200 transition-colors"
-                                >
-                                    <Folder className="h-4 w-4 text-zinc-900" />
-                                    <span className="flex-1 text-sm text-zinc-900 text-left">Insights</span>
-                                </button>
-
-                                <button
-                                    onClick={() => window.open('/dashboard/settings', '_self')}
-                                    className="w-full h-8 px-2 rounded-lg flex items-center gap-2 hover:bg-zinc-200 transition-colors"
-                                >
-                                    <Folder className="h-4 w-4 text-zinc-900" />
-                                    <span className="flex-1 text-sm text-zinc-900 text-left">Settings</span>
-                                </button>
                             </div>
                         </div>
 
-                        {/* Sidebar Footer - User */}
-                        <div className="p-2 bg-zinc-100 border-t border-zinc-200">
-                            <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-200 cursor-pointer">
-                                <div className="w-8 h-8 bg-zinc-700 rounded-lg flex items-center justify-center">
-                                    <User className="h-4 w-4 text-white" />
+                        {/* Sidebar Footer - User Account */}
+                        <div className="p-3 bg-zinc-50 border-t border-zinc-200">
+                            <button 
+                                onClick={() => window.open('/dashboard/settings', '_self')}
+                                className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-100 transition-colors"
+                            >
+                                <div className="w-9 h-9 bg-zinc-200 rounded-full flex items-center justify-center">
+                                    <User className="h-4 w-4 text-zinc-600" />
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-semibold text-zinc-900 truncate">
+                                <div className="flex-1 min-w-0 text-left">
+                                    <div className="text-sm font-medium text-zinc-800 truncate">
                                         {user?.email?.split('@')[0] || 'User'}
                                     </div>
-                                    <div className="text-xs text-zinc-600 truncate">
-                                        {user?.email || ''}
+                                    <div className="text-xs text-zinc-500 truncate">
+                                        {user?.email || 'View Account'}
                                     </div>
                                 </div>
-                                <ChevronsUpDown className="h-4 w-4 text-zinc-600 shrink-0" />
-                            </div>
+                                <ChevronsUpDown className="h-4 w-4 text-zinc-400 shrink-0" />
+                            </button>
                         </div>
                     </div>
                 )}

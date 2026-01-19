@@ -13,21 +13,15 @@ export function Navbar() {
         <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-black">
             <div className="flex h-16 w-full items-center justify-between px-6">
                 {/* Left side */}
-                <div className="flex items-center gap-6">
-                    <Image
-                        src="/images/vector-personalized.png"
-                        alt="SoulPrint Icon"
-                        width={40}
-                        height={40}
-                        className="h-10 w-10 shrink-0"
-                    />
+                <div className="flex items-center gap-8">
                     <Link href="/" className="flex items-center">
                         <Image
                             src="/images/SoulPrintEngine-title-logo.png"
-                            alt="SoulPrint"
-                            width={120}
-                            height={30}
+                            alt="SoulPrint Engine"
+                            width={180}
+                            height={36}
                             style={{ height: "auto" }}
+                            priority
                         />
                     </Link>
 
@@ -41,7 +35,7 @@ export function Navbar() {
                 {/* Desktop Buttons (Hidden on mobile) */}
                 <div className="hidden md:flex items-center gap-2">
                     <Link href="/enter">
-                        <Button className="bg-[#EA580C] text-white hover:bg-[#EA580C]/90">
+                        <Button className="bg-[#E8632B] text-white hover:bg-[#E8632B]/90">
                             Enter SoulPrint
                         </Button>
                     </Link>
@@ -72,7 +66,7 @@ export function Navbar() {
                     <div className="h-px bg-white/10 w-full" />
                     <div className="flex flex-col gap-3">
                         <Link href="/enter" onClick={() => setIsMenuOpen(false)}>
-                            <Button className="w-full h-12 bg-[#EA580C] text-white hover:bg-[#EA580C]/90">
+                            <Button className="w-full h-12 bg-[#E8632B] text-white hover:bg-[#E8632B]/90">
                                 Enter SoulPrint
                             </Button>
                         </Link>

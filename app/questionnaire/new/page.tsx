@@ -388,24 +388,67 @@ export default function NewQuestionnairePage() {
 
                                 {/* Answer Area */}
                                 {currentQuestion?.type === "slider" ? (
-                                    <div className="mt-8">
-                                        {/* Percentage Display */}
-                                        <div className="mb-4 flex justify-center">
-                                            <span className="font-inter text-3xl font-semibold text-orange-600">
-                                                {sliderValue[0]}%
-                                            </span>
+                                    <div className="mt-10 px-2">
+                                        {/* Polarity Display - shows neutral or lean direction */}
+                                        <div className="mb-8 flex flex-col items-center min-h-[80px] justify-center">
+                                            {sliderValue[0] === 50 ? (
+                                                <span className="text-3xl font-bold tracking-tight text-gray-400">
+                                                    Neutral
+                                                </span>
+                                            ) : sliderValue[0] < 50 ? (
+                                                <>
+                                                    <span className="text-sm font-medium uppercase tracking-widest text-gray-400 mb-2">
+                                                        Leaning toward
+                                                    </span>
+                                                    <span className="text-2xl font-bold text-center leading-tight" style={{ color: '#E8632B' }}>
+                                                        {currentQuestion.leftLabel}
+                                                    </span>
+                                                    <div className="mt-3 flex items-center gap-2">
+                                                        <div className="h-1.5 w-24 bg-gray-200 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="h-full rounded-full"
+                                                                style={{ width: `${(50 - sliderValue[0]) * 2}%`, backgroundColor: '#E8632B' }}
+                                                            />
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-gray-500">
+                                                            {Math.round((50 - sliderValue[0]) * 2)}%
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className="text-sm font-medium uppercase tracking-widest text-gray-400 mb-2">
+                                                        Leaning toward
+                                                    </span>
+                                                    <span className="text-2xl font-bold text-center leading-tight" style={{ color: '#E8632B' }}>
+                                                        {currentQuestion.rightLabel}
+                                                    </span>
+                                                    <div className="mt-3 flex items-center gap-2">
+                                                        <div className="h-1.5 w-24 bg-gray-200 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="h-full rounded-full"
+                                                                style={{ width: `${(sliderValue[0] - 50) * 2}%`, backgroundColor: '#E8632B' }}
+                                                            />
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-gray-500">
+                                                            {Math.round((sliderValue[0] - 50) * 2)}%
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                         <Slider
                                             value={sliderValue}
                                             onValueChange={setSliderValue}
                                             max={100}
-                                            min={1}
+                                            min={0}
                                             step={1}
-                                            className="w-full"
+                                            className="w-full max-w-2xl mx-auto"
                                         />
-                                        <div className="mt-4 flex justify-between text-sm text-gray-500">
-                                            <span>{currentQuestion.leftLabel}</span>
-                                            <span>{currentQuestion.rightLabel}</span>
+                                        <div className="mt-6 flex justify-between items-start max-w-2xl mx-auto">
+                                            <span className="max-w-[35%] text-left text-sm font-medium text-gray-600">{currentQuestion.leftLabel}</span>
+                                            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Neutral</span>
+                                            <span className="max-w-[35%] text-right text-sm font-medium text-gray-600">{currentQuestion.rightLabel}</span>
                                         </div>
                                     </div>
                                 ) : currentQuestion?.type === "voice" ? (
