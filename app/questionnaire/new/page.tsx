@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { PremiumSlider } from "@/components/ui/premium-slider"
+import { LiquidGlassSlider } from "@/components/ui/liquid-glass-slider"
 import { Sidebar, MobileSidebar } from "@/components/dashboard/sidebar"
 import { ProgressStepper, MobileProgress, PILLARS } from "@/components/dashboard/progress-stepper"
 import { questions } from "@/lib/questions"
@@ -420,7 +420,7 @@ export default function NewQuestionnairePage() {
                                 {/* Answer Area */}
                                 {currentQuestion?.type === "slider" ? (
                                     <div className="mt-20 px-8 pb-10">
-                                        <PremiumSlider
+                                        <LiquidGlassSlider
                                             value={sliderValue}
                                             onValueChange={setSliderValue}
                                             max={100}
