@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 
 export async function signUp(formData: FormData) {
@@ -57,6 +58,18 @@ export async function signIn(formData: FormData) {
 export async function signOut() {
     const supabase = await createClient()
     await supabase.auth.signOut()
+
+    // Force clear all Supabase and SoulPrint related cookies
+    const cookieStore = await cookies()
+    const allCookies = cookieStore.getAll()
+
+    // Delete all Supabase auth cookies (handling potential multiple project IDs)
+    allCookies.forEach(cookie => {
+        if (cookie.name.startsWith('sb-') || cookie.name.startsWith('soulprint_')) {
+            cookieStore.delete(cookie.name)
+        }
+    })
+
     revalidatePath('/', 'layout')
     redirect('/')
 }

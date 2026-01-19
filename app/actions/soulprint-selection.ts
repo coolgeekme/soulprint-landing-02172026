@@ -70,5 +70,43 @@ export async function listMySoulPrints() {
 
 export async function getSelectedSoulPrintId() {
     const cookieStore = await cookies()
-    return cookieStore.get(COOKIE_NAME)?.value
+    const currentId = cookieStore.get(COOKIE_NAME)?.value
+
+    // Safety check: Validate this ID actually belongs to the user
+    // This prevents "Unrecognized Name" errors if cookies get stale/mixed
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: { getAll() { return cookieStore.getAll() } }
+        }
+    )
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    // Fetch user's soulprints to validate
+    const { data: soulprints } = await supabase
+        .from('soulprints')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+
+    if (soulprints && soulprints.length > 0) {
+        // If we have an ID, check if it's valid
+        const isValid = currentId && soulprints.some(s => s.id === currentId)
+
+        if (!isValid) {
+            // Found the issue: Cookie ID is invalid or missing!
+            // Auto-repair immediately.
+            const validId = soulprints[0].id
+            await switchSoulPrint(validId)
+            return validId
+        }
+    } else {
+        // User has no soulprints
+        return null
+    }
+
+    return currentId
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
+import { PremiumSlider } from "@/components/ui/premium-slider"
 import { Sidebar, MobileSidebar } from "@/components/dashboard/sidebar"
 import { ProgressStepper, MobileProgress, PILLARS } from "@/components/dashboard/progress-stepper"
 import { questions } from "@/lib/questions"
@@ -419,46 +419,17 @@ export default function NewQuestionnairePage() {
 
                                 {/* Answer Area */}
                                 {currentQuestion?.type === "slider" ? (
-                                    <div className="mt-10 px-2">
-                                        {/* Polarity Display - shows neutral or lean direction */}
-                                        <div className="mb-8 flex flex-col items-center min-h-[80px] justify-center">
-                                            {sliderValue[0] === 50 ? (
-                                                <span className="text-3xl font-bold tracking-tight text-gray-400">
-                                                    Neutral
-                                                </span>
-                                            ) : sliderValue[0] < 50 ? (
-                                                <>
-                                                    <span className="text-sm font-medium uppercase tracking-widest text-gray-400 mb-2">
-                                                        Leaning toward
-                                                    </span>
-                                                    <span className="text-2xl font-bold text-center leading-tight" style={{ color: '#E8632B' }}>
-                                                        {currentQuestion.leftLabel}
-                                                    </span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span className="text-sm font-medium uppercase tracking-widest text-gray-400 mb-2">
-                                                        Leaning toward
-                                                    </span>
-                                                    <span className="text-2xl font-bold text-center leading-tight" style={{ color: '#E8632B' }}>
-                                                        {currentQuestion.rightLabel}
-                                                    </span>
-                                                </>
-                                            )}
-                                        </div>
-                                        <Slider
+                                    <div className="mt-20 px-8 pb-10">
+                                        <PremiumSlider
                                             value={sliderValue}
                                             onValueChange={setSliderValue}
                                             max={100}
                                             min={0}
                                             step={1}
-                                            className="w-full max-w-2xl mx-auto"
+                                            className="w-full max-w-3xl mx-auto"
+                                            leftLabel={currentQuestion.leftLabel}
+                                            rightLabel={currentQuestion.rightLabel}
                                         />
-                                        <div className="mt-6 flex justify-between items-start max-w-2xl mx-auto">
-                                            <span className="max-w-[35%] text-left text-sm font-medium text-gray-600">{currentQuestion.leftLabel}</span>
-                                            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Neutral</span>
-                                            <span className="max-w-[35%] text-right text-sm font-medium text-gray-600">{currentQuestion.rightLabel}</span>
-                                        </div>
                                     </div>
                                 ) : currentQuestion?.type === "voice" ? (
                                     <div className="mt-4">

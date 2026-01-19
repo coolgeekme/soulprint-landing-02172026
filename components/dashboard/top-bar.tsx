@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { SoulPrintSelector } from "@/components/dashboard/soulprint-selector"
 import { LayoutGrid } from "lucide-react"
+import { signOut as signOutAction } from "@/app/actions/auth"
 
 interface TopBarProps {
     onMenuClick?: () => void
@@ -15,11 +16,19 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     const router = useRouter()
 
     const handleLogout = async () => {
-        await supabase.auth.signOut()
+        // Clear local storage first
         localStorage.removeItem("soulprint_internal_key")
         localStorage.removeItem("soulprint_answers")
         localStorage.removeItem("soulprint_current_q")
-        router.push('/')
+
+        // Then call server action to clear cookies and redirect
+        // We import the server action dynamically or pass it as a prop, 
+        // but since this is a client component, we should import the action.
+        // Ideally, we'd pass this as a prop, but for a quick fix, we can assume the action is available via import.
+        // Wait, we can't import server actions directly into client components in some Next.js setups without 'use server' at top of action file (which we have).
+        // Let's actually use the action we just modified.
+        // We need to import it at the top.
+        await signOutAction()
     }
 
     return (

@@ -50,14 +50,14 @@ const defaultSuggestions: SuggestionCard[] = [
 // Generate personalized suggestions from past chat sessions (based on user's messages)
 function generatePersonalizedSuggestions(sessions: ChatSession[]): SuggestionCard[] {
     if (!sessions || sessions.length === 0) return []
-    
+
     const personalized: SuggestionCard[] = []
-    
+
     // Get the 3 most recent sessions with meaningful user content
     const recentSessions = sessions
         .filter(s => s.last_message && s.last_message.length > 10 && s.session_id !== 'legacy')
         .slice(0, 3)
-    
+
     for (const session of recentSessions) {
         const userMsg = session.last_message || ""
         // Clean up and summarize the user's question/topic
@@ -65,12 +65,12 @@ function generatePersonalizedSuggestions(sessions: ChatSession[]): SuggestionCar
             .replace(/\n/g, ' ')
             .replace(/\s+/g, ' ')
             .trim()
-        
+
         // Create a cleaner title - capitalize first letter, limit length
-        const displayTitle = cleanedTopic.length > 40 
+        const displayTitle = cleanedTopic.length > 40
             ? cleanedTopic.slice(0, 40).trim() + '...'
             : cleanedTopic
-        
+
         personalized.push({
             title: displayTitle.charAt(0).toUpperCase() + displayTitle.slice(1),
             description: "Continue this conversation",
@@ -78,7 +78,7 @@ function generatePersonalizedSuggestions(sessions: ChatSession[]): SuggestionCar
             isPersonalized: true
         })
     }
-    
+
     return personalized
 }
 
@@ -206,7 +206,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
     async function loadSessions() {
         const userSessions = await getChatSessions()
         setSessions(userSessions)
-        
+
         // Generate personalized suggestions based on chat history
         const personalized = generatePersonalizedSuggestions(userSessions)
         if (personalized.length > 0) {
@@ -349,6 +349,10 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
             setMessages(prev => [...prev, { role: "assistant", content: "Error: Failed to reply." }])
         } finally {
             setLoading(false)
+            // Auto-focus the input so user can type immediately without clicking
+            setTimeout(() => {
+                chatInputRef.current?.focus()
+            }, 100)
         }
     }
 
@@ -453,8 +457,8 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
     }
 
     function toggleFolder(folder: string) {
-        setExpandedFolders(prev => 
-            prev.includes(folder) 
+        setExpandedFolders(prev =>
+            prev.includes(folder)
                 ? prev.filter(f => f !== folder)
                 : [...prev, folder]
         )
@@ -487,8 +491,8 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
             <div className={cn(
                 "flex flex-col bg-white transition-all duration-300 ease-in-out z-50 border-r border-zinc-200",
                 "fixed inset-y-0 left-0 lg:relative lg:inset-auto",
-                sidebarOpen 
-                    ? "w-[280px] translate-x-0" 
+                sidebarOpen
+                    ? "w-[280px] translate-x-0"
                     : "w-0 -translate-x-full lg:translate-x-0"
             )}>
                 {sidebarOpen && (
@@ -505,7 +509,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                     </span>
                                     <span className="text-xs text-zinc-400">AI Companion</span>
                                 </div>
-                                <button 
+                                <button
                                     onClick={() => setSidebarOpen(false)}
                                     className="lg:hidden p-1.5 hover:bg-white/10 rounded-lg transition-colors"
                                 >
@@ -590,7 +594,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                     </>
                                 )}
                             </div>
-                            
+
                             {/* Full History Drawer - Hidden by default */}
                             {sessions.length > 5 && (
                                 <div id="full-history-drawer" className="hidden absolute inset-0 bg-white z-10 flex flex-col">
@@ -646,7 +650,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
 
                         {/* Sidebar Footer - User Account */}
                         <div className="p-3 bg-zinc-50 border-t border-zinc-200">
-                            <button 
+                            <button
                                 onClick={() => window.open('/dashboard/settings', '_self')}
                                 className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-100 transition-colors"
                             >
@@ -782,7 +786,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                         rows={3}
                                         disabled={loading}
                                     />
-                                    
+
                                     {/* Action Buttons Row */}
                                     <div className="flex items-center gap-3 mt-5 sm:mt-6">
                                         <Button
@@ -813,26 +817,26 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                             <div className="w-full">
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
                                     {smartSuggestions.map((suggestion, idx) => (
-                                    <button
-                                        key={`${suggestion.title}-${idx}`}
-                                        onClick={() => handleSuggestionClick(suggestion.prompt)}
-                                        className={cn(
-                                            "hover:scale-[1.02] active:scale-[0.98] border rounded-xl p-5 sm:p-6 text-left transition-all flex flex-col justify-start shadow-sm min-h-[120px]",
-                                            suggestion.isPersonalized 
-                                                ? "bg-[color:var(--sp-bg)] border-[color:var(--sp-accent)] hover:bg-white" 
-                                                : "bg-white border-stone-200 hover:bg-zinc-50"
-                                        )}
-                                    >
-                                        <h3 className="text-lg sm:text-base font-semibold text-black leading-snug">
-                                            {suggestion.title}
-                                        </h3>
-                                        <p className="text-base sm:text-sm text-neutral-500 mt-3 leading-relaxed">
-                                            {suggestion.description}
-                                        </p>
-                                    </button>
-                                ))}
+                                        <button
+                                            key={`${suggestion.title}-${idx}`}
+                                            onClick={() => handleSuggestionClick(suggestion.prompt)}
+                                            className={cn(
+                                                "hover:scale-[1.02] active:scale-[0.98] border rounded-xl p-5 sm:p-6 text-left transition-all flex flex-col justify-start shadow-sm min-h-[120px]",
+                                                suggestion.isPersonalized
+                                                    ? "bg-[color:var(--sp-bg)] border-[color:var(--sp-accent)] hover:bg-white"
+                                                    : "bg-white border-stone-200 hover:bg-zinc-50"
+                                            )}
+                                        >
+                                            <h3 className="text-lg sm:text-base font-semibold text-black leading-snug">
+                                                {suggestion.title}
+                                            </h3>
+                                            <p className="text-base sm:text-sm text-neutral-500 mt-3 leading-relaxed">
+                                                {suggestion.description}
+                                            </p>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
                         </div>
                     </div>
                 ) : (
@@ -926,8 +930,8 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                     )}
                                     <div className={cn(
                                         "max-w-[85%] rounded-xl p-4 text-sm leading-relaxed",
-                                        msg.role === "user" 
-                                            ? "bg-[color:var(--sp-primary)] text-white" 
+                                        msg.role === "user"
+                                            ? "bg-[color:var(--sp-primary)] text-white"
                                             : "bg-white border border-zinc-200 text-zinc-900"
                                     )}>
                                         {msg.role === "assistant" ? (
