@@ -62,9 +62,6 @@ export function Features() {
                                         />
                                     </div>
                                     <CardContent className="flex flex-col gap-4 p-6">
-                                        <span className="text-sm text-muted-foreground font-geist">
-                                            {feature.date}
-                                        </span>
                                         <p className="text-base text-foreground font-geist leading-relaxed">
                                             {feature.description}
                                         </p>
