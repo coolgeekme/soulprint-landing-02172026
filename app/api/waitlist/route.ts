@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { sendConfirmationEmail } from "@/lib/email"
 
+export const runtime = "nodejs"
+
 const STREAK_API_KEY = process.env.STREAK_API_KEY
 const STREAK_PIPELINE_KEY = process.env.STREAK_PIPELINE_KEY
+const STREAK_TEAM_KEY = process.env.STREAK_TEAM_KEY
 
 export async function POST(req: NextRequest) {
     try {
-        const { name, email } = await req.json()
+        const { name, email, ndaOptIn } = await req.json()
 
         // Validate inputs
         if (!name || !email || !email.includes("@")) {
@@ -18,15 +21,47 @@ export async function POST(req: NextRequest) {
 
         let streakSuccess = false
         let boxKey = null
+        let contactCreated = false
 
         // Try to add to Streak CRM (but don't fail if it doesn't work)
         if (STREAK_API_KEY && STREAK_PIPELINE_KEY) {
             try {
                 const authHeader = `Basic ${Buffer.from(STREAK_API_KEY + ":").toString("base64")}`
 
+                const getTeamKey = async () => {
+                    if (STREAK_TEAM_KEY) return STREAK_TEAM_KEY
+
+                    try {
+                        const teamResponse = await fetch(
+                            "https://api.streak.com/api/v2/users/me/teams",
+                            {
+                                method: "GET",
+                                headers: {
+                                    "Authorization": authHeader,
+                                },
+                            }
+                        )
+
+                        if (!teamResponse.ok) {
+                            const teamText = await teamResponse.text()
+                            console.error("Streak teams API error:", {
+                                status: teamResponse.status,
+                                response: teamText,
+                            })
+                            return null
+                        }
+
+                        const teams = await teamResponse.json()
+                        return Array.isArray(teams) && teams.length > 0 ? teams[0].teamKey : null
+                    } catch (teamError) {
+                        console.error("Streak teams lookup failed:", teamError)
+                        return null
+                    }
+                }
+
                 // Create a box in the Streak pipeline
                 const boxResponse = await fetch(
-                    `https://api.streak.com/v1/pipelines/${STREAK_PIPELINE_KEY}/boxes`,
+                    `https://api.streak.com/api/v2/pipelines/${STREAK_PIPELINE_KEY}/boxes`,
                     {
                         method: "POST",
                         headers: {
@@ -35,7 +70,7 @@ export async function POST(req: NextRequest) {
                         },
                         body: JSON.stringify({
                             name: `${name} - ${email}`,
-                            notes: `Waitlist signup\nName: ${name}\nEmail: ${email}\nAgreed to NDA: Yes\nDate: ${new Date().toISOString()}`,
+                            notes: `Waitlist signup\nName: ${name}\nEmail: ${email}\nAgreed to NDA: ${ndaOptIn ? "Yes" : "No"}\nDate: ${new Date().toISOString()}`,
                         }),
                     }
                 )
@@ -45,6 +80,43 @@ export async function POST(req: NextRequest) {
                     streakSuccess = true
                     boxKey = box.boxKey
                     console.log("Streak: Lead added successfully", { boxKey })
+
+                    // Create contact with email + name in Streak
+                    try {
+                        const teamKey = await getTeamKey()
+
+                        if (!teamKey) {
+                            console.warn("Streak team key unavailable - skipping contact creation")
+                        } else {
+                            const contactResponse = await fetch(
+                                `https://api.streak.com/api/v2/teams/${teamKey}/contacts`,
+                                {
+                                    method: "POST",
+                                    headers: {
+                                        "Authorization": authHeader,
+                                        "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                        name,
+                                        emailaddresses: [email],
+                                        getIfExisting: true,
+                                    }),
+                                }
+                            )
+
+                            if (contactResponse.ok) {
+                                contactCreated = true
+                            } else {
+                                const contactText = await contactResponse.text()
+                                console.error("Streak contact API error:", {
+                                    status: contactResponse.status,
+                                    response: contactText,
+                                })
+                            }
+                        }
+                    } catch (contactError) {
+                        console.error("Streak contact integration failed:", contactError)
+                    }
                 } else {
                     const responseText = await boxResponse.text()
                     console.error("Streak API error:", {
@@ -75,6 +147,7 @@ export async function POST(req: NextRequest) {
             message: "Successfully added to waitlist! Check your email for confirmation.",
             boxKey: boxKey,
             streakIntegrated: streakSuccess,
+            streakContactCreated: contactCreated,
         })
     } catch (error) {
         console.error("Waitlist API error:", error)
