@@ -350,9 +350,16 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
         } finally {
             setLoading(false)
             // Auto-focus the input so user can type immediately without clicking
-            setTimeout(() => {
-                chatInputRef.current?.focus()
-            }, 100)
+            // Use requestAnimationFrame + timeout for more reliable focus after render
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    if (chatInputRef.current) {
+                        chatInputRef.current.focus()
+                    } else if (welcomeInputRef.current) {
+                        welcomeInputRef.current.focus()
+                    }
+                }, 50)
+            })
         }
     }
 

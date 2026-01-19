@@ -38,6 +38,7 @@
     "figma-to-code": "^1.0.8",
     "framer-motion": "^11.11.17",
     "hark": "^1.2.3",
+    "liquid-glass-react": "^1.1.1",
     "lucide-react": "^0.460.0",
     "meyda": "^5.6.3",
     "next": "16.0.7",
