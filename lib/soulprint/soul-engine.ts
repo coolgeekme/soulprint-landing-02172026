@@ -3,6 +3,7 @@ import { SoulPrintData } from './types';
 import { ChatMessage } from '@/lib/llm/local-client';
 import { constructDynamicSystemPrompt } from './generator';
 import { inferContext, retrieveContext } from './memory/retrieval';
+import { getDisplayName } from './name-generator';
 
 /**
  * SOUL ENGINE V1
@@ -17,6 +18,20 @@ export class SoulEngine {
         this.supabase = supabase;
         this.userId = userId;
         this.soulprint = soulprint;
+    }
+
+    /**
+     * Updates the SoulPrint data (e.g., when name changes)
+     */
+    updateSoulprint(newSoulprint: SoulPrintData): void {
+        this.soulprint = newSoulprint;
+    }
+
+    /**
+     * Gets the current companion name
+     */
+    getCompanionName(): string {
+        return getDisplayName(this.soulprint);
     }
 
     /**

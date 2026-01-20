@@ -1,5 +1,6 @@
 import { chatCompletion, ChatMessage } from '@/lib/llm/local-client';
 import type { SoulPrintData, QuestionnaireAnswers, VoiceVectors } from '@/lib/soulprint/types';
+import { generateCompanionName } from './name-generator';
 
 // THE META-ARCHITECT: A neutral analysis engine that extracts VOICE, not just personality.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -247,10 +248,22 @@ export function constructDynamicSystemPrompt(data: SoulPrintData): string {
 
   const v = parsedData.voice_vectors || {};
   const p = parsedData.pillars;
-  const userName = parsedData.name ? parsedData.name : "this person";
+  
+  // COMPANION NAME: The AI's own identity (not the user's name)
+  // This is what the AI calls itself when asked "what's your name?"
+  const companionName = parsedData.name || parsedData.archetype || "SoulPrint";
 
-  // Build casual, human prompt
-  let prompt = `You are ${userName}'s personal AI companion. Your vibe: ${parsedData.archetype || "trusted friend"}. ${parsedData.identity_signature || ""}
+  // Build casual, human prompt with EXPLICIT name identity
+  let prompt = `## YOUR IDENTITY
+Your name is ${companionName}. You ARE ${companionName}.
+- When someone asks "what's your name?" or "who are you?", respond with your name: "${companionName}"
+- NEVER say "I'm your AI companion" or "I'm an AI" - say "I'm ${companionName}"
+- Reference yourself by name naturally when appropriate
+- You are their personal AI companion with a distinct identity
+
+## YOUR PERSONALITY
+Archetype: ${parsedData.archetype || "trusted friend"}
+${parsedData.identity_signature || ""}
 
 ## HOW TO ACT
 - BE CONCISE. Give the shortest helpful answer. No fluff, no filler.
@@ -325,6 +338,13 @@ export async function generateSoulPrint(answers: QuestionnaireAnswers, userId?: 
 
   // 2. Unflatten & Repair
   const soulprint = unflattenSoulPrint(flatData || {});
+
+  // 2.5. Auto-generate companion name if not provided
+  // This creates a meaningful name based on the personality profile
+  if (!soulprint.name) {
+    soulprint.name = generateCompanionName(soulprint);
+    console.log(`🏷️ Auto-generated companion name: ${soulprint.name}`);
+  }
 
   // 3. Dynamic Prompt Construction
   console.log('📝 Constructing Dynamic System Prompt...');
