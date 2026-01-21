@@ -4,8 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:clean": "node clean-start.js",
-    "seed:demo": "node seed-demo.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
