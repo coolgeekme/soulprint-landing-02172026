@@ -45,4 +45,20 @@ node_modules
 all_soulprints.txt
 full_soulprints_export.json
 soulprints_export.csv
+*_soulprint.txt
+
+# Log files and data exports
+logs_result*.json
+logs_result*.csv
+lint_output.txt
+aws-error.log
+*.log
+
+# Claude Code temp files
+tmpclaude-*-cwd
+tmpclaude-*.cwd
+
+# Windows artifacts
+nul
+
 .vercel
