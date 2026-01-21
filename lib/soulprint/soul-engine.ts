@@ -4,6 +4,7 @@ import { ChatMessage } from '@/lib/llm/local-client';
 import { constructDynamicSystemPrompt } from './generator';
 import { inferContext, retrieveContext } from './memory/retrieval';
 import { getDisplayName } from './name-generator';
+import { searchWeb, formatResultsForLLM } from '@/lib/tavily';
 
 /**
  * SOUL ENGINE V1
@@ -87,5 +88,45 @@ export class SoulEngine {
         }
 
         return prompt;
+    }
+
+    /**
+     * Searches the web for real-time information.
+     * Call this when the user asks about current events, facts, or anything 
+     * that requires up-to-date information beyond training data.
+     */
+    async searchWeb(query: string): Promise<string> {
+        if (!process.env.TAVILY_API_KEY) {
+            console.warn('[SoulEngine] Web search unavailable - TAVILY_API_KEY not set');
+            return '';
+        }
+
+        try {
+            console.log(`[SoulEngine] Searching web for: "${query}"`);
+            const results = await searchWeb(query, {
+                maxResults: 5,
+                includeAnswer: true,
+                searchDepth: 'basic',
+            });
+            return formatResultsForLLM(results);
+        } catch (e) {
+            console.error('[SoulEngine] Web search failed:', e);
+            return '';
+        }
+    }
+
+    /**
+     * Determines if a query requires web search based on content analysis.
+     * Returns true for questions about current events, prices, news, etc.
+     */
+    needsWebSearch(content: string): boolean {
+        const webSearchIndicators = [
+            /\b(current|latest|recent|today|now|2024|2025|2026)\b/i,
+            /\b(news|stock|price|weather|score|result)\b/i,
+            /\b(who is|what is|when did|where is)\b/i,
+            /\b(happening|released|announced|launched)\b/i,
+            /\?/,  // Questions often need current info
+        ];
+        return webSearchIndicators.some(pattern => pattern.test(content));
     }
 }

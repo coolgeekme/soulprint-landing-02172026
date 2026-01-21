@@ -963,7 +963,17 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                                         h2: ({ children }) => <h2 className="text-base font-bold text-zinc-900 mt-4 mb-2">{children}</h2>,
                                                         h3: ({ children }) => <h3 className="text-sm font-semibold text-zinc-900 mt-3 mb-1">{children}</h3>,
                                                         strong: ({ children }) => <span className="font-bold text-[color:var(--sp-primary)]">{children}</span>,
-                                                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>
+                                                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                                        a: ({ href, children }) => (
+                                                            <a 
+                                                                href={href} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer"
+                                                                className="text-[color:var(--sp-primary)] underline hover:opacity-80"
+                                                            >
+                                                                {children}
+                                                            </a>
+                                                        )
                                                     }}
                                                 >
                                                     {msg.content}

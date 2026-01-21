@@ -74,7 +74,29 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Construct Dynamic System Prompt (Agentic Step)
-    const systemPrompt = await engine.constructSystemPrompt(messages);
+    let systemPrompt = await engine.constructSystemPrompt(messages);
+
+    // 5.5 Web Search Augmentation (Real-time Info)
+    const lastUserMsg = messages[messages.length - 1];
+    if (lastUserMsg && lastUserMsg.role === 'user' && engine.needsWebSearch(lastUserMsg.content)) {
+      const webContext = await engine.searchWeb(lastUserMsg.content);
+      if (webContext) {
+        systemPrompt += `\n\n## REAL-TIME WEB SEARCH RESULTS\n${webContext}\n\n## CITATION INSTRUCTIONS (MANDATORY)
+When answering questions using the web search results above, you MUST:
+1. Include clickable source links at the end of your response
+2. Format citations like this: "According to [Source Title](URL)..."
+3. List all sources used at the bottom under "📚 Sources:"
+4. Example format:
+   
+   [Your answer here]
+   
+   📚 Sources:
+   - [Article Title](https://example.com/article)
+   - [Another Source](https://example.com/source2)
+
+NEVER give information from web search without citing the source URL.`;
+      }
+    }
 
     // 6. Streaming Response
     const fullContext: ChatMessage[] = [
