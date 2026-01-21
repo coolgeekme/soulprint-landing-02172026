@@ -39,6 +39,24 @@ export interface SoulPrintData {
     identity_signature: string;
     name?: string;
 
+    // Expanded L2 Schema Data (Optional for now)
+    user_profile?: {
+        legacy_anchors?: string[];
+        core_values?: string[];
+        motivations?: string[];
+        frustrations?: string[];
+    };
+    inside_references?: Array<{
+        keyword: string;
+        meaning: string;
+        usage_context?: string;
+    }>;
+    ongoing_projects?: Array<{
+        name: string;
+        status: string;
+        context: string;
+    }>;
+
     // Voice & Style
     voice_vectors: VoiceVectors;
     sign_off: string;       // Actual string value (e.g. "Adios")

@@ -74,12 +74,27 @@ export class SoulEngine {
 
             // 4. Inject Memory into Prompt
             if (memories.length > 0) {
-                prompt += `\n\n## LONG-TERM MEMORY (Context: "${contextTopic}")\n`;
-                prompt += `The following are relevant memories from your past interactions with this user:\n`;
-                memories.forEach((m, i) => prompt += `[Memory ${i + 1}] ${m}\n`);
-                prompt += `\nINSTRUCTION: Utilize these memories to inform your response. Do NOT explicitly say "I looked up my memory". Just speak as if you already knew this context.`;
+                let memoryBlock = `\n### L3: ACTIVE MEMORY LAYER (Context: "${contextTopic}")\n`;
+                memories.forEach((m, i) => memoryBlock += `[REL_MEMORY] "${m}"\n`);
+                
+                // Replace placeholder if it exists (from generator.ts), otherwise append
+                if (prompt.includes('### L3: ACTIVE MEMORY LAYER (Placeholder)')) {
+                    prompt = prompt.replace(
+                        '### L3: ACTIVE MEMORY LAYER (Placeholder)\n(Dynamic context will be injected here at runtime)\n', 
+                        memoryBlock
+                    );
+                } else {
+                    prompt += memoryBlock;
+                }
             } else {
                 console.log(`[SoulEngine] No relevant memories found.`);
+                // Clean up placeholder if no memories
+                 if (prompt.includes('### L3: ACTIVE MEMORY LAYER (Placeholder)')) {
+                     prompt = prompt.replace(
+                         '### L3: ACTIVE MEMORY LAYER (Placeholder)\n(Dynamic context will be injected here at runtime)\n', 
+                         ''
+                     );
+                 }
             }
 
         } catch (e) {
