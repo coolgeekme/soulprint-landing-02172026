@@ -1,41 +1,11 @@
 import { chatCompletion, ChatMessage } from '@/lib/llm/local-client';
 import { SupabaseClient } from '@supabase/supabase-js';
 
-import OpenAI from 'openai';
+// Use AWS Bedrock Titan for embeddings instead of OpenAI
+import { generateEmbedding } from '@/lib/aws/embeddings';
 
-// Initialize OpenAI for embeddings - SERVER-ONLY
-// This module should only be imported from API routes/server actions
-let openaiInstance: OpenAI | null = null;
-
-function getOpenAIClient() {
-    if (!openaiInstance) {
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) {
-            throw new Error('OPENAI_API_KEY environment variable is not set. This is required for embedding generation.');
-        }
-        openaiInstance = new OpenAI({ apiKey });
-    }
-    return openaiInstance;
-}
-
-/**
- * Generates vector embeddings for semantic search.
- * Uses text-embedding-3-small (1536 dimensions) to match Supabase schema.
- */
-export async function generateEmbedding(text: string): Promise<number[]> {
-    try {
-        const openai = getOpenAIClient();
-        const response = await openai.embeddings.create({
-            model: "text-embedding-3-small",
-            input: text.replace(/\n/g, ' '),
-            dimensions: 1536
-        });
-        return response.data[0].embedding;
-    } catch (error) {
-        console.error("Embedding generation failed:", error);
-        return []; // Return empty on failure to not block chat, though search will fail
-    }
-}
+// Re-export for backward compatibility
+export { generateEmbedding };
 
 /**
  * infers the "Latent Context" of a conversation.

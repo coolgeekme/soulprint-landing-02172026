@@ -1,5 +1,12 @@
 /**
- * LLM Client - Bedrock (Primary) -> SageMaker (Legacy) -> Ollama (Local)
+ * LLM Client - Smart Fallback System
+ * 
+ * Priority Order:
+ * 1. AWS Bedrock (Claude Haiku) - PRODUCTION (secure, stays in AWS)
+ * 2. SageMaker - Legacy AWS option
+ * 3. Ollama Hermes3 - LOCAL BACKUP (development/offline work)
+ * 
+ * Hermes3 ensures you can always work, even without internet/AWS
  */
 import { invokeSoulPrintModel } from '@/lib/aws/sagemaker';
 import { invokeBedrockModel, invokeBedrockModelStream, ChatMessage } from '@/lib/aws/bedrock';
@@ -7,7 +14,7 @@ import { invokeBedrockModel, invokeBedrockModelStream, ChatMessage } from '@/lib
 export type { ChatMessage };
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-const DEFAULT_MODEL = 'hermes3';
+const DEFAULT_MODEL = 'hermes3'; // Local development backup
 
 
 function isServerless(): boolean {
@@ -59,22 +66,22 @@ export async function* streamChatCompletion(
     model: string = DEFAULT_MODEL
 ): AsyncGenerator<string, void, unknown> {
     
-    // 1. AWS Bedrock (Cheapest & Best Cloud Option) - TRUE STREAMING
+    // 1. AWS Bedrock (PRODUCTION - Claude Haiku) - TRUE STREAMING
     if (isBedrockConfigured()) {
-        console.log('[LLM] Using AWS Bedrock (Streaming)');
+        console.log('[LLM] ✅ Using AWS Bedrock (Claude Haiku)');
         try {
             for await (const chunk of invokeBedrockModelStream(messages)) {
                 yield chunk;
             }
             return;
         } catch (error) {
-            console.error('[LLM] Bedrock streaming failed, trying fallbacks...', error);
+            console.error('[LLM] ⚠️ Bedrock failed, trying fallbacks...', error);
         }
     }
 
     // 2. AWS SageMaker (Legacy Cloud Option)
     if (isSageMakerConfigured()) {
-        console.log('[LLM] Using SageMaker');
+        console.log('[LLM] ⚠️ Using SageMaker (Legacy)');
         try {
             const prompt = formatChatML(messages);
             // @ts-ignore - existing function call
@@ -104,13 +111,13 @@ export async function* streamChatCompletion(
         }
     }
 
-    // 3. Local Ollama (Development Option)
+    // 3. Ollama Hermes3 (LOCAL BACKUP - Development/Offline)
     const ollamaAvailable = await checkOllamaHealth();
     if (!ollamaAvailable) {
-        throw new Error('No LLM available. Configure BEDROCK_MODEL_ID or run Ollama locally.');
+        throw new Error('❌ No LLM available. Add AWS credentials to .env.local or run Ollama locally.');
     }
 
-    console.log('[LLM] Using Ollama (Local)');
+    console.log('[LLM] 🔧 Using Ollama Hermes3 (Local Backup)');
     const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

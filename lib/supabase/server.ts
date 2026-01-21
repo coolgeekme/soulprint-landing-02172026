@@ -21,8 +21,16 @@ export async function createClient() {
                     return cookieStore.getAll()
                 },
                 setAll(cookiesToSet) {
-                    // Don't set cookies in Server Components
-                    // Middleware handles session refresh
+                    try {
+                        // Set cookies in Server Actions (critical for PKCE flow)
+                        cookiesToSet.forEach(({ name, value, options }) => {
+                            cookieStore.set(name, value, { ...options, ...cookieOptions })
+                        })
+                    } catch {
+                        // The `setAll` method was called from a Server Component.
+                        // This can be ignored if you have middleware refreshing
+                        // user sessions.
+                    }
                 },
             },
         }

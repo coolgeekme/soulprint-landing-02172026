@@ -14,6 +14,13 @@ export async function updateSession(request: NextRequest) {
         request,
     })
 
+    // DEV BYPASS: Skip auth on localhost for testing
+    const isLocalhost = request.headers.get('host')?.includes('localhost')
+    if (isLocalhost && process.env.NODE_ENV === 'development') {
+        console.log('🔓 DEV MODE: Auth bypassed for localhost')
+        return supabaseResponse
+    }
+
     // Get environment variables with fallback check
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

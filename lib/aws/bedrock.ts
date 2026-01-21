@@ -30,9 +30,9 @@ export interface ChatMessage {
 }
 
 export async function invokeBedrockModel(messages: ChatMessage[]) {
-  // Default to Llama 3 8B (Cost efficient)
+  // Default to Claude 3.5 Haiku (Fast & high quality)
   // Ensure you requested access to this model in AWS Bedrock Console
-  const modelId = process.env.BEDROCK_MODEL_ID || "meta.llama3-8b-instruct-v1:0";
+  const modelId = process.env.BEDROCK_MODEL_ID || "us.anthropic.claude-3-5-haiku-20241022-v1:0";
 
   // 1. Separate System Prompt
   const systemPrompts: SystemContentBlock[] = messages
@@ -55,7 +55,6 @@ export async function invokeBedrockModel(messages: ChatMessage[]) {
       inferenceConfig: {
         maxTokens: 512,
         temperature: 0.7,
-        topP: 0.9,
       }
     });
 
@@ -81,7 +80,7 @@ export async function invokeBedrockModel(messages: ChatMessage[]) {
 export async function* invokeBedrockModelStream(
   messages: ChatMessage[]
 ): AsyncGenerator<string, void, unknown> {
-  const modelId = process.env.BEDROCK_MODEL_ID || "meta.llama3-8b-instruct-v1:0";
+  const modelId = process.env.BEDROCK_MODEL_ID || "us.anthropic.claude-3-5-haiku-20241022-v1:0";
 
   // 1. Separate System Prompt
   const systemPrompts: SystemContentBlock[] = messages
@@ -104,7 +103,6 @@ export async function* invokeBedrockModelStream(
       inferenceConfig: {
         maxTokens: 512,
         temperature: 0.7,
-        topP: 0.9,
       }
     });
 

@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import OpenAI from 'openai';
+import { invokeBedrockModel } from '@/lib/aws/bedrock';
 
 const KIE_API_KEY = process.env.KIE_API_KEY || '6efc289cb78bed900085851c51be6b9a';
 const KIE_API_URL = 'https://api.kie.ai/api/v1/jobs/createTask';
 const KIE_TASK_URL = 'https://api.kie.ai/api/v1/jobs/recordInfo';
 
-// Generate image prompt from soulprint data using OpenAI
+// Generate image prompt from soulprint data using AWS Bedrock
 async function generateImagePrompt(soulprintData: Record<string, unknown>): Promise<string> {
-    const openai = new OpenAI();
 
     const archetype = soulprintData.archetype || 'Unknown';
     const identitySignature = soulprintData.identity_signature || '';
@@ -66,16 +65,12 @@ Create an image prompt that generates a UNIQUE abstract avatar reflecting this p
 
 OUTPUT ONLY THE IMAGE PROMPT - no explanations, no markdown, just the prompt text ready to send to an image generator. Keep it under 200 words.`;
 
-    const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        max_tokens: 300,
-        messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-        ],
-    });
+    const response = await invokeBedrockModel([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+    ]);
 
-    return response.choices[0]?.message?.content || 'Abstract digital art, ethereal colors, geometric patterns, profile avatar style';
+    return response || 'Abstract digital art, ethereal colors, geometric patterns, profile avatar style';
 }
 
 // Create image task with kie.ai
