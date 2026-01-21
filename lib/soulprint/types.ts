@@ -42,6 +42,7 @@ export interface SoulPrintData {
 
     // Expanded L2 Schema Data (Optional for now)
     user_profile?: {
+        user_name?: string;          // User's actual name
         legacy_anchors?: string[];
         core_values?: string[];
         motivations?: string[];
