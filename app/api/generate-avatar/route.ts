@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { invokeBedrockModel } from '@/lib/aws/bedrock';
 
-const KIE_API_KEY = process.env.KIE_API_KEY || '6efc289cb78bed900085851c51be6b9a';
+const KIE_API_KEY = process.env.KIE_API_KEY;
+if (!KIE_API_KEY) {
+    throw new Error('KIE_API_KEY environment variable is required');
+}
 const KIE_API_URL = 'https://api.kie.ai/api/v1/jobs/createTask';
 const KIE_TASK_URL = 'https://api.kie.ai/api/v1/jobs/recordInfo';
 

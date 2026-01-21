@@ -5,7 +5,8 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { redirect } from "next/navigation"
 
 /**
- * Automatically logs in as kidquick360@gmail.com in development environment.
+ * Automatically logs in with a dev account in development environment.
+ * Configure via DEV_LOGIN_EMAIL and DEV_LOGIN_PASSWORD environment variables.
  * If the user doesn't exist or has a different password, it resets/creates them
  * using the Service Role key to ensure immediate access.
  */
@@ -16,8 +17,8 @@ export async function devLogin() {
         return { error: "Dev login only available in development mode" };
     }
 
-    const TARGET_EMAIL = "kidquick360@gmail.com";
-    const DEV_PASSWORD = "Dp071603!"; // User provided password
+    const TARGET_EMAIL = process.env.DEV_LOGIN_EMAIL || "dev@example.com";
+    const DEV_PASSWORD = process.env.DEV_LOGIN_PASSWORD || crypto.randomUUID();
 
     // 2. Use Service Role to Ensure User Exists/Has Password
     // We can't use the standard client for admin tasks, need direct supabase-js instance

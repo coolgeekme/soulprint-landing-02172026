@@ -34,9 +34,9 @@ Modified to show avatar generator after user names their SoulPrint.
 
 ## Environment Variables
 ```
-KIE_API_KEY=6efc289cb78bed900085851c51be6b9a
+KIE_API_KEY=your_kie_api_key
 ```
-(Already added to .env.local)
+Get your API key from the KIE.AI dashboard and add to `.env.local`.
 
 ---
 
@@ -117,7 +117,7 @@ Authorization: Bearer <KIE_API_KEY>
 ## When You're Ready to Test
 
 1. Start dev server: `npm run dev -- -p 3000`
-2. Log in as kidquick360@gmail.com
+2. Log in with your dev account (configure DEV_LOGIN_EMAIL in .env.local)
 3. Go to http://localhost:3000/test-avatar
 4. Select "Visionary Maverick" soulprint
 5. Click "Generate Avatar"

@@ -88,9 +88,11 @@ Next: Choose different approach - Bedrock or external provider recommended
 ### AWS Config in .env.local
 
 ```
-AWS_ACCESS_KEY_ID=AKIA36MTOXRJLGJFX2EH
-AWS_SECRET_ACCESS_KEY=<set>
+AWS_ACCESS_KEY_ID=<redacted>
+AWS_SECRET_ACCESS_KEY=<redacted>
 AWS_REGION=us-east-1
 SAGEMAKER_ENDPOINT_NAME=soulprint-llm
-SAGEMAKER_EXECUTION_ROLE_ARN=arn:aws:iam::821184871506:role/soulprint-sagemaker-execution-role
+SAGEMAKER_EXECUTION_ROLE_ARN=arn:aws:iam::<account-id>:role/<role-name>
 ```
+
+**Note:** Real credentials should NEVER be stored in planning documents. See AWS console for actual values.
