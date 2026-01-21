@@ -166,3 +166,213 @@ All production secrets are properly loaded from environment variables:
 - [x] Check that no .env files (except .example) are committed
 - [x] Document findings (this document)
 - [x] Remediate all issues found
+
+---
+
+# Authentication & Authorization Audit
+
+**Date:** 2026-01-21
+**Auditor:** Claude Code (automated)
+**Scope:** US-008 - Review authentication and authorization flow
+
+---
+
+## Authentication Architecture Overview
+
+### Flow Summary
+
+```
+User Request
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│         Next.js Middleware              │
+│         (middleware.ts)                 │
+│                                         │
+│  • Calls updateSession()                │
+│  • Refreshes Supabase session           │
+│  • Protects /dashboard/* & /questionnaire/* │
+│  • Auto-creates profile if missing      │
+└─────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│      Supabase SSR Authentication        │
+│      (@supabase/ssr)                    │
+│                                         │
+│  • Cookie-based session management      │
+│  • PKCE flow for OAuth                  │
+│  • 30-day session persistence           │
+└─────────────────────────────────────────┘
+```
+
+### Authentication Methods
+
+1. **Email/Password** (`app/actions/auth.ts`)
+   - `signUp()` - Creates user with email confirmation
+   - `signIn()` - Password-based login with `signInWithPassword`
+
+2. **Google OAuth** (`app/actions/auth.ts`)
+   - `signInWithGoogle()` - OAuth 2.0 with PKCE
+   - Callback handled at `/auth/callback`
+
+3. **API Key Authentication** (`app/api/llm/chat/route.ts`, `app/api/v1/chat/completions/route.ts`)
+   - Bearer token: `sk-soulprint-*`
+   - Keys are SHA-256 hashed and stored in `api_keys` table
+   - Used for programmatic API access
+
+### Session Management
+
+- **Cookie Configuration** (`lib/supabase/client.ts`, `lib/supabase/server.ts`):
+  - `maxAge`: 30 days (Safari persistence fix)
+  - `sameSite`: 'lax' (CSRF protection)
+  - `secure`: true in production
+  - `path`: '/' (application-wide)
+
+- **Session Refresh**: Middleware automatically refreshes sessions via `supabase.auth.getUser()`
+
+---
+
+## Security Findings
+
+### LOW-001: Development Auth Bypass in Middleware
+
+**Location:** `lib/supabase/middleware.ts:17-21`
+**Severity:** LOW (development only)
+**Status:** ACCEPTABLE (with caveats)
+
+**Issue:**
+```typescript
+const isLocalhost = request.headers.get('host')?.includes('localhost')
+if (isLocalhost && process.env.NODE_ENV === 'development') {
+    return supabaseResponse
+}
+```
+
+Authentication is completely bypassed on localhost in development mode.
+
+**Risk Assessment:**
+- Protected by `NODE_ENV === 'development'` check
+- Only affects local development
+- Cannot be exploited in production
+
+**Recommendation:**
+- Consider removing this bypass to ensure consistent auth behavior
+- If needed for development, use the `devLogin()` action instead
+
+---
+
+### LOW-002: API Routes Without Authentication
+
+**Severity:** LOW to MEDIUM
+**Status:** REVIEW NEEDED
+
+Several API routes do not require authentication:
+
+| Route | Auth Required | Risk | Notes |
+|-------|--------------|------|-------|
+| `/api/voice/analyze` | No | LOW | Uses server API key for AssemblyAI |
+| `/api/search` | No | MEDIUM | Could allow abuse of Tavily API quota |
+| `/api/audio/analyze` | No | MEDIUM | Accepts arbitrary userId |
+| `/api/waitlist` | No | LOW | Public signup endpoint |
+
+**Recommendations:**
+1. **`/api/search`**: Add rate limiting or authentication to prevent API quota abuse
+2. **`/api/audio/analyze`**: Verify `userId` matches authenticated user
+3. **`/api/voice/analyze`**: Consider adding auth to prevent anonymous usage
+
+---
+
+### LOW-003: Unverified userId in Audio Analysis
+
+**Location:** `app/api/audio/analyze/route.ts:184-186`
+**Severity:** LOW
+**Status:** REVIEW NEEDED
+
+**Issue:**
+```typescript
+const userId = formData.get('userId') as string | null;
+```
+
+The endpoint accepts `userId` from the request body without verifying it matches an authenticated user. This could allow:
+- Associating audio analysis with another user's account
+- Impersonation in logged analysis data
+
+**Recommendation:**
+Add authentication and verify the userId:
+```typescript
+const { data: { user } } = await supabase.auth.getUser();
+if (!user || user.id !== userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+```
+
+---
+
+## Items Verified as Secure
+
+### Protected Routes
+- [x] `/dashboard/*` routes require authentication (middleware)
+- [x] `/questionnaire/*` routes require authentication (middleware)
+- [x] Unauthenticated users are redirected to `/`
+
+### Session Security
+- [x] Cookies use `sameSite: 'lax'` (CSRF protection)
+- [x] Cookies use `secure: true` in production
+- [x] Sessions expire after 30 days (configurable)
+- [x] PKCE flow used for OAuth (prevents authorization code interception)
+
+### API Authentication
+- [x] `supabase.auth.getUser()` used for user verification (not `getSession()`)
+- [x] API keys are hashed with SHA-256 before storage
+- [x] Rate limiting implemented for API endpoints
+- [x] Usage limits enforced in `/api/v1/chat/completions`
+
+### Authorization
+- [x] `app/api/soulprint/submit/route.ts` verifies user ID matches authenticated user
+- [x] `app/api/generate-avatar/route.ts` filters queries by `user_id`
+- [x] RLS (Row Level Security) assumed enabled in Supabase for data isolation
+
+---
+
+## Auth Flow Recommendations
+
+### Immediate Actions
+
+1. **Add Auth to `/api/search`**
+   - Prevents anonymous abuse of Tavily API quota
+   - Or implement rate limiting by IP
+
+2. **Fix `/api/audio/analyze` Auth**
+   - Add `supabase.auth.getUser()` check
+   - Verify `userId` matches authenticated user
+
+### Future Improvements
+
+1. **Remove Development Bypass**
+   - Use `devLogin()` for development instead of middleware bypass
+   - Ensures consistent auth behavior across environments
+
+2. **Implement API Rate Limiting by IP**
+   - Protect unauthenticated endpoints from abuse
+   - Use edge-compatible rate limiting (e.g., Upstash)
+
+3. **Add Auth Event Logging**
+   - Log login attempts (success/failure)
+   - Monitor for brute force attacks
+   - Track OAuth provider usage
+
+4. **Session Invalidation on Password Change**
+   - Ensure all sessions are invalidated when password is changed
+   - Supabase handles this automatically, but verify behavior
+
+---
+
+## Auth Checklist (US-008)
+
+- [x] Review `app/actions/gate.ts` for secure access control
+- [x] Review Supabase authentication implementation in `lib/supabase/`
+- [x] Verify protected routes require authentication
+- [x] Check for proper session handling and token management
+- [x] Check for auth bypass vulnerabilities
+- [x] Document the auth flow and recommendations

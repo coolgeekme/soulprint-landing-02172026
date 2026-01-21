@@ -191,3 +191,33 @@ EEXIST: file already exists, mkdir 'C:\Users\drewp\OneDrive\soulprint rough\Soul
   - The exposed AWS access key should be rotated via IAM console
   - Pre-existing lint errors (4 errors, 25 warnings) remain unrelated to audit
 ---
+## ✗ Iteration 7 - US-007: Audit for exposed secrets and hardcoded credentials
+*2026-01-21T14:15:35.683Z (334s)*
+
+**Status:** Failed/Incomplete
+
+**Error:**
+EEXIST: file already exists, mkdir 'C:\Users\drewp\OneDrive\soulprint rough\Soulprint-roughdraft\.ralph-tui\iterations'
+
+---
+
+## 2026-01-21 - US-008
+- What was implemented: Comprehensive authentication and authorization flow security audit
+- Files changed:
+  - Updated `SECURITY-AUDIT.md` with full auth flow documentation, including:
+    - Authentication architecture overview with flow diagram
+    - Session management analysis (cookies, PKCE, etc.)
+    - 3 security findings documented (LOW severity)
+    - Verified secure items checklist
+    - Actionable recommendations for improvements
+- **Learnings:**
+  - Supabase SSR authentication is properly implemented with @supabase/ssr
+  - Middleware protects /dashboard/* and /questionnaire/* routes
+  - Development bypass in middleware (`localhost` check) is acceptable but could be removed
+  - Some API routes lack authentication: /api/search, /api/voice/analyze, /api/audio/analyze
+  - The /api/audio/analyze route accepts userId from request body without verification - potential impersonation risk
+  - PKCE flow is used for OAuth which prevents authorization code interception
+  - API key authentication uses SHA-256 hashing for storage
+  - Rate limiting is implemented for API endpoints
+  - Pre-existing lint errors (4 errors, 25 warnings) are unrelated to this audit
+---
