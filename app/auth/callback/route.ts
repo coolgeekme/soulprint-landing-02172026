@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
             // Get user info to check for existing soulprint
             const { data: { user } } = await supabase.auth.getUser()
 
-            let redirectUrl = '/dashboard/welcome'
+            let redirectUrl = '/onboarding' // New users go to PWA gate
             
             // Check for existing soulprint
             if (user) {
@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
                     .eq('user_id', user.id)
 
                 if (count && count > 0) {
+                    // Existing user with soulprint - go directly to chat
                     redirectUrl = '/dashboard/chat'
                 }
             }

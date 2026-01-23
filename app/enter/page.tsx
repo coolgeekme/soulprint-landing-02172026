@@ -29,8 +29,15 @@ export default function EnterPage() {
     const [error, setError] = useState("");
 
     // Check if user is already authenticated and redirect to dashboard
+    // Also handle access code bypass for development
     useEffect(() => {
         const checkAuth = async () => {
+            // If access code is not required, redirect straight to signup
+            if (!REQUIRE_ACCESS_CODE) {
+                router.replace("/signup");
+                return;
+            }
+
             try {
                 const supabase = createClient();
                 const { data: { user } } = await supabase.auth.getUser();
@@ -48,12 +55,6 @@ export default function EnterPage() {
 
         checkAuth();
     }, [router]);
-
-    // If access code is not required, redirect straight to signup
-    if (!REQUIRE_ACCESS_CODE) {
-        router.replace("/signup");
-        return null;
-    }
 
     // Show loading while checking auth
     if (checkingAuth) {

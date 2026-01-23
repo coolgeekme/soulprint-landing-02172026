@@ -22,16 +22,17 @@ interface SidebarItem {
     icon: LucideIcon
     label: string
     href: string
+    tourId?: string
 }
 
 const sidebarItems: SidebarItem[] = [
-    { icon: Home, label: "Home", href: "/dashboard/chat" },
-    { icon: SquareTerminal, label: "Questionnaire", href: "/questionnaire" },
-    { icon: Fingerprint, label: "My SoulPrint", href: "/dashboard/profile" },
-    { icon: BarChart3, label: "Insights", href: "/dashboard/insights" },
-    { icon: GitCompareArrows, label: "Compare", href: "/dashboard/compare" },
-    { icon: Key, label: "API Keys", href: "/dashboard/bot" },
-    { icon: Settings2, label: "Settings", href: "/dashboard/settings" },
+    { icon: Home, label: "Home", href: "/dashboard/chat", tourId: "home" },
+    { icon: SquareTerminal, label: "Questionnaire", href: "/questionnaire", tourId: "questionnaire" },
+    { icon: Fingerprint, label: "My SoulPrint", href: "/dashboard/profile", tourId: "soulprint" },
+    { icon: BarChart3, label: "Insights", href: "/dashboard/insights", tourId: "insights" },
+    { icon: GitCompareArrows, label: "Compare", href: "/dashboard/compare", tourId: "compare" },
+    { icon: Key, label: "API Keys", href: "/dashboard/bot", tourId: "api-keys" },
+    { icon: Settings2, label: "Settings", href: "/dashboard/settings", tourId: "settings" },
 ]
 
 interface SidebarProps {
@@ -65,7 +66,8 @@ export function Sidebar({ hasSoulprint }: SidebarProps) {
                 <img
                     src="/images/vector-personalized.png"
                     alt="SoulPrint"
-                    className="h-8 w-8 object-contain"
+                    className="h-8 w-auto object-contain"
+                    style={{ aspectRatio: '1/1' }}
                 />
             </div>
 
@@ -82,6 +84,7 @@ export function Sidebar({ hasSoulprint }: SidebarProps) {
                         <Link
                             key={item.label}
                             href={item.label === "Questionnaire" ? "/questionnaire/new" : item.href}
+                            data-tour={item.tourId}
                             className={cn(
                                 "flex h-10 w-10 items-center justify-center rounded-md transition-colors",
                                 isActive

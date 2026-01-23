@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Sidebar, MobileSidebar } from "@/components/dashboard/sidebar"
 import { TopBar } from "@/components/dashboard/top-bar"
+import { OnboardingTour } from "@/components/onboarding-tour"
 
 interface DashboardShellProps {
     children: React.ReactNode
@@ -11,6 +12,19 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children, hasSoulprint }: DashboardShellProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const [showTour, setShowTour] = useState(false)
+
+    useEffect(() => {
+        // Check if we should show the onboarding tour
+        const tourCompleted = localStorage.getItem("soulprint-tour-completed")
+        const isFirstLogin = localStorage.getItem("soulprint-first-login")
+        
+        if (isFirstLogin === "true" && tourCompleted !== "true") {
+            // Small delay to let the UI render first
+            const timer = setTimeout(() => setShowTour(true), 500)
+            return () => clearTimeout(timer)
+        }
+    }, [])
 
     const handleMenuClick = useCallback(() => {
         setIsMobileMenuOpen(true)
@@ -20,8 +34,17 @@ export function DashboardShell({ children, hasSoulprint }: DashboardShellProps) 
         setIsMobileMenuOpen(false)
     }, [])
 
+    const handleTourComplete = useCallback(() => {
+        setShowTour(false)
+    }, [])
+
     return (
         <div className="flex min-h-screen bg-[#0B0B0B] text-white">
+            {/* Onboarding Tour */}
+            {showTour && (
+                <OnboardingTour onComplete={handleTourComplete} />
+            )}
+
             {/* Desktop Sidebar */}
             <Sidebar hasSoulprint={hasSoulprint} />
 
