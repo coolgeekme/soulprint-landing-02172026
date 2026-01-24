@@ -2,14 +2,18 @@
   "name": "SoulPrint - Discover Your Digital Soul",
   "short_name": "SoulPrint",
   "description": "Analyze your digital footprint and discover your unique SoulPrint.",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
-  "categories": ["lifestyle", "personalization", "utilities"],
+  "categories": [
+    "lifestyle",
+    "personalization",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "/icons/icon-72x72.png",

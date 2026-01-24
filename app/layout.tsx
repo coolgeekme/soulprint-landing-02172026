@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Koulen, Geist, Host_Grotesk, Cinzel, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { InstallPrompt } from "@/components/global/install-prompt";
 import { cn } from "@/lib/utils";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -134,6 +135,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <InstallPrompt />
         </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{

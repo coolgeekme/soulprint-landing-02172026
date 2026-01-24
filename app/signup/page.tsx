@@ -25,7 +25,7 @@ export default function SignUpPage() {
             try {
                 const supabase = createClient();
                 const { data: { user } } = await supabase.auth.getUser();
-                
+
                 if (user) {
                     router.replace("/dashboard/chat");
                     return;
@@ -84,10 +84,10 @@ export default function SignUpPage() {
 
     if (success) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-[#0f0f0f] to-[#1a1a2e] px-6">
+            <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0a] px-6">
                 <div className="w-full max-w-[400px] flex flex-col items-center gap-6 text-center">
-                    <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="w-16 h-16 rounded-full bg-[#EA580C]/20 flex items-center justify-center border border-[#EA580C]/30 shadow-[0_0_20px_rgba(234,88,12,0.2)]">
+                        <svg className="w-8 h-8 text-[#EA580C]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
@@ -95,11 +95,11 @@ export default function SignUpPage() {
                         Check your email
                     </h2>
                     <p className="text-gray-400">
-                        We sent a confirmation link to <span className="text-white">{email}</span>.
+                        We sent a confirmation link to <span className="text-white font-medium">{email}</span>.
                         Click the link to activate your account.
                     </p>
                     <Link href="/login">
-                        <Button variant="outline" className="mt-4">
+                        <Button variant="outline" className="mt-4 border-[#333] text-white hover:bg-white/10 hover:text-white">
                             Back to Login
                         </Button>
                     </Link>
@@ -109,23 +109,24 @@ export default function SignUpPage() {
     }
 
     return (
-        <div className="flex flex-col lg:flex-row w-full h-full min-h-screen bg-white">
+        <div className="flex flex-col lg:flex-row w-full h-full min-h-screen bg-[#0a0a0a] text-white">
             {/* Left Side - Image (Hidden on mobile, visible on lg) */}
-            <div className="relative hidden lg:flex lg:w-1/2 bg-[#0f0f0f]">
+            <div className="relative hidden lg:flex lg:w-1/2 bg-[#000000]">
                 <Image
                     src="/images/Soulprintengine-logo.png"
                     alt="SoulPrint Engine"
                     fill
-                    className="object-cover opacity-80"
+                    className="object-cover opacity-60"
                     priority
                 />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0a0a0a]" />
             </div>
 
             {/* Right Side - Form */}
             <div className="flex flex-1 flex-col lg:justify-center items-center px-6 py-12 sm:px-12 lg:p-[32px] relative w-full overflow-y-auto">
                 {/* Mobile Logo (Visible only on small screens) */}
-                <div className="lg:hidden mb-8 flex justify-center">
-                    <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-lg border-2 border-[#EA580C]/20">
+                <div className="lg:hidden mb-12 flex justify-center">
+                    <div className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(232,99,43,0.2)] border border-[#EA580C]/30">
                         <Image
                             src="/images/Soulprintengine-logo.png"
                             alt="Logo"
@@ -138,7 +139,7 @@ export default function SignUpPage() {
                 {/* Top Left Home Button */}
                 <div className="absolute top-6 left-4 sm:top-8 sm:left-8">
                     <Link href="/">
-                        <Button variant="ghost" className="text-[#341E63] font-host-grotesk font-medium text-sm hover:bg-transparent hover:underline flex gap-2 pl-2 pr-4">
+                        <Button variant="ghost" className="text-gray-400 hover:text-white hover:bg-white/5 font-host-grotesk font-medium text-sm flex gap-2 pl-2 pr-4 transition-colors">
                             <span className="text-lg">←</span> Back to Home
                         </Button>
                     </Link>
@@ -147,17 +148,17 @@ export default function SignUpPage() {
                 <div className="w-full max-w-[350px] flex flex-col gap-8 sm:gap-6 mt-4 lg:mt-0">
                     {/* Header */}
                     <div className="flex flex-col gap-2 text-center">
-                        <h2 className="font-host-grotesk font-semibold text-3xl sm:text-2xl leading-tight tracking-[-0.4px] text-[#341E63]">
+                        <h2 className="font-host-grotesk font-semibold text-3xl sm:text-2xl leading-tight tracking-[-0.4px] text-white">
                             Create your account
                         </h2>
-                        <p className="font-host-grotesk font-normal text-base sm:text-sm leading-relaxed text-[#5E4F7E]">
+                        <p className="font-host-grotesk font-normal text-base sm:text-sm leading-relaxed text-gray-400">
                             Start building your SoulPrint today
                         </p>
                     </div>
 
                     {/* Error Message */}
                     {error && (
-                        <div className="p-4 sm:p-3 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-xl sm:rounded-lg animate-in fade-in slide-in-from-top-2">
+                        <div className="p-4 sm:p-3 text-sm font-medium text-red-400 bg-red-900/10 border border-red-900/50 rounded-xl sm:rounded-lg animate-in fade-in slide-in-from-top-2">
                             {error}
                         </div>
                     )}
@@ -171,7 +172,7 @@ export default function SignUpPage() {
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 required
-                                className="w-full h-12 sm:h-10 px-4 bg-white border border-[#E2E8F0] rounded-xl sm:rounded-lg shadow-[0px_1px_2px_rgba(121,87,194,0.05)] font-host-grotesk text-base text-[#341E63] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] transition-all duration-200"
+                                className="w-full h-12 sm:h-10 px-4 bg-[#1a1a1a] border border-white/10 rounded-xl sm:rounded-lg font-host-grotesk text-base text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] transition-all duration-200"
                             />
                             <input
                                 type="email"
@@ -179,7 +180,7 @@ export default function SignUpPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className="w-full h-12 sm:h-10 px-4 bg-white border border-[#E2E8F0] rounded-xl sm:rounded-lg shadow-[0px_1px_2px_rgba(121,87,194,0.05)] font-host-grotesk text-base text-[#341E63] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] transition-all duration-200"
+                                className="w-full h-12 sm:h-10 px-4 bg-[#1a1a1a] border border-white/10 rounded-xl sm:rounded-lg font-host-grotesk text-base text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] transition-all duration-200"
                             />
                             <input
                                 type="password"
@@ -188,14 +189,14 @@ export default function SignUpPage() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 minLength={6}
-                                className="w-full h-12 sm:h-10 px-4 bg-white border border-[#E2E8F0] rounded-xl sm:rounded-lg shadow-[0px_1px_2px_rgba(121,87,194,0.05)] font-host-grotesk text-base text-[#341E63] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] transition-all duration-200"
+                                className="w-full h-12 sm:h-10 px-4 bg-[#1a1a1a] border border-white/10 rounded-xl sm:rounded-lg font-host-grotesk text-base text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] transition-all duration-200"
                             />
                         </div>
 
                         <Button
                             type="submit"
                             disabled={loading}
-                            className="w-full h-12 sm:h-10 bg-[#EA580C] hover:bg-[#EA580C]/90 text-[#F8FAFC] font-host-grotesk font-medium text-base sm:text-sm rounded-xl sm:rounded-[10px] shadow-[inset_0px_-2px_4px_rgba(0,0,0,0.2),0px_2px_8px_rgba(234,88,12,0.25)] disabled:opacity-70 transition-all active:scale-[0.98]"
+                            className="w-full h-12 sm:h-10 bg-[#EA580C] hover:bg-[#EA580C]/90 text-white font-host-grotesk font-medium text-base sm:text-sm rounded-xl sm:rounded-[10px] shadow-[0_0_20px_rgba(234,88,12,0.3)] disabled:opacity-70 transition-all active:scale-[0.98]"
                         >
                             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Account"}
                         </Button>
@@ -204,9 +205,9 @@ export default function SignUpPage() {
                     {/* Divider */}
                     <div className="relative flex items-center justify-center w-full py-2">
                         <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t border-[#E2E8F0]" />
+                            <span className="w-full border-t border-white/10" />
                         </div>
-                        <div className="relative flex justify-center text-xs uppercase bg-white px-4 text-[#94A3B8] font-host-grotesk font-medium tracking-wider">
+                        <div className="relative flex justify-center text-xs uppercase bg-[#0a0a0a] px-4 text-gray-500 font-host-grotesk font-medium tracking-wider">
                             Or continue with
                         </div>
                     </div>
@@ -217,7 +218,7 @@ export default function SignUpPage() {
                         onClick={handleGoogleSignIn}
                         disabled={loading}
                         variant="outline"
-                        className="w-full h-12 sm:h-10 bg-white border border-[#E2E8F0] text-[#341E63] font-host-grotesk font-medium text-base sm:text-sm rounded-xl sm:rounded-[10px] shadow-sm hover:bg-gray-50 active:bg-gray-100 disabled:opacity-70 transition-all active:scale-[0.98]"
+                        className="w-full h-12 sm:h-10 bg-white border-0 text-black font-host-grotesk font-medium text-base sm:text-sm rounded-xl sm:rounded-[10px] hover:bg-gray-100 disabled:opacity-70 transition-all active:scale-[0.98]"
                     >
                         <svg className="mr-3 h-5 w-5 sm:h-4 sm:w-4" viewBox="0 0 24 24">
                             <path
@@ -241,9 +242,9 @@ export default function SignUpPage() {
                     </Button>
 
                     {/* Login Link */}
-                    <p className="text-center text-sm text-[#5E4F7E]">
+                    <p className="text-center text-sm text-gray-500">
                         Already have an account?{" "}
-                        <Link href="/login" className="text-[#EA580C] font-medium hover:underline">
+                        <Link href="/login" className="text-[#EA580C] font-medium hover:underline hover:text-[#EA580C]/80">
                             Log in
                         </Link>
                     </p>

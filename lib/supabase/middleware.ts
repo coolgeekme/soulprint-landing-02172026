@@ -59,8 +59,34 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // Protected routes check
+    // Protected routes check - moved up for PWA logic
     const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/questionnaire')
+
+    // PWA Detection
+    const url = request.nextUrl
+    const searchParams = url.searchParams
+    const source = searchParams.get('source')
+
+    // If launched as PWA (source=pwa) or previously detected as PWA
+    const isPwa = source === 'pwa' || request.cookies.get('app-is-pwa')?.value === 'true'
+
+    // Set PWA cookie if detected and not already set/updated
+    if (source === 'pwa') {
+        supabaseResponse.cookies.set('app-is-pwa', 'true', {
+            ...cookieOptions,
+            maxAge: 60 * 60 * 24 * 365, // 1 year
+        })
+    }
+
+    // PWA Logic: Detect unauthenticated state for PWA users
+    if (isPwa && !user && !isProtectedRoute && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/signup') && !request.nextUrl.pathname.startsWith('/auth') && !request.nextUrl.pathname.includes('.')) {
+        // If on the root/landing page in PWA mode and not logged in, go to login
+        if (request.nextUrl.pathname === '/') {
+            return NextResponse.redirect(new URL('/login', request.url))
+        }
+    }
+
+
 
     // Protected routes logic - keep it simple
     if (isProtectedRoute) {
