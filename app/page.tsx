@@ -1,4 +1,3 @@
-import { Navbar } from "@/components/sections/navbar"
 import { Hero } from "@/components/sections/hero"
 import RuixenBentoCards from "@/components/ui/ruixen-bento-cards"
 import { FeatureBlogSection } from "@/components/sections/feature-blog-section"
@@ -18,7 +17,6 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen">
-      <Navbar />
       <Hero />
       <RuixenBentoCards />
       <FeatureBlogSection />
