@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Play, Zap, Shield, Home, Cpu, Radio, User } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import Image from "next/image";
 
 export function Hero() {
     return (
@@ -23,9 +24,11 @@ export function Hero() {
                 {/* Brutalist Header - Logo + Login */}
                 <header className="relative flex items-center justify-between px-6 pt-8 pb-4 z-20">
                     <div className="inline-flex items-center gap-2">
-                        <img
+                        <Image
                             src="/images/soulprintlogomain.png"
                             alt="SoulPrint Logo"
+                            width={32}
+                            height={32}
                             className="w-8 h-8 object-contain"
                         />
                         <span className="text-white text-3xl font-normal font-koulen leading-9 tracking-tight">SOULPRINT</span>
@@ -53,7 +56,7 @@ export function Hero() {
 
                     {/* Subheading */}
                     <p className="text-white/80 text-sm sm:text-lg md:text-xl font-medium leading-relaxed max-w-[320px] sm:max-w-[480px] md:max-w-[600px]">
-                        The world's first high-fidelity digital identity platform. Capture your essence forever.
+                        The world&apos;s first high-fidelity digital identity platform. Capture your essence forever.
                     </p>
                 </motion.div>
 

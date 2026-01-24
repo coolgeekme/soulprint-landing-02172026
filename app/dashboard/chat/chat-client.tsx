@@ -1,21 +1,20 @@
 "use client"
 
-import { useState, useEffect, useRef, type CSSProperties } from "react"
+import { useState, useEffect, useRef, useCallback, type CSSProperties } from "react"
 import { Button } from "@/components/ui/button"
 import { listApiKeys } from "@/app/actions/api-keys"
 import { getChatHistory, saveChatMessage, clearChatHistory, getChatSessions, type ChatSession } from "@/app/actions/chat-history"
 import {
-    Send, Bot, User, Loader2, Trash2, Plus, MessageSquare,
-    ChevronLeft, ChevronRight, Paperclip,
-    AudioLines,
+    Bot, Loader2, Trash2, Plus, MessageSquare,
+    ChevronLeft, ChevronRight,
     ChevronsUpDown, X, Download, FileJson, FileText, FileCode,
-    Sparkles
+    Sparkles, User
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { getSoulprintTheme, type SoulprintTheme } from "@/lib/soulprint-theme"
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { ChatMessage } from "./chat-message"
+import { ChatInput } from "./chat-input"
 
 interface Message {
     role: "user" | "assistant"
@@ -87,7 +86,6 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
     const [sessions, setSessions] = useState<ChatSession[]>([])
     const [smartSuggestions, setSmartSuggestions] = useState<SuggestionCard[]>(defaultSuggestions)
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
-    const [input, setInput] = useState("")
     const [loading, setLoading] = useState(false)
     const [apiKey, setApiKey] = useState<string | null>(null)
     const [initializing, setInitializing] = useState(true)
@@ -100,8 +98,6 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
     const [coachingMode] = useState(false)
     const [coachingGoal] = useState<string | null>(null)
     const [soulprintTheme, setSoulprintTheme] = useState<SoulprintTheme>(() => getSoulprintTheme(null))
-    const welcomeInputRef = useRef<HTMLTextAreaElement>(null)
-    const chatInputRef = useRef<HTMLTextAreaElement>(null)
 
     // Initialize sidebar state based on screen width
     useEffect(() => {
@@ -256,24 +252,11 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
         }
     }, [messages, shouldAutoScroll])
 
-    // Auto-focus input when loading finishes
-    useEffect(() => {
-        if (!loading && !initializing) {
-            // Small delay to ensure DOM is ready
-            const timer = setTimeout(() => {
-                if (chatInputRef.current) {
-                    chatInputRef.current.focus()
-                }
-            }, 100)
-            return () => clearTimeout(timer)
-        }
-    }, [loading, initializing])
 
-    async function handleSend() {
-        if (!input.trim() || !apiKey) return
 
-        const userMsg = input
-        setInput("")
+    const handleSend = useCallback(async (userMsg: string) => {
+        if (!userMsg.trim() || !apiKey) return
+
         setShouldAutoScroll(true)
         setMessages(prev => [...prev, { role: "user", content: userMsg }])
         setLoading(true)
@@ -361,19 +344,8 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
             setMessages(prev => [...prev, { role: "assistant", content: "Error: Failed to reply." }])
         } finally {
             setLoading(false)
-            // Auto-focus the input so user can type immediately without clicking
-            // Use requestAnimationFrame + timeout for more reliable focus after render
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    if (chatInputRef.current) {
-                        chatInputRef.current.focus()
-                    } else if (welcomeInputRef.current) {
-                        welcomeInputRef.current.focus()
-                    }
-                }, 50)
-            })
         }
-    }
+    }, [apiKey, currentSessionId, selectedSoulprintId, coachingMode, coachingGoal, messages])
 
     async function handleClearHistory() {
         if (confirm("Are you sure? This will delete messages in this session.")) {
@@ -391,20 +363,8 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
     }
 
     function handleSuggestionClick(prompt: string) {
-        setInput(prompt + " ")
+        handleSend(prompt)
     }
-
-    function autoResizeTextarea(el: HTMLTextAreaElement | null) {
-        if (!el) return
-        el.style.height = "auto"
-        const next = Math.min(el.scrollHeight, 220)
-        el.style.height = `${next}px`
-    }
-
-    useEffect(() => {
-        autoResizeTextarea(welcomeInputRef.current)
-        autoResizeTextarea(chatInputRef.current)
-    }, [input])
 
     // Export functions
     function exportAsJSON() {
@@ -781,45 +741,11 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                             {/* Input Card - Larger */}
                             <div className="w-full mb-8 sm:mb-10">
                                 <div className="border border-stone-300 rounded-2xl p-5 sm:p-6 bg-white shadow-sm">
-                                    <textarea
-                                        ref={welcomeInputRef}
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" && !e.shiftKey && !loading) {
-                                                e.preventDefault()
-                                                handleSend()
-                                            }
-                                        }}
-                                        onInput={(e) => autoResizeTextarea(e.currentTarget)}
+                                    <ChatInput
+                                        onSend={handleSend}
+                                        disabled={loading}
                                         placeholder="Ask me anything..."
-                                        className="w-full bg-transparent text-zinc-900 placeholder:text-neutral-400 text-lg sm:text-xl focus:outline-none min-h-[80px] resize-none leading-relaxed overflow-hidden"
-                                        rows={3}
                                     />
-
-                                    {/* Action Buttons Row */}
-                                    <div className="flex items-center gap-3 mt-5 sm:mt-6">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => alert("File attachments coming soon!")}
-                                            className="h-12 w-12 text-neutral-500 hover:text-neutral-700 hover:bg-zinc-100 rounded-lg"
-                                            title="Attach file (Coming Soon)"
-                                        >
-                                            <Paperclip className="h-6 w-6" />
-                                        </Button>
-
-                                        <div className="flex-1" />
-
-                                        <Button
-                                            size="icon"
-                                            onClick={handleSend}
-                                            disabled={loading || !input.trim()}
-                                            className="h-12 w-12 rounded-xl bg-[color:var(--sp-primary)] hover:bg-[color:var(--sp-primary-dark)]"
-                                        >
-                                            <Send className="h-6 w-6" />
-                                        </Button>
-                                    </div>
                                 </div>
                             </div>
 
@@ -929,60 +855,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                         {/* Messages Area */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
                             {messages.map((msg, i) => (
-                                <div key={i} className={cn("flex gap-3", msg.role === "user" ? "justify-end" : "justify-start")}>
-                                    {msg.role === "assistant" && (
-                                        <div
-                                            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
-                                            style={{ backgroundColor: "var(--sp-accent)", color: "var(--sp-primary)" }}
-                                        >
-                                            <Bot className="h-4 w-4" />
-                                        </div>
-                                    )}
-                                    <div className={cn(
-                                        "max-w-[85%] rounded-xl p-4 text-sm leading-relaxed",
-                                        msg.role === "user"
-                                            ? "bg-[color:var(--sp-primary)] text-white"
-                                            : "bg-white border border-zinc-200 text-zinc-900"
-                                    )}>
-                                        {msg.role === "assistant" ? (
-                                            <div className="prose prose-sm prose-zinc max-w-none">
-                                                <ReactMarkdown
-                                                    remarkPlugins={[remarkGfm]}
-                                                    components={{
-                                                        ul: ({ children }) => <ul className="list-disc pl-4 space-y-1">{children}</ul>,
-                                                        ol: ({ children }) => <ol className="list-decimal pl-4 space-y-1">{children}</ol>,
-                                                        h2: ({ children }) => <h2 className="text-base font-bold text-zinc-900 mt-4 mb-2">{children}</h2>,
-                                                        h3: ({ children }) => <h3 className="text-sm font-semibold text-zinc-900 mt-3 mb-1">{children}</h3>,
-                                                        strong: ({ children }) => <span className="font-bold text-[color:var(--sp-primary)]">{children}</span>,
-                                                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                                                        a: ({ href, children }) => (
-                                                            <a 
-                                                                href={href} 
-                                                                target="_blank" 
-                                                                rel="noopener noreferrer"
-                                                                className="text-[color:var(--sp-primary)] underline hover:opacity-80"
-                                                            >
-                                                                {children}
-                                                            </a>
-                                                        )
-                                                    }}
-                                                >
-                                                    {msg.content}
-                                                </ReactMarkdown>
-                                            </div>
-                                        ) : (
-                                            msg.content
-                                        )}
-                                    </div>
-                                    {msg.role === "user" && (
-                                        <div
-                                            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white"
-                                            style={{ backgroundColor: "var(--sp-primary)" }}
-                                        >
-                                            <User className="h-4 w-4" />
-                                        </div>
-                                    )}
-                                </div>
+                                <ChatMessage key={i} message={msg} />
                             ))}
                             {loading && (
                                 <div className="flex gap-3">
@@ -1005,50 +878,11 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                         {/* Input Area (Active Chat) */}
                         <div className="border-t border-zinc-200 p-3 sm:p-4 bg-white">
                             <div className="max-w-4xl mx-auto">
-                                <div className="flex items-center gap-2 border border-zinc-300 rounded-xl p-2 sm:p-3 bg-zinc-50">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => alert("File attachments coming soon!")}
-                                        className="h-10 w-10 sm:h-8 sm:w-8 text-neutral-500 hover:text-neutral-700 shrink-0"
-                                        title="Attach file (Coming Soon)"
-                                    >
-                                        <Paperclip className="h-5 w-5 sm:h-4 sm:w-4" />
-                                    </Button>
-                                    <textarea
-                                        ref={chatInputRef}
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" && !e.shiftKey && !loading) {
-                                                e.preventDefault()
-                                                handleSend()
-                                            }
-                                        }}
-                                        onInput={(e) => autoResizeTextarea(e.currentTarget)}
-                                        placeholder="Type a message..."
-                                        className="flex-1 bg-transparent text-zinc-900 placeholder:text-zinc-400 text-sm focus:outline-none min-h-[56px] sm:min-h-[48px] resize-none leading-relaxed overflow-hidden"
-                                        rows={3}
-                                        autoFocus
-                                    />
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => alert("Voice input coming soon!")}
-                                        className="h-10 w-10 sm:h-8 sm:w-8 text-neutral-500 hover:text-neutral-700 shrink-0"
-                                        title="Voice input (Coming Soon)"
-                                    >
-                                        <AudioLines className="h-5 w-5 sm:h-4 sm:w-4" />
-                                    </Button>
-                                    <Button
-                                        size="icon"
-                                        onClick={handleSend}
-                                        disabled={loading || !input.trim()}
-                                        className="bg-[color:var(--sp-primary)] hover:bg-[color:var(--sp-primary-dark)] h-10 w-10 sm:h-8 sm:w-8 rounded-lg shrink-0"
-                                    >
-                                        <Send className="h-5 w-5 sm:h-4 sm:w-4" />
-                                    </Button>
-                                </div>
+                                <ChatInput
+                                    onSend={handleSend}
+                                    disabled={loading}
+                                    placeholder="Type a message..."
+                                />
                             </div>
                         </div>
                     </>

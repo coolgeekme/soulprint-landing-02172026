@@ -4,6 +4,11 @@ import { useState, useEffect } from "react";
 import { Share, PlusSquare, Download, Check, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
 interface PWAGateProps {
   onContinue: () => void;
   userEmail?: string;
@@ -14,19 +19,19 @@ export function PWAGate({ onContinue, userEmail, userName }: PWAGateProps) {
   const [isStandalone, setIsStandalone] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installing, setInstalling] = useState(false);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     // Check if running as PWA
-    const standalone = window.matchMedia("(display-mode: standalone)").matches || 
-                       (navigator as any).standalone === true;
+    const standalone = window.matchMedia("(display-mode: standalone)").matches ||
+                       (navigator as Navigator & { standalone?: boolean }).standalone === true;
     setIsStandalone(standalone);
 
     // Detect platform
     const userAgent = navigator.userAgent.toLowerCase();
-    const ios = /iphone|ipad|ipod/.test(userAgent) && !(window as any).MSStream;
+    const ios = /iphone|ipad|ipod/.test(userAgent) && !((window as Window & { MSStream?: unknown }).MSStream);
     const android = /android/.test(userAgent);
     
     setIsIOS(ios);
@@ -42,7 +47,7 @@ export function PWAGate({ onContinue, userEmail, userName }: PWAGateProps) {
     // Listen for install prompt (Android/Desktop Chrome)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -83,8 +88,7 @@ export function PWAGate({ onContinue, userEmail, userName }: PWAGateProps) {
     setDeferredPrompt(null);
   };
 
-  // Skip gate on desktop for now (or show download instructions)
-  const isDesktop = !isIOS && !isAndroid;
+  // Desktop is handled in the else branch below
 
   if (checking) {
     return (
@@ -247,7 +251,7 @@ export function PWAGate({ onContinue, userEmail, userName }: PWAGateProps) {
                   <div>
                     <p className="text-white text-sm font-medium">Add to Home screen</p>
                     <p className="text-zinc-500 text-xs mt-1">
-                      Or "Install app" if available
+                      Or &quot;Install app&quot; if available
                     </p>
                   </div>
                 </div>
@@ -277,8 +281,8 @@ export function PWAGate({ onContinue, userEmail, userName }: PWAGateProps) {
         {(isIOS || isAndroid) && (
           <Button
             onClick={() => {
-              const standalone = window.matchMedia("(display-mode: standalone)").matches || 
-                                 (navigator as any).standalone === true;
+              const standalone = window.matchMedia("(display-mode: standalone)").matches ||
+                                 (navigator as Navigator & { standalone?: boolean }).standalone === true;
               if (standalone) {
                 onContinue();
               } else {
@@ -289,7 +293,7 @@ export function PWAGate({ onContinue, userEmail, userName }: PWAGateProps) {
             className="w-full mt-4 text-zinc-400 hover:text-white"
           >
             <Check className="mr-2 h-4 w-4" />
-            I've installed it
+            I&apos;ve installed it
           </Button>
         )}
       </div>

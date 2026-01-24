@@ -70,7 +70,7 @@ interface OnboardingTourProps {
   isFirstTime?: boolean;
 }
 
-export function OnboardingTour({ onComplete, isFirstTime = true }: OnboardingTourProps) {
+export function OnboardingTour({ onComplete }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(-1); // -1 = intro screen
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [isVisible, setIsVisible] = useState(true);
@@ -152,12 +152,12 @@ export function OnboardingTour({ onComplete, isFirstTime = true }: OnboardingTou
             WELCOME TO SOULPRINT
           </h2>
           <p className="text-zinc-400 text-center mb-8">
-            Let's take a quick tour to show you around your new AI identity dashboard.
+            Let&apos;s take a quick tour to show you around your new AI identity dashboard.
           </p>
 
           {/* What you'll learn */}
           <div className="mb-8 p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-            <p className="text-zinc-300 text-sm font-medium mb-3">In this tour, you'll learn:</p>
+            <p className="text-zinc-300 text-sm font-medium mb-3">In this tour, you&apos;ll learn:</p>
             <ul className="space-y-2 text-zinc-400 text-sm">
               <li className="flex items-center gap-2">
                 <span className="text-green-400">✓</span>

@@ -124,9 +124,9 @@ export default function EnterPage() {
             <div className="flex flex-1 flex-col justify-center items-center px-6 py-12 sm:px-12 lg:p-[32px] relative w-full overflow-y-auto">
                 {/* Mobile Logo */}
                 <div className="lg:hidden mb-8 flex justify-center">
-                    <div className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-lg border-2 border-[#EA580C]/20">
+                    <div className="relative w-28 h-28 rounded-2xl overflow-hidden shadow-lg border-2 border-[#EA580C]/20">
                         <Image
-                            src="/images/Soulprintengine-logo.png"
+                            src="/images/soulprintlogomain.png"
                             alt="Logo"
                             fill
                             className="object-cover"
@@ -256,8 +256,8 @@ export default function EnterPage() {
                                         className="sr-only"
                                     />
                                     <div className={`w-5 h-5 rounded border-2 transition-all flex items-center justify-center ${ndaOptIn
-                                            ? "bg-[#EA580C] border-[#EA580C]"
-                                            : "border-zinc-600 group-hover:border-zinc-400"
+                                        ? "bg-[#EA580C] border-[#EA580C]"
+                                        : "border-zinc-600 group-hover:border-zinc-400"
                                         }`}>
                                         {ndaOptIn && (
                                             <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>

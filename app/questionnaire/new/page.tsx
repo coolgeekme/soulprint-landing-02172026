@@ -159,18 +159,24 @@ export default function NewQuestionnairePage() {
     }
 
     // Handle voice recording completion
-    const handleVoiceComplete = (result: { transcript: string; emotionalSignature: unknown }) => {
-        const newAnswers = {
-            ...answers,
-            [currentQuestion.id]: {
-                transcript: result.transcript,
-                emotionalSignature: result.emotionalSignature
+    const handleVoiceComplete = useCallback((result: { transcript: string; emotionalSignature: unknown }) => {
+        setAnswers(prev => {
+            const newAnswers = {
+                ...prev,
+                [currentQuestion.id]: {
+                    transcript: result.transcript,
+                    emotionalSignature: result.emotionalSignature
+                }
             }
-        }
-        setAnswers(newAnswers)
+            localStorage.setItem("soulprint_answers", JSON.stringify(newAnswers))
+            return newAnswers
+        })
         setVoiceRecorded(true)
-        localStorage.setItem("soulprint_answers", JSON.stringify(newAnswers))
-    }
+    }, [currentQuestion?.id])
+
+    const handleVoiceError = useCallback((err: string) => {
+        console.error(err)
+    }, [])
 
     const handlePrevious = () => {
         if (currentQuestionIndex > 0) {
@@ -437,7 +443,7 @@ export default function NewQuestionnairePage() {
                                         </p>
                                         <VoiceRecorderV3
                                             onAnalysisComplete={handleVoiceComplete}
-                                            onError={(err) => console.error(err)}
+                                            onError={handleVoiceError}
                                             minDuration={0}
                                             maxDuration={currentQuestion.maxDuration || 90}
                                             questionText={currentQuestion.question}

@@ -10,12 +10,12 @@ export function IOSInstallPrompt() {
 
   useEffect(() => {
     // Check if iOS
-    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !((window as Window & { MSStream?: unknown }).MSStream);
     setIsIOS(ios);
 
     // Check if already installed (running in standalone mode)
-    const standalone = window.matchMedia("(display-mode: standalone)").matches || 
-                       (navigator as any).standalone === true;
+    const standalone = window.matchMedia("(display-mode: standalone)").matches ||
+                       (navigator as Navigator & { standalone?: boolean }).standalone === true;
     setIsStandalone(standalone);
 
     // Check if user has dismissed before

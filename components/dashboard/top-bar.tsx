@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { SoulPrintSelector } from "@/components/dashboard/soulprint-selector"
 import { LayoutGrid, LogOut } from "lucide-react"
@@ -29,9 +30,11 @@ export function TopBar({ onMenuClick }: TopBarProps) {
                 {/* Left side - Logo + branding */}
                 <div className="flex items-center gap-2">
                     {/* SoulPrint Logo */}
-                    <img
+                    <Image
                         src="/images/soulprintlogomain.png"
                         alt="SoulPrint"
+                        width={28}
+                        height={28}
                         className="h-7 w-7 object-contain"
                     />
 
