@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { signUp, signInWithGoogle } from "@/app/actions/auth";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,7 +10,7 @@ import { Loader2, UserCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { validateReferralCode } from "@/app/actions/referral";
 
-export default function SignUpPage() {
+function SignUpContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [name, setName] = useState("");
@@ -282,5 +282,17 @@ export default function SignUpPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function SignUpPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#0f0f0f] to-[#1a1a2e]">
+                <Loader2 className="h-8 w-8 animate-spin text-[#EA580C]" />
+            </div>
+        }>
+            <SignUpContent />
+        </Suspense>
     );
 }

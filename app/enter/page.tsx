@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -15,7 +15,7 @@ const ACCESS_CODE = "!Arche!";
 
 type Mode = "access" | "waitlist" | "success";
 
-export default function EnterPage() {
+function EnterContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [mode, setMode] = useState<Mode>("access");
@@ -357,5 +357,17 @@ export default function EnterPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function EnterPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen bg-[#0A0A0A]">
+                <Loader2 className="h-8 w-8 animate-spin text-[#EA580C]" />
+            </div>
+        }>
+            <EnterContent />
+        </Suspense>
     );
 }
