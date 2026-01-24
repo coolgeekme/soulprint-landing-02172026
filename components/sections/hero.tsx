@@ -14,7 +14,7 @@ export function Hero() {
                 {/* Full-bleed Background Image with Zoom */}
                 <div
                     className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-110 origin-center"
-                    style={{ backgroundImage: "url('/images/hero-bg-mobile.png')" }}
+                    style={{ backgroundImage: "url('/images/mobile-hero-cosmic.png')" }}
                 />
 
                 {/* Gradient overlays for text readability */}
