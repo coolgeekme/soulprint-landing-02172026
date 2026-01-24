@@ -22,7 +22,7 @@ export function Hero() {
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent" />
 
                 {/* Brutalist Header - Logo + Login */}
-                <header className="relative flex items-center justify-between px-6 pt-10 pb-4 z-20">
+                <header className="relative flex items-center justify-between px-6 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 z-20">
                     <div className="inline-flex items-center gap-2">
                         <Image
                             src="/images/soulprintlogomain.png"
