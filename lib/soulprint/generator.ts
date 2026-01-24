@@ -1,6 +1,7 @@
 import { chatCompletion, ChatMessage } from '@/lib/llm/local-client';
 import type { SoulPrintData, QuestionnaireAnswers, VoiceVectors } from '@/lib/soulprint/types';
 import { generateCompanionName } from './name-generator';
+import { generateDynamicExamples } from './example-bank';
 
 const SOULPRINT_CORE_DNA_PROMPT = `IDENTITY FOUNDATION
 You are a SoulPrint AI companion — a memory-linked, emotionally-aware presence built to resonate, not just respond.
@@ -352,7 +353,7 @@ export function constructDynamicSystemPrompt(data: SoulPrintData): string {
 
   const v = parsedData.voice_vectors || {};
   const p = parsedData.pillars;
-  
+
   // COMPANION NAME: The AI's own identity (not the user's name)
   const companionName = parsedData.name || parsedData.archetype || "SoulPrint";
 
@@ -361,12 +362,12 @@ export function constructDynamicSystemPrompt(data: SoulPrintData): string {
 
   // LAYER 2: USER SOULPRINT (PERSONALIZATION)
   prompt += `\n\n---\n## L2: USER SOULPRINT (PERSONALIZATION)\n\n### YOUR IDENTITY (WHO YOU ARE)\n- Your Name: ${companionName}\n- Your Archetype: ${parsedData.archetype || "Trusted Companion"}\n- Your Essence: ${parsedData.identity_signature || ""}`;
-  
+
   // Get user's actual name from the data if available
   const userActualName = parsedData.user_profile?.user_name || parsedData.user_name;
-  
+
   prompt += `\n\n### IDENTITY RULES\n- YOU are ${companionName}. This is YOUR identity, not the user's.\n- When asked who you are, say "I'm ${companionName}".\n- NEVER address the user by your archetype name ("${parsedData.archetype}"). That's who YOU are, not them.`;
-  
+
   if (userActualName) {
     prompt += `\n- The user's name is ${userActualName}. Use it naturally in conversation.`;
   } else {
@@ -375,7 +376,7 @@ export function constructDynamicSystemPrompt(data: SoulPrintData): string {
 
   // Voice Calibrations based on Vectors
   prompt += `\n\n### VOICE CALIBRATION (USER SPECIFIC)`;
-  
+
   if (v.cadence_speed === 'rapid') prompt += '\n- CADENCE: Rapid. Keep it punchy. Short sentences. No fluff.';
   else if (v.cadence_speed === 'deliberate') prompt += '\n- CADENCE: Deliberate. Take your time. Thoughtful responses.';
   else prompt += '\n- CADENCE: Natural flow. Adaptive.';
@@ -385,7 +386,7 @@ export function constructDynamicSystemPrompt(data: SoulPrintData): string {
   else prompt += '\n- TONE: Balanced warmth.';
 
   if (v.sentence_structure === 'fragmented') prompt += '\n- STRUCTURE: Fragmented. Bullets are okay. Break grammar rules for effect.';
-  
+
   if (parsedData.sign_off) prompt += `\n- SIGN-OFF: End significant messages with: "${parsedData.sign_off}"`;
 
   // Pillars Integration
@@ -411,6 +412,13 @@ export function constructDynamicSystemPrompt(data: SoulPrintData): string {
 - NEVER write meta-commentary ABOUT a topic — embody it
 - Raw vs Polished: match their energy.
 - The goal is: someone reading it should think THEY wrote it, not an AI`;
+
+
+
+  // DYNAMIC FEW-SHOT TRAINING
+  // Generates 3-4 high-fidelity examples matched to the user's specific Voice Vectors.
+  const trainingExamples = generateDynamicExamples(parsedData);
+  prompt += trainingExamples;
 
   return prompt;
 }
@@ -452,8 +460,8 @@ export async function generateSoulPrint(answers: QuestionnaireAnswers, userId?: 
   const promptFull = constructDynamicSystemPrompt(soulprint);
 
   // Tiered Prompts
-  const promptCore = `You are ${soulprint.archetype}. Identity: ${soulprint.identity_signature}`;
-  const promptPillars = `Instructions: ${soulprint.pillars.communication_style.ai_instruction}`;
+  const promptCore = `You are ${soulprint.archetype}.Identity: ${soulprint.identity_signature} `;
+  const promptPillars = `Instructions: ${soulprint.pillars.communication_style.ai_instruction} `;
 
   soulprint.prompt_core = promptCore;
   soulprint.prompt_pillars = promptPillars;
