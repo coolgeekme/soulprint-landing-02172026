@@ -2,7 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { SoulPrintData } from './types';
 import { ChatMessage } from '@/lib/llm/local-client';
 import { constructDynamicSystemPrompt } from './generator';
-import { inferContext, retrieveContext } from './memory/retrieval';
+import { inferContext, retrieveUnifiedContext, MemoryResult } from './memory/retrieval';
 import { getDisplayName } from './name-generator';
 import { searchWeb, formatResultsForLLM } from '@/lib/tavily';
 
@@ -64,15 +64,18 @@ export class SoulEngine {
             // A. Infer Context
             const contextTopic = await inferContext(recentMessages);
 
-            // B. Retrieve Memories (Vector Search)
+            // B. Retrieve Memories (Vector Search - UNIFIED: native + imported)
             // We combine the topic with the actual message to ground the search
             const searchQuery = `${contextTopic}: ${content}`;
-            const memories = await retrieveContext(this.supabase, this.userId, searchQuery);
+            const memories = await retrieveUnifiedContext(this.supabase, this.userId, searchQuery, 10);
 
             // 4. Inject Memory into Prompt
             if (memories.length > 0) {
                 let memoryBlock = `\n### L3: ACTIVE MEMORY LAYER (Context: "${contextTopic}")\n`;
-                memories.forEach((m) => memoryBlock += `[REL_MEMORY] "${m}"\n`);
+                memories.forEach((m: MemoryResult) => {
+                    const sourceTag = m.source === 'native' ? 'MEMORY' : `${m.source.toUpperCase()}_MEMORY`;
+                    memoryBlock += `[${sourceTag}] "${m.content}"\n`;
+                });
                 
                 // Replace placeholder if it exists (from generator.ts), otherwise append
                 if (prompt.includes('### L3: ACTIVE MEMORY LAYER (Placeholder)')) {

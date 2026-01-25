@@ -10,6 +10,13 @@ const REGION = process.env.AWS_REGION || "us-east-1";
 
 let _client: BedrockRuntimeClient | null = null;
 
+/**
+ * Sleep helper for retry delays
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function getClient() {
   if (!_client) {
     _client = new BedrockRuntimeClient({
@@ -29,10 +36,15 @@ export interface ChatMessage {
   content: string;
 }
 
-export async function invokeBedrockModel(messages: ChatMessage[]) {
+export async function invokeBedrockModel(
+  messages: ChatMessage[],
+  options?: { maxRetries?: number; initialDelay?: number }
+): Promise<string> {
   // Default to Claude 3.5 Haiku (Fast & high quality)
   // Ensure you requested access to this model in AWS Bedrock Console
   const modelId = process.env.BEDROCK_MODEL_ID || "us.anthropic.claude-3-5-haiku-20241022-v1:0";
+  const maxRetries = options?.maxRetries ?? 5;
+  const initialDelay = options?.initialDelay ?? 1000;
 
   // 1. Separate System Prompt
   const systemPrompts: SystemContentBlock[] = messages
@@ -47,40 +59,61 @@ export async function invokeBedrockModel(messages: ChatMessage[]) {
       content: [{ text: m.content }]
     }));
 
-  try {
-    const command = new ConverseCommand({
-      modelId,
-      messages: conversation,
-      system: systemPrompts.length > 0 ? systemPrompts : undefined,
-      inferenceConfig: {
-        maxTokens: 512,
-        temperature: 0.7,
+  // Retry loop for throttling
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const command = new ConverseCommand({
+        modelId,
+        messages: conversation,
+        system: systemPrompts.length > 0 ? systemPrompts : undefined,
+        inferenceConfig: {
+          maxTokens: 2048,
+          temperature: 0.7,
+        }
+      });
+
+      const response = await getClient().send(command);
+
+      // Parse Response
+      if (response.output?.message?.content?.[0]?.text) {
+        return response.output.message.content[0].text;
       }
-    });
 
-    const response = await getClient().send(command);
+      return "";
 
-    // Parse Response
-    if (response.output?.message?.content?.[0]?.text) {
-      return response.output.message.content[0].text;
+    } catch (error: unknown) {
+      const isThrottling = error instanceof Error &&
+        (error.name === 'ThrottlingException' ||
+         error.message.includes('Too many requests') ||
+         error.message.includes('throttl'));
+
+      if (isThrottling && attempt < maxRetries) {
+        const delay = initialDelay * Math.pow(2, attempt);
+        console.log(`[Bedrock Chat] Throttled, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await sleep(delay);
+        continue;
+      }
+
+      console.error("AWS Bedrock Error:", error);
+      throw error;
     }
-    
-    return "";
-
-  } catch (error) {
-    console.error("AWS Bedrock Error:", error);
-    throw error;
   }
+
+  return "";
 }
 
 /**
  * Stream responses from AWS Bedrock using ConverseStreamCommand.
  * Yields chunks of generated text as they arrive.
+ * Includes retry logic with exponential backoff for throttling.
  */
 export async function* invokeBedrockModelStream(
-  messages: ChatMessage[]
+  messages: ChatMessage[],
+  options?: { maxRetries?: number; initialDelay?: number }
 ): AsyncGenerator<string, void, unknown> {
   const modelId = process.env.BEDROCK_MODEL_ID || "us.anthropic.claude-3-5-haiku-20241022-v1:0";
+  const maxRetries = options?.maxRetries ?? 5;
+  const initialDelay = options?.initialDelay ?? 1000;
 
   // 1. Separate System Prompt
   const systemPrompts: SystemContentBlock[] = messages
@@ -95,33 +128,52 @@ export async function* invokeBedrockModelStream(
       content: [{ text: m.content }]
     }));
 
-  try {
-    const command = new ConverseStreamCommand({
-      modelId,
-      messages: conversation,
-      system: systemPrompts.length > 0 ? systemPrompts : undefined,
-      inferenceConfig: {
-        maxTokens: 512,
-        temperature: 0.7,
+  // Retry loop for throttling
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const command = new ConverseStreamCommand({
+        modelId,
+        messages: conversation,
+        system: systemPrompts.length > 0 ? systemPrompts : undefined,
+        inferenceConfig: {
+          maxTokens: 2048,
+          temperature: 0.7,
+        }
+      });
+
+      const response = await getClient().send(command);
+
+      if (!response.stream) {
+        throw new Error("No stream returned from Bedrock");
       }
-    });
 
-    const response = await getClient().send(command);
-
-    if (!response.stream) {
-      throw new Error("No stream returned from Bedrock");
-    }
-
-    // Process the stream
-    for await (const event of response.stream) {
-      // contentBlockDelta contains the streaming text chunks
-      if (event.contentBlockDelta?.delta?.text) {
-        yield event.contentBlockDelta.delta.text;
+      // Process the stream
+      for await (const event of response.stream) {
+        // contentBlockDelta contains the streaming text chunks
+        if (event.contentBlockDelta?.delta?.text) {
+          yield event.contentBlockDelta.delta.text;
+        }
       }
-    }
 
-  } catch (error) {
-    console.error("AWS Bedrock Streaming Error:", error);
-    throw error;
+      // Success - exit the retry loop
+      return;
+
+    } catch (error: unknown) {
+      const isThrottling = error instanceof Error &&
+        (error.name === 'ThrottlingException' ||
+         error.message.includes('Too many requests') ||
+         error.message.includes('throttl'));
+
+      if (isThrottling && attempt < maxRetries) {
+        // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+        const delay = initialDelay * Math.pow(2, attempt);
+        console.log(`[Bedrock Chat] Throttled, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await sleep(delay);
+        continue;
+      }
+
+      console.error("AWS Bedrock Streaming Error:", error);
+      throw error;
+    }
   }
 }

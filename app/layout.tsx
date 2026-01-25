@@ -2,8 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Koulen, Geist, Host_Grotesk, Cinzel, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { InstallPrompt } from "@/components/global/install-prompt";
 import { cn } from "@/lib/utils";
+import { InstallPrompt } from "@/components/global/install-prompt";
+import { ToastProvider } from "@/components/ui/toast";
+import { ErrorProvider, ErrorBoundary } from "@/contexts/error-context";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const koulen = Koulen({
@@ -71,10 +73,6 @@ export const metadata: Metadata = {
         media: "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
       },
       {
-        url: "/splash/apple-splash-1125-2436.png",
-        media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
-      },
-      {
         url: "/splash/apple-splash-1242-2688.png",
         media: "(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
       },
@@ -98,18 +96,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.png", type: "image/png" },
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", type: "image/x-icon" },
-      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
     ],
-  },
-  formatDetection: {
-    telephone: false,
   },
 };
 
@@ -129,15 +121,19 @@ export default function RootLayout({
         cinzel.variable,
         jetbrainsMono.variable
       )}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          forcedTheme="dark"
-          disableTransitionOnChange
-        >
-          {children}
-          <InstallPrompt />
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ToastProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              forcedTheme="dark"
+              disableTransitionOnChange
+            >
+              {children}
+              <InstallPrompt />
+            </ThemeProvider>
+          </ToastProvider>
+        </ErrorBoundary>
         <script
           dangerouslySetInnerHTML={{
             __html: `

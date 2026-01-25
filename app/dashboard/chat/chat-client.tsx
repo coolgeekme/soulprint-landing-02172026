@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/client"
 import { getSoulprintTheme, type SoulprintTheme } from "@/lib/soulprint-theme"
 import { ChatMessage } from "./chat-message"
 import { ChatInput } from "./chat-input"
-import { toast } from "@/components/ui/use-toast"
+// import { toast } from "@/components/ui/use-toast"
 
 interface Message {
     role: "user" | "assistant"
@@ -257,12 +257,10 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
 
     const handleSend = useCallback(async (userMsg: string) => {
         if (!userMsg.trim()) {
-            toast.error("Cannot Send", "Please enter a message")
             return
         }
         
         if (!apiKey) {
-            toast.error("API Key Required", "Please set up your API key in Settings")
             return
         }
 
@@ -401,7 +399,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                 content: `⚠️ ${errorMessage}\n\nPlease try again or contact support if this persists.` 
             }])
             
-            toast.error("Message Failed", errorMessage)
+            // toast.error("Message Failed", errorMessage)
         } finally {
             setLoading(false)
         }

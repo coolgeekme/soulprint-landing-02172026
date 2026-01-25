@@ -125,10 +125,11 @@ export function VoiceRecorderV3({
     
     setAudioLevel(normalizedLevel);
     
-    if (isRecording) {
+    // Check analyzerRef instead of isRecording to avoid race conditions
+    if (analyzerRef.current) {
       animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
     }
-  }, [isRecording]);
+  }, []);
   
   // Start recording
   const startRecording = async () => {
@@ -162,6 +163,17 @@ export function VoiceRecorderV3({
       };
       
       mediaRecorderRef.current.onstop = () => {
+        // Ensure cleanup happens here too
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = 0;
+        }
+        
         const blob = new Blob(chunksRef.current, { type: mimeType });
         setAudioBlob(blob);
         
@@ -183,12 +195,18 @@ export function VoiceRecorderV3({
       // Start visualization
       updateAudioLevel();
       
+      console.log('Start recording completed:', { 
+        mediaRecorderState: mediaRecorderRef.current?.state,
+        reactRecordingState: isRecording
+      });
+      
       // Start timer
       timerRef.current = setInterval(() => {
         setRecordingTime(t => {
           if (t >= maxDuration) {
-            stopRecording();
-            return t;
+            // Use setTimeout to avoid race conditions
+            setTimeout(() => stopRecording(), 0);
+            return maxDuration;
           }
           return t + 1;
         });
@@ -201,22 +219,35 @@ export function VoiceRecorderV3({
   };
   
   // Stop recording
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+  const stopRecording = useCallback(() => {
+    if (!mediaRecorderRef.current) return;
+    
+    // Check actual MediaRecorder state, not just React state
+    if (mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      setAudioLevel(0);
-      
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
     }
-  };
+    
+    // Always update React state for consistency
+    setIsRecording(false);
+    setAudioLevel(0);
+    
+    // Comprehensive cleanup
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = 0;
+    }
+    
+    console.log('Stop recording called:', { 
+      mediaRecorderState: mediaRecorderRef.current?.state, 
+      reactRecordingState: isRecording,
+      willStop: mediaRecorderRef.current?.state === 'recording'
+    });
+  }, [isRecording]);
   
   // Analyze recording
   const analyzeRecording = async () => {
@@ -300,7 +331,7 @@ export function VoiceRecorderV3({
             {/* Main button */}
             <button
               onClick={isRecording ? stopRecording : startRecording}
-              disabled={isAnalyzing || !!analysisResult}
+              disabled={isAnalyzing || (!!analysisResult && !isRecording)}
               className={`
                 relative w-14 h-14 rounded-full flex items-center justify-center transition-all
                 ${isRecording 
@@ -434,7 +465,7 @@ export function VoiceRecorderV3({
           {/* Main button */}
           <button
             onClick={isRecording ? stopRecording : startRecording}
-            disabled={isAnalyzing}
+            disabled={isAnalyzing || (!!analysisResult && !isRecording)}
             className={`
               relative w-20 h-20 rounded-full flex items-center justify-center transition-all
               ${isRecording

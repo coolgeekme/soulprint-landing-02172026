@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Shield, Bot, Cpu, Brain, LogOut, Trash2 } from "lucide-react"
+import { Shield, Bot, Cpu, Brain, LogOut, Trash2, Upload } from "lucide-react"
 
 interface SettingsCard {
     id: string
@@ -87,6 +87,14 @@ export default function SettingsPage() {
             isActive: true
         },
         {
+            id: "import",
+            title: "Import Chat History",
+            icon: <Upload className="w-5 h-5" />,
+            buttonText: "Import",
+            buttonVariant: "default",
+            isActive: true
+        },
+        {
             id: "storage",
             title: "Storage and Privacy",
             icon: <Shield className="w-5 h-5" />,
@@ -124,6 +132,9 @@ export default function SettingsPage() {
                 } else {
                     router.push('/questionnaire')
                 }
+                break
+            case "import":
+                router.push('/dashboard/import')
                 break
             default:
                 // Coming soon features - disabled buttons won't trigger this

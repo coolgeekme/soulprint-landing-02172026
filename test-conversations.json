@@ -1,0 +1,179 @@
+[
+  {
+    "id": "test-conv-1",
+    "title": "Startup Ideas Discussion",
+    "create_time": 1704067200,
+    "update_time": 1704153600,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": ["msg-1"]
+      },
+      "msg-1": {
+        "id": "msg-1",
+        "message": {
+          "id": "msg-1",
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["I've been thinking about building a SaaS product. My background is in marketing but I want to learn to code. What do you think about starting with a simple tool that helps small businesses manage their social media?"] },
+          "create_time": 1704067200
+        },
+        "parent": "root",
+        "children": ["msg-2"]
+      },
+      "msg-2": {
+        "id": "msg-2",
+        "message": {
+          "id": "msg-2",
+          "author": { "role": "assistant" },
+          "content": { "content_type": "text", "parts": ["That's a great idea! Starting with something you understand (marketing/social media) while learning to code is smart. A social media management tool for small businesses has clear value. What specific pain points have you noticed that you'd want to solve?"] },
+          "create_time": 1704067260
+        },
+        "parent": "msg-1",
+        "children": ["msg-3"]
+      },
+      "msg-3": {
+        "id": "msg-3",
+        "message": {
+          "id": "msg-3",
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["The main thing I see is that small business owners don't have time to post consistently. They also struggle to know what's working. Maybe something that suggests content and shows simple analytics?"] },
+          "create_time": 1704067320
+        },
+        "parent": "msg-2",
+        "children": ["msg-4"]
+      },
+      "msg-4": {
+        "id": "msg-4",
+        "message": {
+          "id": "msg-4",
+          "author": { "role": "assistant" },
+          "content": { "content_type": "text", "parts": ["Content suggestions + simple analytics is a solid MVP scope. You're solving two real problems without overcomplicating it. For learning to code, I'd suggest starting with Next.js - it'll let you build both the frontend and backend. Want me to outline what the tech stack might look like?"] },
+          "create_time": 1704067380
+        },
+        "parent": "msg-3",
+        "children": []
+      }
+    },
+    "current_node": "msg-4"
+  },
+  {
+    "id": "test-conv-2",
+    "title": "Dealing with Work Stress",
+    "create_time": 1704240000,
+    "update_time": 1704326400,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": ["msg-1"]
+      },
+      "msg-1": {
+        "id": "msg-1",
+        "message": {
+          "id": "msg-1",
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["I'm feeling overwhelmed at work. My boss keeps adding projects but nothing ever gets taken off my plate. I've been working 60 hour weeks for the past month."] },
+          "create_time": 1704240000
+        },
+        "parent": "root",
+        "children": ["msg-2"]
+      },
+      "msg-2": {
+        "id": "msg-2",
+        "message": {
+          "id": "msg-2",
+          "author": { "role": "assistant" },
+          "content": { "content_type": "text", "parts": ["That sounds really draining. 60-hour weeks for a month straight isn't sustainable. Have you been able to have a direct conversation with your boss about capacity? Sometimes managers don't realize the cumulative load they're creating."] },
+          "create_time": 1704240060
+        },
+        "parent": "msg-1",
+        "children": ["msg-3"]
+      },
+      "msg-3": {
+        "id": "msg-3",
+        "message": {
+          "id": "msg-3",
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["I tried but she just says 'we're all stretched thin right now' and changes the subject. I'm starting to think about looking for a new job but I've only been here 8 months."] },
+          "create_time": 1704240120
+        },
+        "parent": "msg-2",
+        "children": ["msg-4"]
+      },
+      "msg-4": {
+        "id": "msg-4",
+        "message": {
+          "id": "msg-4",
+          "author": { "role": "assistant" },
+          "content": { "content_type": "text", "parts": ["The 'we're all stretched thin' response without any action is a red flag about the company culture. 8 months isn't ideal but your health matters more than optics. It might be worth quietly exploring options while you're still employed - you don't have to make a decision yet, just see what's out there."] },
+          "create_time": 1704240180
+        },
+        "parent": "msg-3",
+        "children": []
+      }
+    },
+    "current_node": "msg-4"
+  },
+  {
+    "id": "test-conv-3",
+    "title": "Learning Python",
+    "create_time": 1704412800,
+    "update_time": 1704499200,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": ["msg-1"]
+      },
+      "msg-1": {
+        "id": "msg-1",
+        "message": {
+          "id": "msg-1",
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["I decided to start learning Python for my SaaS idea. Just finished the basics - variables, loops, functions. What should I learn next?"] },
+          "create_time": 1704412800
+        },
+        "parent": "root",
+        "children": ["msg-2"]
+      },
+      "msg-2": {
+        "id": "msg-2",
+        "message": {
+          "id": "msg-2",
+          "author": { "role": "assistant" },
+          "content": { "content_type": "text", "parts": ["Great progress! For a SaaS product, I'd focus on: 1) Working with APIs (requests library), 2) Basic database operations (SQLite first, then PostgreSQL), 3) A web framework like FastAPI or Flask. Want to start with APIs since you'll need to connect to social media platforms?"] },
+          "create_time": 1704412860
+        },
+        "parent": "msg-1",
+        "children": ["msg-3"]
+      },
+      "msg-3": {
+        "id": "msg-3",
+        "message": {
+          "id": "msg-3",
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["Yes! I want to connect to Instagram and Twitter. Is that hard?"] },
+          "create_time": 1704412920
+        },
+        "parent": "msg-2",
+        "children": ["msg-4"]
+      },
+      "msg-4": {
+        "id": "msg-4",
+        "message": {
+          "id": "msg-4",
+          "author": { "role": "assistant" },
+          "content": { "content_type": "text", "parts": ["Instagram's API is restricted (business accounts only, approval needed). Twitter/X API has a free tier that's pretty limited now. For your MVP, I'd suggest starting with a platform that has friendlier API access, or focus on the content scheduling/analytics part first and add platform connections later."] },
+          "create_time": 1704412980
+        },
+        "parent": "msg-3",
+        "children": []
+      }
+    },
+    "current_node": "msg-4"
+  }
+]

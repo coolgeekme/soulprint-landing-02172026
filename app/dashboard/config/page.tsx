@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Settings, Database, Cloud, Zap } from "lucide-react"
-import { toast } from "@/components/ui/toast"
+// import { toast } from "@/components/ui/toast"
 
 interface HealthStatus {
     status: 'healthy' | 'degraded' | 'critical'
@@ -50,14 +50,14 @@ export default function ConfigPage() {
             setHealth(data)
             
             if (data.status === 'healthy') {
-                toast.success("System Healthy", "All services are operational")
+                console.log("System Healthy - All services operational")
             } else if (data.status === 'degraded') {
-                toast.warning("System Degraded", "Some services may not work correctly")
+                console.warn("System Degraded - Some services may not work correctly")
             } else {
-                toast.error("Critical Issues", "System has serious configuration problems")
+                console.error("Critical Issues - System has serious configuration problems")
             }
         } catch (error) {
-            toast.error("Health Check Failed", "Could not retrieve system status")
+            console.error("Health Check Failed", "Could not retrieve system status")
         } finally {
             setLoading(false)
         }

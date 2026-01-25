@@ -13,6 +13,7 @@ import {
     Fingerprint,
     BarChart3,
     GitCompareArrows,
+    Brain,
     LucideIcon,
     X
 } from "lucide-react"

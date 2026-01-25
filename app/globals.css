@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom animations */
+@keyframes animate-spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: animate-spin-slow 30s linear infinite;
+}
+
 /* iOS Safe Area Insets for PWA mode */
 :root {
   --safe-area-inset-top: env(safe-area-inset-top, 0px);

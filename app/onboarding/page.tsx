@@ -36,8 +36,8 @@ export default function OnboardingPage() {
   }, [router]);
 
   const handleContinue = () => {
-    // Redirect to dashboard/welcome
-    router.push("/dashboard/welcome");
+    // Redirect to onboarding choice page
+    router.push("/onboarding/choose");
   };
 
   if (loading) {

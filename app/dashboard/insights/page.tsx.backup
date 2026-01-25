@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createClient } from "@/lib/supabase/client"
-import { BarChart2, Grid3X3, Activity, TrendingUp, Loader2, Brain, Heart, Scale, Users, Cpu, Shield, Clock, Zap, Eye, Calendar, MessageSquare, Target, Lightbulb, FileText, Download, CheckCircle } from "lucide-react"
+import { BarChart2, Grid3X3, Activity, TrendingUp, Loader2, Brain, Heart, Scale, Users, Cpu, Shield, Download, FileText, Bell, CheckCircle, Clock, Zap, Eye, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { SoulPrintData } from "@/lib/soulprint/types"
 
@@ -14,6 +14,7 @@ import { ProfileBars } from "@/components/dashboard/insights/profile-bars"
 
 // Helper to derive numeric scores from markers/summary
 function deriveScore(text: string, markers: string[] = []): number {
+    // Create a consistent score based on content length and marker count
     const baseScore = 50
     const textBonus = Math.min(text.length / 10, 25)
     const markerBonus = Math.min(markers.length * 5, 25)
@@ -47,21 +48,21 @@ export default function InsightsPage() {
     const [soulprint, setSoulprint] = useState<SoulPrintData | null>(null)
     const [loading, setLoading] = useState(true)
     const [chatCount, setChatCount] = useState(0)
-    const [voiceCount, setVoiceCount] = useState(0)
-    const [lastActivity, setLastActivity] = useState<string>(new Date().toISOString())
-    
-    const supabase = createClient()
     const cleanupRef = useRef<(() => void) | null>(null)
 
-    useEffect(() => {
+    const supabase = createClient()
+
+     useEffect(() => {
         async function loadData() {
             try {
+                // Get current user
                 const { data: { user } } = await supabase.auth.getUser()
                 if (!user) {
                     setLoading(false)
                     return
                 }
 
+                // Get user's first soulprint
                 const { data: soulprints } = await supabase
                     .from('soulprints')
                     .select('soulprint_data')
@@ -73,17 +74,21 @@ export default function InsightsPage() {
                     setSoulprint(soulprints[0].soulprint_data as SoulPrintData)
                 }
 
+                // Enhanced analytics data fetching
                 const [chatResult, voiceResult, activityResult] = await Promise.all([
+                    // Get chat count for interactions
                     supabase
                         .from('chat_logs')
                         .select('*', { count: 'exact', head: true })
                         .eq('user_id', user.id),
                     
+                    // Get voice recording count
                     supabase
                         .from('voice_analysis')
                         .select('*', { count: 'exact', head: true })
                         .eq('user_id', user.id),
                     
+                    // Get last activity
                     supabase
                         .from('user_activity_log')
                         .select('created_at')
@@ -93,15 +98,21 @@ export default function InsightsPage() {
                         .single()
                 ])
 
-                const chats = chatResult.count || 0
-                const voices = voiceResult.count || 0
-                const lastAct = activityResult.data?.created_at || new Date().toISOString()
+                const chatCount = chatResult.count || 0
+                const voiceCount = voiceResult.count || 0
+                const totalInteractions = chatCount + voiceCount
+                const lastActivity = activityResult.data?.created_at || new Date().toISOString()
 
-                setChatCount(chats)
-                setVoiceCount(voices)
-                setLastActivity(lastAct)
+                setChatCount(chatCount)
                 
-                console.log('Enhanced analytics loaded:', { chats, voices, lastAct })
+                // Calculate additional metrics
+                const interactionData = {
+                    voiceRecordings: voiceCount,
+                    totalInteractions: totalInteractions,
+                    lastActivity: lastActivity
+                }
+
+                console.log('Enhanced analytics loaded:', { chatCount, voiceCount, totalInteractions, lastActivity })
                 
             } catch (error) {
                 console.error("Failed to load insights data:", error)
@@ -112,7 +123,7 @@ export default function InsightsPage() {
 
         loadData()
 
-        // Setup real-time subscription
+        // Real-time updates subscription
         const setupSubscription = async () => {
             const { data: { user } } = await supabase.auth.getUser()
             const userId = user?.id || 'anonymous'
@@ -134,6 +145,9 @@ export default function InsightsPage() {
             }
         }
 
+        // Store cleanup function for useEffect
+        const cleanupRef = { current: null as (() => void) | null }
+        
         setupSubscription().then(cleanup => {
             cleanupRef.current = cleanup
         })
@@ -143,15 +157,16 @@ export default function InsightsPage() {
                 cleanupRef.current()
             }
         }
-    }, [supabase])
+        }, [supabase])
 
-    useEffect(() => {
-        return () => {
-            if (cleanupRef.current) {
-                cleanupRef.current()
+        // Cleanup subscription on unmount
+        useEffect(() => {
+            return () => {
+                if (cleanupRef.current) {
+                    cleanupRef.current()
+                }
             }
-        }
-    }, [])
+        }, [])
 
     if (loading) {
         return (
@@ -184,11 +199,6 @@ export default function InsightsPage() {
             { label: "Resilience", value: 72, color: "orange" as const },
         ]
 
-    // Calculate engagement metrics
-    const totalInteractions = chatCount + voiceCount
-    const avgChatsPerDay = chatCount > 0 ? Math.round(chatCount / 7) : 0
-    const engagementRate = chatCount > 0 ? Math.min((chatCount / Math.max(1, chatCount)) * 100, 100) : 0
-
     return (
         <div className="h-full overflow-y-auto">
             <div className="max-w-[1110px] mx-auto pb-8">
@@ -200,7 +210,7 @@ export default function InsightsPage() {
                     className="mb-6"
                 >
                     <h1 className="text-[32px] font-koulen text-gray-900 dark:text-white">
-                        Real-time Analytics
+                        Adaptive Intelligence
                     </h1>
                 </motion.div>
 
@@ -223,12 +233,12 @@ export default function InsightsPage() {
                             exit={{ opacity: 0, x: 20 }}
                             transition={{ duration: 0.3 }}
                         >
-                            {/* Enhanced Stat Cards */}
+                            {/* Stat Cards */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                                 <StatCard
                                     title="Stability"
                                     value={stability}
-                                    delta="+20.1% from last week"
+                                    delta="+20.1% from last month"
                                     icon={BarChart2}
                                     color="orange"
                                     index={0}
@@ -236,7 +246,7 @@ export default function InsightsPage() {
                                 <StatCard
                                     title="Consistency"
                                     value={consistency}
-                                    delta="+180.1% from last week"
+                                    delta="+180.1% from last month"
                                     icon={Grid3X3}
                                     color="blue"
                                     index={1}
@@ -244,26 +254,33 @@ export default function InsightsPage() {
                                 <StatCard
                                     title="Reliability Score"
                                     value={reliability}
-                                    delta="+19% from last week"
+                                    delta="+19% from last month"
                                     icon={TrendingUp}
                                     color="default"
                                     index={2}
                                 />
-                                <StatCard
-                                    title="Total Interactions"
-                                    value={totalInteractions}
-                                    delta={`+${Math.round(totalInteractions * 0.1)} this week`}
-                                    icon={Activity}
-                                    color="blue"
-                                    index={3}
-                                />
+                                     <StatCard
+                                        title="Chat Interactions"
+                                        value={chatCount}
+                                        delta={chatCount > 0 ? `+${Math.round(chatCount * 0.1)} this week` : 'Start chatting'}
+                                        icon={Activity}
+                                        color="blue"
+                                        index={3}
+                                    />
                             </div>
 
                             {/* Charts Row */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {/* Bar Chart */}
                                 <BarChart data={defaultChartData} highlightLast />
 
-                                <div className="space-y-4">
+                                {/* Profile Bars */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.5, delay: 0.25 }}
+                                    className="p-6 bg-white dark:bg-[#111] rounded-[14px] border border-gray-200 dark:border-[#222] shadow-sm space-y-4"
+                                >
                                     <div>
                                         <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                                             Profile Analysis
@@ -284,7 +301,7 @@ export default function InsightsPage() {
                                         metrics={emotionalMetrics}
                                         delay={0.2}
                                     />
-                                </div>
+                                </motion.div>
                             </div>
                         </motion.div>
                     ) : activeTab === "analytics" ? (
@@ -305,7 +322,7 @@ export default function InsightsPage() {
                                     {[
                                         { icon: Brain, label: "Communication", score: soulprint?.pillars?.communication_style ? deriveScore(soulprint.pillars.communication_style.summary, soulprint.pillars.communication_style.markers) : 78, color: "orange" },
                                         { icon: Heart, label: "Emotional", score: soulprint?.pillars?.emotional_alignment ? deriveScore(soulprint.pillars.emotional_alignment.summary, soulprint.pillars.emotional_alignment.markers) : 85, color: "pink" },
-                                        { icon: Target, label: "Decision Making", score: soulprint?.pillars?.decision_making ? deriveScore(soulprint.pillars.decision_making.summary, soulprint.pillars.decision_making.markers) : 92, color: "blue" },
+                                        { icon: Scale, label: "Decision Making", score: soulprint?.pillars?.decision_making ? deriveScore(soulprint.pillars.decision_making.summary, soulprint.pillars.decision_making.markers) : 92, color: "blue" },
                                         { icon: Users, label: "Social", score: soulprint?.pillars?.social_cultural ? deriveScore(soulprint.pillars.social_cultural.summary, soulprint.pillars.social_cultural.markers) : 71, color: "green" },
                                         { icon: Cpu, label: "Cognitive", score: soulprint?.pillars?.cognitive_processing ? deriveScore(soulprint.pillars.cognitive_processing.summary, soulprint.pillars.cognitive_processing.markers) : 88, color: "purple" },
                                         { icon: Shield, label: "Assertiveness", score: soulprint?.pillars?.assertiveness_conflict ? deriveScore(soulprint.pillars.assertiveness_conflict.summary, soulprint.pillars.assertiveness_conflict.markers) : 64, color: "red" },
@@ -332,22 +349,26 @@ export default function InsightsPage() {
                                 </h3>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div className="text-center p-4">
-                                        <MessageSquare className="w-6 h-6 text-blue-500 mx-auto mb-2" />
+                                        <Users className="w-6 h-6 text-blue-500 mx-auto mb-2" />
                                         <div className="text-3xl font-bold text-blue-500">{chatCount}</div>
                                         <div className="text-sm text-gray-500">Total Chats</div>
                                     </div>
                                     <div className="text-center p-4">
-                                        <div className="text-3xl font-bold text-orange-500">{voiceCount}</div>
-                                        <div className="text-sm text-gray-500">Voice Sessions</div>
+                                        <div className="text-3xl font-bold text-orange-500">{Math.max(chatCount, 1)}</div>
+                                        <div className="text-sm text-gray-500">Days Active</div>
                                     </div>
                                     <div className="text-center p-4">
-                                        <Calendar className="w-6 h-6 text-purple-500 mx-auto mb-2" />
-                                        <div className="text-3xl font-bold text-purple-500">{avgChatsPerDay}</div>
+                                        <Clock className="w-6 h-6 text-purple-500 mx-auto mb-2" />
+                                        <div className="text-xl font-bold text-purple-500">
+                                            {chatCount > 0 ? Math.round(chatCount / 7) : 0}
+                                        </div>
                                         <div className="text-sm text-gray-500">Avg Chats/Day</div>
                                     </div>
                                     <div className="text-center p-4">
-                                        <Lightbulb className="w-6 h-6 text-green-500 mx-auto mb-2" />
-                                        <div className="text-3xl font-bold text-green-500">{engagementRate}%</div>
+                                        <Zap className="w-6 h-6 text-green-500 mx-auto mb-2" />
+                                        <div className="text-xl font-bold text-green-500">
+                                            {chatCount > 0 ? `${Math.round((chatCount / Math.max(1, chatCount)) * 100)}%` : '0%'}
+                                        </div>
                                         <div className="text-sm text-gray-500">Engagement Rate</div>
                                     </div>
                                 </div>
@@ -365,11 +386,25 @@ export default function InsightsPage() {
                                             </div>
                                         </div>
                                         <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                                            <Zap className="w-5 h-5 text-green-500 mb-2" />
+                                            <TrendingUp className="w-5 h-5 text-green-500 mb-2" />
                                             <div className="text-sm font-medium text-green-700 dark:text-green-300">
-                                                {engagementRate > 70 ? 'High Engagement' : 'Growing Engagement'}
+                                                {chatCount > 10 ? 'High Engagement' : 'Growing Engagement'}
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                                     <div className="text-center p-4">
+                                        <div className="text-3xl font-bold text-blue-500">{Math.round(chatCount * 4.7)}</div>
+                                        <div className="text-sm text-gray-500">Avg Messages per Chat</div>
+                                    </div>
+                                    <div className="text-center p-4">
+                                        <div className="text-3xl font-bold text-green-500">7</div>
+                                        <div className="text-sm text-gray-500">Days Active</div>
+                                    </div>
+                                    <div className="text-center p-4">
+                                        <div className="text-3xl font-bold text-purple-500">98%</div>
+                                        <div className="text-sm text-gray-500">Match Accuracy</div>
                                     </div>
                                 </div>
                             </div>
@@ -392,6 +427,7 @@ export default function InsightsPage() {
                                         { title: "SoulPrint Summary", desc: "Complete personality profile overview", type: "PDF" },
                                         { title: "Communication Analysis", desc: "Detailed breakdown of your communication patterns", type: "PDF" },
                                         { title: "Conversation History", desc: "Export all chat sessions", type: "JSON" },
+                                        { title: "Weekly Insights", desc: "Summary of your AI interactions this week", type: "PDF" },
                                     ].map((report, i) => (
                                         <motion.div
                                             key={report.title}
@@ -438,9 +474,11 @@ export default function InsightsPage() {
                                 </h3>
                                 <div className="space-y-3">
                                     {[
-                                        { title: "SoulPrint Updated", time: new Date(lastActivity).toLocaleDateString(), icon: CheckCircle, read: false },
-                                        { title: "New chat session", time: `${chatCount > 0 ? 'Today' : 'No recent activity'}`, icon: MessageSquare, read: false },
-                                        { title: "Voice analysis complete", time: voiceCount > 0 ? `${voiceCount} sessions processed` : 'No voice sessions', icon: Activity, read: true },
+                                        { title: "SoulPrint Updated", time: "2 hours ago", icon: CheckCircle, read: false },
+                                        { title: "New chat session started", time: "5 hours ago", icon: Bell, read: false },
+                                        { title: "Weekly insights ready", time: "1 day ago", icon: TrendingUp, read: true },
+                                        { title: "Profile analysis complete", time: "2 days ago", icon: Activity, read: true },
+                                        { title: "Welcome to SoulPrint Engine!", time: "3 days ago", icon: CheckCircle, read: true },
                                     ].map((notif, i) => (
                                         <motion.div
                                             key={i}
@@ -448,7 +486,9 @@ export default function InsightsPage() {
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: i * 0.1 }}
                                             className={`flex items-center gap-3 p-4 rounded-xl border ${
-                                                notif.read ? "bg-gray-50 dark:bg-[#0A0A0A] border-gray-100 dark:border-[#222]" : "bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800/30"
+                                                notif.read
+                                                    ? "bg-gray-50 dark:bg-[#0A0A0A] border-gray-100 dark:border-[#222]"
+                                                    : "bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800/30"
                                             }`}
                                         >
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -472,7 +512,7 @@ export default function InsightsPage() {
                         </motion.div>
                     ) : null}
                 </AnimatePresence>
-
+                
                 {/* Footer */}
                 <motion.div
                     initial={{ opacity: 0 }}
@@ -482,6 +522,22 @@ export default function InsightsPage() {
                 >
                     <p className="text-xs text-gray-500 dark:text-gray-600">
                         © 2026 ARCHEFORGE | SOULPRINT ENGINE | Real-time Analytics
+                    </p>
+                </motion.div>
+            </div>
+        </div>
+    )
+}
+
+                {/* Footer */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.8 }}
+                    className="mt-8 text-center"
+                >
+                    <p className="text-xs text-gray-500 dark:text-gray-600">
+                        © 2026 ARCHEFORGE | SOULPRINT ENGINE
                     </p>
                 </motion.div>
             </div>
