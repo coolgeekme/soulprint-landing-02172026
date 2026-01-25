@@ -27,7 +27,7 @@ All issues have been remediated.
 
 **Issue:**
 ```typescript
-const KIE_API_KEY = process.env.KIE_API_KEY || '6efc289cb78bed900085851c51be6b9a';
+const KIE_API_KEY = process.env.KIE_API_KEY || '<REDACTED>';
 ```
 
 The API key was hardcoded as a fallback, exposing it in the committed codebase.
@@ -48,7 +48,7 @@ The API key was hardcoded as a fallback, exposing it in the committed codebase.
 **Issue:**
 The actual API key was documented in the blueprint file:
 ```
-KIE_API_KEY=6efc289cb78bed900085851c51be6b9a
+KIE_API_KEY=<REDACTED>
 ```
 
 **Remediation:**
@@ -66,7 +66,7 @@ KIE_API_KEY=6efc289cb78bed900085851c51be6b9a
 **Issue:**
 Real AWS Access Key ID was stored in planning state:
 ```
-AWS_ACCESS_KEY_ID=AKIA36MTOXRJLGJFX2EH
+AWS_ACCESS_KEY_ID=<REDACTED>
 ```
 
 **Remediation:**
@@ -87,7 +87,7 @@ The exposed AWS access key should be rotated via AWS IAM console.
 **Issue:**
 Real AWS account ID and role name exposed:
 ```
-SAGEMAKER_EXECUTION_ROLE_ARN=arn:aws:iam::821184871506:role/soulprint-sagemaker-execution-role
+SAGEMAKER_EXECUTION_ROLE_ARN=arn:aws:iam::<REDACTED>:role/<REDACTED>
 ```
 
 **Remediation:**
@@ -104,7 +104,7 @@ SAGEMAKER_EXECUTION_ROLE_ARN=arn:aws:iam::821184871506:role/soulprint-sagemaker-
 
 **Issue:**
 ```typescript
-const DEV_PASSWORD = "Dp071603!"; // User provided password
+const DEV_PASSWORD = "<REDACTED>"; // User provided password
 ```
 
 A development convenience password was hardcoded. While gated by `NODE_ENV !== "development"` check, this is still a security risk as:
