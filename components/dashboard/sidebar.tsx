@@ -31,8 +31,10 @@ const sidebarItems: SidebarItem[] = [
     { icon: Fingerprint, label: "My SoulPrint", href: "/dashboard/profile", tourId: "soulprint" },
     { icon: BarChart3, label: "Insights", href: "/dashboard/insights", tourId: "insights" },
     { icon: GitCompareArrows, label: "Compare", href: "/dashboard/compare", tourId: "compare" },
+    { icon: Brain, label: "Identity Reactor", href: "/dashboard/reactor", tourId: "reactor" },
     { icon: Key, label: "API Keys", href: "/dashboard/bot", tourId: "api-keys" },
     { icon: Settings2, label: "Settings", href: "/dashboard/settings", tourId: "settings" },
+    { icon: Settings, label: "Config", href: "/dashboard/config", tourId: "config" },
 ]
 
 interface SidebarProps {
