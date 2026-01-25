@@ -65,22 +65,34 @@ export async function* streamChatCompletion(
     messages: ChatMessage[],
     model: string = DEFAULT_MODEL
 ): AsyncGenerator<string, void, unknown> {
+    const configStatus = {
+        bedrock: isBedrockConfigured(),
+        sagemaker: isSageMakerConfigured(),
+        serverless: isServerless()
+    };
+
+    console.log('[LLM] Configuration Check:', configStatus);
     
     // 1. AWS Bedrock (PRODUCTION - Claude Haiku) - TRUE STREAMING
-    if (isBedrockConfigured()) {
+    if (configStatus.bedrock) {
         try {
+            console.log('[LLM] 🚀 Using AWS Bedrock...');
             for await (const chunk of invokeBedrockModelStream(messages)) {
                 yield chunk;
             }
             return;
         } catch (error) {
-            console.error('[LLM] ⚠️ Bedrock failed, trying fallbacks...', error);
+            console.error('[LLM] ⚠️ Bedrock failed, trying fallbacks...', {
+                error: error.message,
+                stack: error.stack
+            });
         }
     }
 
     // 2. AWS SageMaker (Legacy Cloud Option)
-    if (isSageMakerConfigured()) {
+    if (configStatus.sagemaker) {
         try {
+            console.log('[LLM] 🔧 Using AWS SageMaker...');
             const prompt = formatChatML(messages);
             const response = await invokeSoulPrintModel({
                 inputs: prompt,
@@ -103,45 +115,65 @@ export async function* streamChatCompletion(
             }
             return;
         } catch (error) {
-            console.error('[LLM] SageMaker failed:', error);
-            if (isServerless()) throw error;
+            console.error('[LLM] SageMaker failed:', {
+                error: error.message,
+                serverless: configStatus.serverless
+            });
+            if (configStatus.serverless) throw error;
         }
     }
 
     // 3. Ollama Hermes3 (LOCAL BACKUP - Development/Offline)
+    console.log('[LLM] 🏠 Checking Ollama availability...');
     const ollamaAvailable = await checkOllamaHealth();
     if (!ollamaAvailable) {
-        throw new Error('❌ No LLM available. Add AWS credentials to .env.local or run Ollama locally.');
+        const errorMessage = `❌ No LLM service available. Configuration status:
+- Bedrock: ${configStatus.bedrock ? '✅ Configured' : '❌ Missing credentials'}
+- SageMaker: ${configStatus.sagemaker ? '✅ Configured' : '❌ Missing endpoint'}  
+- Ollama: ${ollamaAvailable ? '✅ Running' : '❌ Not available'}
+
+Solution: Add AWS credentials to Vercel environment or run Ollama locally for development.`;
+        
+        console.error('[LLM] Configuration Error:', errorMessage);
+        yield "🤖 I'm currently experiencing technical difficulties with my AI backend. Please try again in a few minutes or contact support if this issue persists.";
+        throw new Error(errorMessage);
     }
 
-    const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model,
-            messages,
-            stream: true,
-            options: { temperature: 0.8, num_ctx: 4096 }
-        }),
-    });
+    try {
+        console.log('[LLM] 🦙 Using Ollama local model...');
+        const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model,
+                messages,
+                stream: true,
+                options: { temperature: 0.8, num_ctx: 4096 }
+            }),
+        });
 
-    if (!response.ok) throw new Error(`Ollama Error: ${response.statusText}`);
-    
-    const reader = response.body?.getReader();
-    if (reader) {
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = new TextDecoder().decode(value);
-            const lines = chunk.split('\n').filter(line => line.trim() !== '');
-            for (const line of lines) {
-                try {
-                    const json = JSON.parse(line);
-                    if (json.message?.content) yield json.message.content;
-                    if (json.done) return;
-                } catch { /* ignore parse errors */ }
+        if (!response.ok) throw new Error(`Ollama Error: ${response.statusText}`);
+        
+        const reader = response.body?.getReader();
+        if (reader) {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = new TextDecoder().decode(value);
+                const lines = chunk.split('\n').filter(line => line.trim() !== '');
+                for (const line of lines) {
+                    try {
+                        const json = JSON.parse(line);
+                        if (json.message?.content) yield json.message.content;
+                        if (json.done) return;
+                    } catch { /* ignore parse errors */ }
+                }
             }
         }
+    } catch (error) {
+        console.error('[LLM] Ollama failed:', error);
+        yield "🤖 Connection to local AI service failed. Please check your setup and try again.";
+        throw error;
     }
 }
 

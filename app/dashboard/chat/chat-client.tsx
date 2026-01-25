@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/client"
 import { getSoulprintTheme, type SoulprintTheme } from "@/lib/soulprint-theme"
 import { ChatMessage } from "./chat-message"
 import { ChatInput } from "./chat-input"
+import { toast } from "@/components/ui/use-toast"
 
 interface Message {
     role: "user" | "assistant"
@@ -255,7 +256,15 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
 
 
     const handleSend = useCallback(async (userMsg: string) => {
-        if (!userMsg.trim() || !apiKey) return
+        if (!userMsg.trim()) {
+            toast.error("Cannot Send", "Please enter a message")
+            return
+        }
+        
+        if (!apiKey) {
+            toast.error("API Key Required", "Please set up your API key in Settings")
+            return
+        }
 
         setShouldAutoScroll(true)
         setMessages(prev => [...prev, { role: "user", content: userMsg }])
@@ -296,7 +305,21 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                 })
             })
 
-            if (!res.ok) throw new Error("Failed to send")
+            if (!res.ok) {
+                const errorText = await res.text()
+                console.error('Chat API Error:', res.status, errorText)
+                
+                // Specific error handling
+                if (res.status === 401) {
+                    throw new Error("Invalid API key. Please check your Settings.")
+                } else if (res.status === 429) {
+                    throw new Error("Rate limit exceeded. Please try again in a moment.")
+                } else if (res.status === 500) {
+                    throw new Error("AI service temporarily unavailable. Please try again.")
+                } else {
+                    throw new Error(`Server error: ${res.status}`)
+                }
+            }
 
             const reader = res.body?.getReader()
             const decoder = new TextDecoder()
@@ -305,9 +328,26 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
             setMessages(prev => [...prev, { role: "assistant", content: "" }])
 
             if (reader) {
+                let streamTimeout = setTimeout(() => {
+                    if (botMsg.length === 0) {
+                        console.error('Stream timeout - no content received')
+                        setMessages(prev => {
+                            const newMessages = [...prev]
+                            const lastMsg = newMessages[newMessages.length - 1]
+                            if (lastMsg.role === "assistant") {
+                                lastMsg.content = "🤖 I'm experiencing connection issues. Please try again."
+                            }
+                            return newMessages
+                        })
+                    }
+                }, 30000) // 30 second timeout
+
                 while (true) {
                     const { done, value } = await reader.read()
-                    if (done) break
+                    if (done) {
+                        clearTimeout(streamTimeout)
+                        break
+                    }
                     const chunk = decoder.decode(value)
                     const lines = chunk.split("\n")
                     for (const line of lines) {
@@ -317,6 +357,9 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                             try {
                                 const data = JSON.parse(dataStr)
                                 const content = data.choices[0]?.delta?.content || ""
+                                if (content && botMsg.length === 0) {
+                                    clearTimeout(streamTimeout) // Clear timeout once we start getting content
+                                }
                                 botMsg += content
                                 setMessages(prev => {
                                     const newMessages = [...prev]
@@ -324,11 +367,20 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                     if (lastMsg.role === "assistant") lastMsg.content = botMsg
                                     return newMessages
                                 })
-                            } catch { /* ignore parse errors */ }
+                            } catch (parseError) {
+                                console.warn('Stream parse error:', parseError)
+                                // Continue processing, don't break the stream
+                            }
                         }
                     }
                 }
             }
+            
+            // Validate we got content
+            if (botMsg.trim().length === 0) {
+                throw new Error("Received empty response from AI service")
+            }
+            
             await saveChatMessage({
                 role: "assistant",
                 content: botMsg,
@@ -340,8 +392,16 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                 loadSessions()
             }
 
-        } catch {
-            setMessages(prev => [...prev, { role: "assistant", content: "Error: Failed to reply." }])
+        } catch (error) {
+            console.error('Chat send error:', error)
+            const errorMessage = error instanceof Error ? error.message : "Failed to send message"
+            
+            setMessages(prev => [...prev, { 
+                role: "assistant", 
+                content: `⚠️ ${errorMessage}\n\nPlease try again or contact support if this persists.` 
+            }])
+            
+            toast.error("Message Failed", errorMessage)
         } finally {
             setLoading(false)
         }
