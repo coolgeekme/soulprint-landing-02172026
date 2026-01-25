@@ -1,14 +1,38 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Cookie options for Safari session persistence (30 days)
+const cookieOptions = {
+    maxAge: 60 * 60 * 24 * 30,
+    path: '/',
+    sameSite: 'lax' as const,
+    secure: process.env.NODE_ENV === 'production',
+}
+
 export async function updateSession(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
         request,
     })
 
+    // DEV BYPASS: Skip auth on localhost for testing
+    const isLocalhost = request.headers.get('host')?.includes('localhost')
+    if (isLocalhost && process.env.NODE_ENV === 'development') {
+        return supabaseResponse
+    }
+
+    // Get environment variables with fallback check
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    // If env vars are missing, skip Supabase auth and just continue
+    // This prevents the middleware from crashing during build or when env is not loaded
+    if (!supabaseUrl || !supabaseAnonKey) {
+        return supabaseResponse
+    }
+
     const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        supabaseUrl,
+        supabaseAnonKey,
         {
             cookies: {
                 getAll() {
@@ -20,7 +44,7 @@ export async function updateSession(request: NextRequest) {
                         request,
                     })
                     cookiesToSet.forEach(({ name, value, options }) =>
-                        supabaseResponse.cookies.set(name, value, options)
+                        supabaseResponse.cookies.set(name, value, { ...options, ...cookieOptions })
                     )
                 },
             },
@@ -35,8 +59,37 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
+    // Protected routes check - moved up for PWA logic
+    const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/questionnaire')
+
+    // PWA Detection
+    const url = request.nextUrl
+    const searchParams = url.searchParams
+    const source = searchParams.get('source')
+
+    // If launched as PWA (source=pwa) or previously detected as PWA
+    const isPwa = source === 'pwa' || request.cookies.get('app-is-pwa')?.value === 'true'
+
+    // Set PWA cookie if detected and not already set/updated
+    if (source === 'pwa') {
+        supabaseResponse.cookies.set('app-is-pwa', 'true', {
+            ...cookieOptions,
+            maxAge: 60 * 60 * 24 * 365, // 1 year
+        })
+    }
+
+    // PWA Logic: Detect unauthenticated state for PWA users
+    if (isPwa && !user && !isProtectedRoute && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/signup') && !request.nextUrl.pathname.startsWith('/auth') && !request.nextUrl.pathname.includes('.')) {
+        // If on the root/landing page in PWA mode and not logged in, go to login
+        if (request.nextUrl.pathname === '/') {
+            return NextResponse.redirect(new URL('/login', request.url))
+        }
+    }
+
+
+
     // Protected routes logic - keep it simple
-    if (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/questionnaire')) {
+    if (isProtectedRoute) {
         if (!user) {
             return NextResponse.redirect(new URL('/', request.url))
         }
@@ -50,7 +103,6 @@ export async function updateSession(request: NextRequest) {
                 .maybeSingle()
 
             if (!profile && !profileError) {
-                console.log('🛡️ Layer 1: Creating missing profile in middleware for:', user.email)
                 await supabase.from('profiles').insert({
                     id: user.id,
                     email: user.email!,
@@ -61,6 +113,11 @@ export async function updateSession(request: NextRequest) {
         } catch (e) {
             console.error('Middleware profile sync failed:', e)
         }
+    }
+
+    // Redirect authenticated users from landing page to dashboard chat
+    if (request.nextUrl.pathname === '/' && user) {
+        return NextResponse.redirect(new URL('/dashboard/chat', request.url))
     }
 
     return supabaseResponse

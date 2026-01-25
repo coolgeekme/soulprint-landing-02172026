@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "crypto";
-// import { gemini, DEFAULT_MODEL } from "@/lib/gemini/client"; // Removed
-import { checkHealth, streamChatCompletion, chatCompletion, ChatMessage } from "@/lib/llm/local-client";
-import { loadMemory, buildSystemPrompt } from "@/lib/letta/soulprint-memory";
+import { streamChatCompletion, chatCompletion, ChatMessage } from "@/lib/llm/local-client";
+import { SoulEngine } from "@/lib/soulprint/soul-engine";
+import { generateEmbedding } from "@/lib/soulprint/memory/retrieval";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 // Initialize Supabase Admin client (to bypass RLS for key check)
 const supabaseAdmin = createClient(
@@ -23,58 +24,52 @@ export async function POST(req: NextRequest) {
         const hashedKey = createHash("sha256").update(rawKey).digest("hex");
 
         // 2. Validate API Key & Get User
-        let keyData;
-        let keyError;
-
-        if (rawKey === "sk-soulprint-demo-fallback-123456" || rawKey === "sk-soulprint-demo-internal-key") {
-            // Use Elon's UUID for demo mode
-            keyData = { user_id: 'dadb8b23-5684-4d86-9021-e457267e75c7', id: 'demo-fallback-id' };
-            keyError = null;
-        } else {
-            const result = await supabaseAdmin
-                .from("api_keys")
-                .select("user_id, id")
-                .eq("key_hash", hashedKey)
-                .single();
-            keyData = result.data;
-            keyError = result.error;
-        }
+        const { data: keyData, error: keyError } = await supabaseAdmin
+            .from("api_keys")
+            .select("user_id, id")
+            .eq("key_hash", hashedKey)
+            .single();
 
         if (keyError || !keyData) {
             return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
         }
 
         // ===================================
+        // 🚦 RATE LIMIT CHECK
+        // ===================================
+        const rateCheck = await checkRateLimit(keyData.user_id);
+        if (rateCheck && !rateCheck.success) {
+            return NextResponse.json(rateLimitResponse(), { status: 429 });
+        }
+
+        // ===================================
         // 🚦 USAGE LIMIT CHECK (Gate Logic)
         // ===================================
-        // Skip limit for Demo User (Elon)
-        if (keyData.user_id !== 'dadb8b23-5684-4d86-9021-e457267e75c7') {
-            const { data: profile } = await supabaseAdmin
-                .from('profiles')
-                .select('usage_count, usage_limit')
-                .eq('id', keyData.user_id)
-                .single();
+        const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('usage_count, usage_limit')
+            .eq('id', keyData.user_id)
+            .single();
 
-            const limit = profile?.usage_limit ?? 20; // Default hard limit
-            const count = profile?.usage_count ?? 0;
+        const limit = profile?.usage_limit ?? 20; // Default hard limit
+        const count = profile?.usage_count ?? 0;
 
-            if (count >= limit) {
-                return NextResponse.json({
-                    error: "SoulPrint Trial Limit Reached (20 Interactions). Access is currently restricted."
-                }, { status: 403 });
-            }
-
-            // Increment Usage (Blocking to ensure enforcement)
-            await supabaseAdmin
-                .from('profiles')
-                .update({ usage_count: count + 1 })
-                .eq('id', keyData.user_id);
+        if (count >= limit) {
+            return NextResponse.json({
+                error: "SoulPrint Trial Limit Reached (20 Interactions). Access is currently restricted."
+            }, { status: 403 });
         }
+
+        // Increment Usage (Blocking to ensure enforcement)
+        await supabaseAdmin
+            .from('profiles')
+            .update({ usage_count: count + 1 })
+            .eq('id', keyData.user_id);
 
 
         // 3. Parse Request Body
         const body = await req.json();
-        const { messages, model = 'hermes3', stream = false, soulprint_id } = body;
+        const { messages, stream = false, soulprint_id } = body;
 
         // 4. Fetch User's SoulPrint (System Message)
         let targetSoulprintId = soulprint_id;
@@ -104,76 +99,109 @@ export async function POST(req: NextRequest) {
         const { data: soulprint } = await soulprintQuery.maybeSingle();
 
         // ============================================================
-        // 🚀 UNIFIED LLM PATH (Local Hermes 3 -> Gemini Fallback)
+        // 🚀 SOUL ENGINE (Agentic Logic)
         // ============================================================
-        try {
-            // Build Context
-            let soulprintObj = soulprint?.soulprint_data;
-            if (typeof soulprintObj === 'string') {
-                try { soulprintObj = JSON.parse(soulprintObj); } catch (e) { }
-            }
 
-            // Prepare Messages (Prepend System Prompt if found)
-            const memory = await loadMemory(keyData.user_id);
-            const systemPrompt = buildSystemPrompt(soulprintObj, memory);
+        // Initialize SoulEngine with user's data
+        const engine = new SoulEngine(supabaseAdmin, keyData.user_id, soulprint?.soulprint_data || {});
 
-            const processedMessages: ChatMessage[] = [
-                { role: 'system', content: systemPrompt },
-                ...messages.map((m: any) => ({ role: m.role, content: m.content }))
-            ];
+        // Agentic Step: Construct System Prompt (Short-Circuit included)
+        const systemPrompt = await engine.constructSystemPrompt(messages);
 
-            const { unifiedChatCompletion, unifiedStreamChatCompletion } = await import("@/lib/llm/unified-client");
+        const processedMessages: ChatMessage[] = [
+            { role: 'system', content: systemPrompt },
+            ...messages.map((m: { role: string; content: string }) => ({ role: m.role, content: m.content }))
+        ];
 
-            if (stream) {
-                const streamResponse = new ReadableStream({
-                    async start(controller) {
-                        const encoder = new TextEncoder();
-                        try {
-                            for await (const chunk of unifiedStreamChatCompletion(processedMessages)) {
-                                const data = JSON.stringify({
-                                    choices: [{ delta: { content: chunk } }]
-                                });
-                                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-                            }
-                            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-                        } catch (e) {
-                            console.error("Streaming error:", e);
-                        } finally {
-                            controller.close();
+        if (stream) {
+            const encoder = new TextEncoder();
+            const streamResponse = new ReadableStream({
+                async start(controller) {
+                    let fullResponse = "";
+                    try {
+                        for await (const chunk of streamChatCompletion(processedMessages)) {
+                            fullResponse += chunk;
+                            const data = JSON.stringify({
+                                choices: [{ delta: { content: chunk } }]
+                            });
+                            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
                         }
+                        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                        controller.close();
+
+                        // Background Persistence (Fire & Forget)
+                        (async () => {
+                            try {
+                                const lastUserMsg = messages[messages.length - 1];
+                                const [userEmbedding, assistantEmbedding] = await Promise.all([
+                                    generateEmbedding(lastUserMsg.content),
+                                    generateEmbedding(fullResponse)
+                                ]);
+
+                                await supabaseAdmin.from('chat_logs').insert([
+                                    {
+                                        user_id: keyData.user_id,
+                                        role: 'user',
+                                        content: lastUserMsg.content,
+                                        embedding: userEmbedding
+                                    },
+                                    {
+                                        user_id: keyData.user_id,
+                                        role: 'assistant',
+                                        content: fullResponse,
+                                        embedding: assistantEmbedding
+                                    }
+                                ]);
+                            } catch (e) {
+                                console.error("Async Memory Persistence Failed:", e);
+                            }
+                        })();
+
+                    } catch (e) {
+                        console.error("Streaming error:", e);
+                        controller.error(e);
                     }
-                });
-
-                return new Response(streamResponse, {
-                    headers: {
-                        "Content-Type": "text/event-stream",
-                        "Cache-Control": "no-cache",
-                        "Connection": "keep-alive",
-                    },
-                });
-            }
-
-            // Non-streaming path
-            const content = await unifiedChatCompletion(processedMessages);
-
-            return NextResponse.json({
-                id: `chatcmpl-${Date.now()}`,
-                object: 'chat.completion',
-                created: Math.floor(Date.now() / 1000),
-                model: 'soulprint-hybrid',
-                choices: [{
-                    index: 0,
-                    message: { role: 'assistant', content },
-                    finish_reason: 'stop'
-                }]
+                }
             });
 
-        } catch (llmError: any) {
-            console.error('❌ LLM Generation Failed:', llmError);
-            return NextResponse.json({
-                error: `Generation failed: ${llmError.message || 'Unknown error'}`
-            }, { status: 503 });
+            return new Response(streamResponse, {
+                headers: {
+                    "Content-Type": "text/event-stream",
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                },
+            });
         }
+
+        // Non-streaming path
+        const content = await chatCompletion(processedMessages);
+
+        // Persist Non-streaming
+        // (Simplified: Reusing same fire-and-forget logic if needed, but for simplicity here strictly following stream pattern)
+        try {
+            const lastUserMsg = messages[messages.length - 1];
+            const [userEmbedding, assistantEmbedding] = await Promise.all([
+                generateEmbedding(lastUserMsg.content),
+                generateEmbedding(content)
+            ]);
+
+            await supabaseAdmin.from('chat_logs').insert([
+                { user_id: keyData.user_id, role: 'user', content: lastUserMsg.content, embedding: userEmbedding },
+                { user_id: keyData.user_id, role: 'assistant', content: content, embedding: assistantEmbedding }
+            ]);
+        } catch (e) { console.error("Persistence failed", e); }
+
+        return NextResponse.json({
+            id: `chatcmpl-${Date.now()}`,
+            object: 'chat.completion',
+            created: Math.floor(Date.now() / 1000),
+            model: 'soulprint-v2-local',
+            choices: [{
+                index: 0,
+                message: { role: 'assistant', content },
+                finish_reason: 'stop'
+            }]
+        });
 
     } catch (error: unknown) {
         console.error('❌ Chat API Error:', error);

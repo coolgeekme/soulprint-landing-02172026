@@ -2,75 +2,174 @@
 
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import Image from "next/image";
-// import { SignUpModal } from "@/components/auth/signup-modal"; // Temporarily disabled for waitlist
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import Image from "next/image";
 
 export function Hero() {
     return (
-        <section className="relative flex w-full flex-col items-center justify-start overflow-hidden bg-[#0A0A0A] min-h-[calc(100dvh-64px)] pt-8 sm:pt-12 sm:justify-center lg:bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] lg:from-neutral-900/50 lg:via-black lg:to-black">
-            <div className="flex w-full max-w-[1400px] flex-col items-center justify-center gap-8 px-5 sm:gap-10 sm:px-6 md:px-12 lg:flex-row lg:gap-16 xl:px-24">
+        <>
+            {/* Mobile Hero - Full-bleed background design */}
+            <section className="lg:hidden relative flex flex-col min-h-[85dvh] w-full overflow-hidden">
+                {/* Full-bleed Background Image with Zoom */}
+                <div
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-110 origin-center"
+                    style={{ backgroundImage: "url('/images/mobile-hero-v2.png')" }}
+                />
 
-                {/* Content Container */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                    className="flex w-full max-w-[672px] flex-col items-start justify-center gap-6 lg:max-w-none lg:flex-1"
-                >
+                {/* Gradient overlays for text readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent" />
 
-
-
-                    {/* Headline */}
-                    <h1 className="w-full font-koulen text-[44px] leading-[0.95] text-white uppercase tracking-tighter sm:text-[56px] lg:text-[clamp(56px,6vw,100px)] lg:leading-[0.9]">
-                        <span className="text-[#EA580C]">SoulPrint</span> isn’t AI.
-                        <br />
-                        <span className="bg-gradient-to-b from-white to-neutral-400 bg-clip-text text-transparent">
-                            It’s the identity layer
-                            <br />
-                            AI never had.
+                {/* Brutalist Header - Logo + Login */}
+                <header className="relative flex items-center justify-between px-6 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 z-20">
+                    <div className="inline-flex items-center gap-2">
+                        <Image
+                            src="/images/soulprintlogomain.png"
+                            alt="SoulPrint Logo"
+                            width={36}
+                            height={36}
+                            className="w-9 h-9 object-contain"
+                        />
+                        <span className="text-white text-3xl font-normal font-koulen leading-9 tracking-tight">SOULPRINT</span>
+                    </div>
+                    <Link href="/enter" className="relative group overflow-hidden">
+                        <span className="text-white text-sm font-bold uppercase tracking-wide group-hover:text-orange-600 transition-colors duration-300">
+                            Login
                         </span>
-                    </h1>
+                        <span className="absolute bottom-0 left-0 w-full h-[2px] bg-orange-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                    </Link>
+                </header>
 
-                    {/* Subheading */}
-                    <div className="flex w-full flex-col gap-4 lg:mt-4">
-                        <p className="font-geist text-base font-semibold tracking-wide text-white/90 sm:text-lg lg:text-xl">
-                            Persistent identity • Model-agnostic • Private memory
-                        </p>
-                        <p className="max-w-2xl font-inter text-base leading-relaxed text-neutral-400 sm:text-lg sm:leading-7">
-                            SoulPrint reads how you speak, how you think, and how you decide, and turns it into a persistent identity that no model can erase.
-                        </p>
-                    </div>
+                {/* Content & CTA Container */}
+                <div className="relative flex flex-1 flex-col z-10">
+                    {/* Top Spacer */}
+                    <div className="flex-[0.5]" />
 
-                    {/* Actions */}
-                    <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:mt-6 lg:gap-4">
-                        <Link href="/login">
-                            <Button
-                                className="h-11 w-full rounded-lg bg-[#EA580C] px-5 py-3 font-geist text-base font-medium text-[#FAFAFA] transition-all hover:bg-[#EA580C]/90 hover:scale-[1.02] active:scale-[0.98] sm:w-auto lg:h-14 lg:px-10 lg:text-lg"
-                            >
-                                Enter SoulPrint
-                            </Button>
+                    {/* Headline and Subheading */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.2 }}
+                        className="flex flex-col items-center text-center space-y-5 px-6"
+                    >
+                        <h1 className="text-[2.75rem] xs:text-[3.25rem] sm:text-[4.5rem] font-koulen uppercase tracking-tight leading-[0.85] text-white drop-shadow-2xl">
+                            YOUR AI
+                            <br />
+                            SHOULD KNOW
+                            <br />
+                            <span className="text-orange-600">WHO YOU ARE</span>
+                        </h1>
+
+                        <p className="text-white/80 text-base sm:text-xl font-medium leading-relaxed max-w-[300px] sm:max-w-[480px]">
+                            The world&apos;s first high-fidelity digital identity platform. Capture your essence.
+                        </p>
+                    </motion.div>
+
+                    {/* Spacer A - Balanced Gap */}
+                    <div className="flex-1" />
+
+                    {/* CTA Button centered in remaining space */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.4 }}
+                        className="px-6 w-full max-w-[600px] mx-auto"
+                    >
+                        <Link href="/enter" className="block w-full">
+                            <button className="w-full h-16 bg-orange-600 hover:bg-orange-500 active:scale-[0.98] transition-all flex items-center justify-between px-8 group shadow-2xl shadow-orange-600/20 rounded-none">
+                                <span className="text-black font-black text-xl uppercase tracking-wider font-koulen">Enter SoulPrint</span>
+                                <ArrowRight className="w-6 h-6 text-black group-hover:translate-x-1 transition-transform" />
+                            </button>
                         </Link>
+                    </motion.div>
+
+                    {/* Spacer B - Balanced Gap (Same as A) */}
+                    <div className="flex-1" />
+                </div>
+
+
+            </section>
+
+            {/* Desktop Hero - Full-bleed background design (matching mobile) */}
+            <section className="hidden lg:flex relative flex-col min-h-[100dvh] w-full overflow-hidden">
+                {/* Full-bleed Background Image */}
+                <div
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                    style={{ backgroundImage: "url('/images/desktop-hero-v2.png')" }}
+                />
+
+                {/* Gradient overlays for text readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent" />
+
+                {/* Desktop Header - Logo + Login (matching mobile style) */}
+                <header className="relative flex items-center justify-between px-12 xl:px-20 pt-10 pb-4 z-20">
+                    <div className="inline-flex items-center gap-3">
+                        <Image
+                            src="/images/soulprintlogomain.png"
+                            alt="SoulPrint Logo"
+                            width={48}
+                            height={48}
+                            className="w-12 h-12 object-contain"
+                        />
+                        <span className="text-white text-4xl font-normal font-koulen leading-10 tracking-tight">SOULPRINT</span>
                     </div>
-                </motion.div>
+                    <Link href="/enter" className="relative group overflow-hidden">
+                        <span className="text-white text-base font-bold uppercase tracking-wide group-hover:text-orange-600 transition-colors duration-300">
+                            Login
+                        </span>
+                        <span className="absolute bottom-0 left-0 w-full h-[3px] bg-orange-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                    </Link>
+                </header>
 
-                {/* Image/Visual Container */}
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3, duration: 0.5 }}
-                    className="relative flex h-[220px] w-full max-w-[260px] flex-col items-start justify-center sm:h-[280px] sm:max-w-[320px] lg:h-auto lg:max-w-[500px] lg:flex-1 xl:max-w-[600px]"
-                >
-                    {/* Mobile Background for Image - Hidden on Desktop */}
-                    <div className="absolute inset-0 bg-[url('/images/hero-badge.png')] bg-contain bg-center bg-no-repeat opacity-50 mix-blend-screen lg:hidden" />
+                {/* Content & CTA Container */}
+                <div className="relative flex flex-1 flex-col z-10">
+                    {/* Top Spacer */}
+                    <div className="flex-[0.5]" />
 
-                    <img
-                        src="/images/hero-badge.png"
-                        alt="SoulPrint Badge"
-                        className="relative z-10 h-full w-full object-contain"
-                    />
-                </motion.div>
-            </div>
-        </section>
+                    {/* Headline and Subheading */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.2 }}
+                        className="flex flex-col items-center text-center space-y-6 px-12"
+                    >
+                        <h1 className="text-[5rem] xl:text-[6rem] 2xl:text-[7rem] font-koulen uppercase tracking-tight leading-[0.85] text-white drop-shadow-2xl">
+                            YOUR AI
+                            <br />
+                            SHOULD KNOW
+                            <br />
+                            <span className="text-orange-600">WHO YOU ARE</span>
+                        </h1>
+
+                        <p className="text-white/80 text-xl xl:text-2xl font-medium leading-relaxed max-w-[700px]">
+                            The world&apos;s first high-fidelity digital identity platform. Capture your essence.
+                        </p>
+                    </motion.div>
+
+                    {/* Spacer A - Balanced Gap */}
+                    <div className="flex-1" />
+
+                    {/* CTA Button centered in remaining space */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.4 }}
+                        className="px-12 w-full max-w-[500px] mx-auto"
+                    >
+                        <Link href="/enter" className="block w-full">
+                            <button className="w-full h-16 bg-orange-600 hover:bg-orange-500 active:scale-[0.98] transition-all flex items-center justify-between px-8 group shadow-2xl shadow-orange-600/20 rounded-none">
+                                <span className="text-black font-black text-xl uppercase tracking-wider font-koulen">Enter SoulPrint</span>
+                                <ArrowRight className="w-6 h-6 text-black group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </Link>
+                    </motion.div>
+
+                    {/* Spacer B - Balanced Gap */}
+                    <div className="flex-1" />
+                </div>
+            </section>
+        </>
     );
 }

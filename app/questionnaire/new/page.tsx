@@ -1,16 +1,62 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
-import { Sidebar } from "@/components/dashboard/sidebar"
-import { ProgressStepper, PILLARS } from "@/components/dashboard/progress-stepper"
-import { questions, Question } from "@/lib/questions"
+import { LiquidGlassSlider } from "@/components/ui/liquid-glass-slider"
+import { Sidebar, MobileSidebar } from "@/components/dashboard/sidebar"
+import { ProgressStepper, MobileProgress, PILLARS } from "@/components/dashboard/progress-stepper"
+import { questions } from "@/lib/questions"
 import { createClient } from "@/lib/supabase/client"
 import { VoiceRecorderV3 } from "@/components/voice-recorder/VoiceRecorderV3"
 import Image from "next/image"
+import { Menu } from "lucide-react"
+
+// --- PRESETS FOR DEV TESTING ---
+const ACE_ANSWERS: Record<string, string | number> = {
+    s1: 100, s2: 0, s3: 100, s4: 100, s5: 0, s6: 0, s7: 0, s8: 0, s9: 0, s10: 100, s11: 0, s12: 50, s13: 100, s14: 100, s15: 0, s16: 0, s17: 100, s18: 0,
+    q1: "I don't have a tone. I have a frequency. You either tune in or you break.",
+    q2: "Reloading.",
+    q3: "We don't ask for permission. We build the thing that makes permission irrelevant.",
+    q4: "Weakness.",
+    q5: "I don't reset. I reload.",
+    q6: "Never.",
+    q7: "I waited too long to kill a bad feature. It cost me 6 weeks.",
+    q8: "If you aren't risking it all, you aren't playing.",
+    q9: "Yes. Because he's going to be richer than me.",
+    q10: "The war room.",
+    q11: "Win at all costs.",
+    q12: "Killers.",
+    q13: "Doing it.",
+    q14: "Excuses.",
+    q15: "Ship it and see what breaks.",
+    q16: "Destroy them.",
+    q17: "Fuel.",
+    q18: "Relentless."
+};
+
+const SAGE_ANSWERS: Record<string, string | number> = {
+    s1: 100, s2: 100, s3: 0, s4: 50, s5: 100, s6: 100, s7: 100, s8: 100, s9: 100, s10: 0, s11: 0, s12: 0, s13: 100, s14: 100, s15: 100, s16: 100, s17: 0, s18: 100,
+    q1: "That I'm judging them. I'm just listening deeply.",
+    q2: "A sacred space where truth can emerge.",
+    q3: "We are all walking each other home.",
+    q4: "My own needs.",
+    q5: "Nature. Silence. Tea.",
+    q6: "When a client made a breakthrough I didn't see coming.",
+    q7: "I spoke too soon and broke the trust.",
+    q8: "Vulnerability is the only risk.",
+    q9: "Yes, because I am planting seeds today.",
+    q10: "A circle of elders.",
+    q11: "Compassion first.",
+    q12: "Those who are doing the work.",
+    q13: "Reflection.",
+    q14: "Surface level chatter.",
+    q15: "Journaling.",
+    q16: "Pause and reflect.",
+    q17: "Transform.",
+    q18: "Safe."
+};
 
 export default function NewQuestionnairePage() {
     const router = useRouter()
@@ -47,6 +93,11 @@ export default function NewQuestionnairePage() {
 
     const [limitReached, setLimitReached] = useState(false)
     const [hasAnySoulprint, setHasAnySoulprint] = useState(false)
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+    const handleMenuClose = useCallback(() => {
+        setIsMobileMenuOpen(false)
+    }, [])
 
     // Check limits and load saved answers
     useEffect(() => {
@@ -89,6 +140,7 @@ export default function NewQuestionnairePage() {
         } else {
             setTextInput(typeof savedAnswer === "string" ? savedAnswer : "")
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentQuestionIndex, currentQuestion?.id, currentQuestion?.type])
 
     // Save answer for current question
@@ -107,18 +159,24 @@ export default function NewQuestionnairePage() {
     }
 
     // Handle voice recording completion
-    const handleVoiceComplete = (result: any) => {
-        const newAnswers = {
-            ...answers,
-            [currentQuestion.id]: {
-                transcript: result.transcript,
-                emotionalSignature: result.emotionalSignature
+    const handleVoiceComplete = useCallback((result: { transcript: string; emotionalSignature: unknown }) => {
+        setAnswers(prev => {
+            const newAnswers = {
+                ...prev,
+                [currentQuestion.id]: {
+                    transcript: result.transcript,
+                    emotionalSignature: result.emotionalSignature
+                }
             }
-        }
-        setAnswers(newAnswers)
+            localStorage.setItem("soulprint_answers", JSON.stringify(newAnswers))
+            return newAnswers
+        })
         setVoiceRecorded(true)
-        localStorage.setItem("soulprint_answers", JSON.stringify(newAnswers))
-    }
+    }, [currentQuestion?.id])
+
+    const handleVoiceError = useCallback((err: string) => {
+        console.error(err)
+    }, [])
 
     const handlePrevious = () => {
         if (currentQuestionIndex > 0) {
@@ -131,7 +189,7 @@ export default function NewQuestionnairePage() {
         if (currentQuestion?.type === "voice" && !voiceRecorded) {
             return
         }
-        const updatedAnswers = saveCurrentAnswer()
+        saveCurrentAnswer()
 
         if (currentQuestionIndex < questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1)
@@ -154,7 +212,6 @@ export default function NewQuestionnairePage() {
                     .maybeSingle();
 
                 if (!profile) {
-                    console.log('🛡️ Layer 2: Self-healing missing profile before submission');
                     await supabase.from('profiles').insert({
                         id: user.id,
                         email: user.email!,
@@ -179,41 +236,42 @@ export default function NewQuestionnairePage() {
         router.push('/')
     }
 
-    const handleDevFill = () => {
-        // Fast-track: Generate answers for ALL questions
-        const dummyAnswers: Record<string, string | number | object> = {}
+    const handleDevFill = (archetype: 'ACE' | 'SAGE') => {
+        // Fast-track: Generate answers for ALL questions based on archetype
+        const preset = archetype === 'ACE' ? ACE_ANSWERS : SAGE_ANSWERS;
+
+        // Add dummy voice if needed (though presets cover text)
+        const filledAnswers: Record<string, string | number | object> = { ...preset };
+
+        // Ensure voice questions have a dummy object structure
         questions.forEach(q => {
-            if (q.type === "slider") {
-                dummyAnswers[q.id] = 50 + Math.floor(Math.random() * 40) // Random 50-90
-            } else if (q.type === "voice") {
-                dummyAnswers[q.id] = {
-                    transcript: "Simulated voice response for dev testing. The user is expressing deep thoughts about their digital soul.",
+            if (q.type === "voice" && !filledAnswers[q.id]) {
+                filledAnswers[q.id] = {
+                    transcript: archetype === 'ACE' ? "Let's build this." : "I am listening.",
                     emotionalSignature: { sentiment: { score: 0.8, label: "positive" } }
                 }
-            } else {
-                dummyAnswers[q.id] = "Development testing answer: valid response text."
             }
-        })
+        });
 
         // Set state
-        setAnswers(dummyAnswers)
+        setAnswers(filledAnswers)
 
         // Jump to last question
         const lastIndex = questions.length - 1
         setCurrentQuestionIndex(lastIndex)
 
         // Update storage
-        localStorage.setItem("soulprint_answers", JSON.stringify(dummyAnswers))
+        localStorage.setItem("soulprint_answers", JSON.stringify(filledAnswers))
         localStorage.setItem("soulprint_current_index", lastIndex.toString())
 
         // Sync local input state for the final question
         const lastQ = questions[lastIndex]
         if (lastQ.type === "slider") {
-            setSliderValue([dummyAnswers[lastQ.id] as number])
+            setSliderValue([filledAnswers[lastQ.id] as number])
         } else if (lastQ.type === "voice") {
             setVoiceRecorded(true)
         } else {
-            setTextInput(dummyAnswers[lastQ.id] as string)
+            setTextInput(filledAnswers[lastQ.id] as string)
         }
     }
 
@@ -257,14 +315,30 @@ export default function NewQuestionnairePage() {
 
     return (
         <div className="flex h-screen bg-[#d4d4d8]">
-            {/* Sidebar */}
+            {/* Desktop Sidebar */}
             <Sidebar hasSoulprint={hasAnySoulprint} />
+
+            {/* Mobile Sidebar Drawer */}
+            <MobileSidebar
+                hasSoulprint={hasAnySoulprint}
+                isOpen={isMobileMenuOpen}
+                onClose={handleMenuClose}
+            />
 
             {/* Main Content */}
             <div className="flex flex-1 flex-col">
                 {/* Top Bar */}
-                <header className="flex h-[52px] items-center justify-between border-b border-[#111] bg-[#111] px-4">
-                    <div className="flex items-center gap-2">
+                <header className="flex h-[52px] items-center justify-between border-b border-[#111] bg-[#111] px-3 sm:px-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        {/* Mobile menu button */}
+                        <button
+                            onClick={() => setIsMobileMenuOpen(true)}
+                            className="lg:hidden flex h-10 w-10 items-center justify-center rounded-md text-white hover:bg-white/5 transition-colors"
+                        >
+                            <Menu className="h-5 w-5" />
+                            <span className="sr-only">Open menu</span>
+                        </button>
+
                         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                             <Image
                                 src="/images/Soulprintengine-logo.png"
@@ -273,55 +347,76 @@ export default function NewQuestionnairePage() {
                                 height={28}
                                 className="object-contain"
                             />
-                            <span className="font-koulen text-[22px] leading-[26px] text-white tracking-wide">
+                            <span className="hidden sm:inline font-koulen text-[22px] leading-[26px] text-white tracking-wide">
                                 SOULPRINT
                             </span>
-                            <span className="font-cinzel font-normal text-[20px] leading-[26px] tracking-[1px] uppercase text-white -ml-1">
+                            <span className="hidden sm:inline font-cinzel font-normal text-[20px] leading-[26px] tracking-[1px] uppercase text-white -ml-1">
                                 ENGINE
                             </span>
                         </Link>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button
-                            onClick={handleDevFill}
-                            variant="outline"
-                            className="hidden lg:flex h-9 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
-                        >
-                            DEV: FILL
-                        </Button>
+                        {/* Dev tools - only visible in development mode */}
+                        {process.env.NODE_ENV === 'development' && (
+                            <div className="hidden lg:flex items-center gap-2">
+                                <Button
+                                    onClick={() => handleDevFill('ACE')}
+                                    variant="outline"
+                                    className="h-9 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                                >
+                                    FILL: ACE
+                                </Button>
+                                <Button
+                                    onClick={() => handleDevFill('SAGE')}
+                                    variant="outline"
+                                    className="h-9 border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
+                                >
+                                    FILL: SAGE
+                                </Button>
+                            </div>
+                        )}
                         <Button
                             onClick={() => router.push('/dashboard/profile')}
                             variant="ghost"
-                            className="h-9 text-gray-400 hover:text-white hover:bg-gray-800"
+                            className="hidden sm:flex h-9 text-gray-400 hover:text-white hover:bg-gray-800"
                         >
                             Exit
                         </Button>
                         <Button
                             onClick={handleLogout}
-                            className="h-9 rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600"
+                            className="h-9 rounded-lg bg-gray-700 px-3 sm:px-4 py-2 text-sm font-medium text-white hover:bg-gray-600"
                         >
-                            Log out
+                            <span className="hidden sm:inline">Log out</span>
+                            <span className="sm:hidden">Exit</span>
                         </Button>
                     </div>
                 </header>
 
                 {/* Content Area */}
-                <main className="flex-1 overflow-hidden p-4">
-                    <div className="flex h-full gap-4">
-                        {/* Left Side - Question Area */}
-                        <div className="flex flex-1 flex-col rounded-xl bg-[#FAFAFA] p-6 shadow-[0px_4px_4px_2px_rgba(0,0,0,0.25)]">
+                <main className="flex-1 overflow-hidden p-2 sm:p-4">
+                    <div className="flex flex-col lg:flex-row h-full gap-4">
+                        {/* Question Area */}
+                        <div className="flex flex-1 flex-col rounded-xl bg-[#FAFAFA] p-4 sm:p-6 shadow-[0px_4px_4px_2px_rgba(0,0,0,0.25)] overflow-y-auto">
+                            {/* Mobile Progress */}
+                            <MobileProgress
+                                currentPart={currentPillar}
+                                currentQuestion={questionInPillar}
+                                totalQuestionsInPart={totalQuestionsInPillar}
+                                pillarName={pillarName}
+                            />
+
                             {/* Header */}
-                            <div className="mb-6">
-                                <p className="font-inter text-sm font-medium text-black opacity-80 mb-2">
+                            <div className="mb-4 sm:mb-6">
+                                <p className="hidden lg:block font-inter text-sm font-medium text-black opacity-80 mb-2">
                                     {pillarName} | PART {currentPillar} - Question {questionInPillar} of {totalQuestionsInPillar}
                                 </p>
-                                <h1 className="font-koulen text-[32px] leading-[38px] text-black tracking-wide">
-                                    LET'S BUILD YOUR SOULPRINT
+                                <h1 className="font-koulen text-[24px] sm:text-[32px] leading-[30px] sm:leading-[38px] text-black tracking-wide">
+                                    LET&apos;S BUILD YOUR SOULPRINT
                                 </h1>
                             </div>
 
                             {/* Question Card */}
-                            <div className="flex-1 rounded-xl border border-[#e5e5e5] bg-white p-6 shadow-sm">
+                            <div className="flex-1 rounded-xl border border-[#e5e5e5] bg-white p-4 sm:p-6 shadow-sm">
                                 {/* Question Text */}
                                 <p className="font-inter text-base leading-6 text-black opacity-80 mb-6">
                                     {currentQuestion?.question}
@@ -329,25 +424,17 @@ export default function NewQuestionnairePage() {
 
                                 {/* Answer Area */}
                                 {currentQuestion?.type === "slider" ? (
-                                    <div className="mt-8">
-                                        {/* Percentage Display */}
-                                        <div className="mb-4 flex justify-center">
-                                            <span className="font-inter text-3xl font-semibold text-orange-600">
-                                                {sliderValue[0]}%
-                                            </span>
-                                        </div>
-                                        <Slider
+                                    <div className="mt-20 px-8 pb-10">
+                                        <LiquidGlassSlider
                                             value={sliderValue}
                                             onValueChange={setSliderValue}
                                             max={100}
-                                            min={1}
+                                            min={0}
                                             step={1}
-                                            className="w-full"
+                                            className="w-full max-w-3xl mx-auto"
+                                            leftLabel={currentQuestion.leftLabel}
+                                            rightLabel={currentQuestion.rightLabel}
                                         />
-                                        <div className="mt-4 flex justify-between text-sm text-gray-500">
-                                            <span>{currentQuestion.leftLabel}</span>
-                                            <span>{currentQuestion.rightLabel}</span>
-                                        </div>
                                     </div>
                                 ) : currentQuestion?.type === "voice" ? (
                                     <div className="mt-4">
@@ -356,7 +443,7 @@ export default function NewQuestionnairePage() {
                                         </p>
                                         <VoiceRecorderV3
                                             onAnalysisComplete={handleVoiceComplete}
-                                            onError={(err) => console.error(err)}
+                                            onError={handleVoiceError}
                                             minDuration={0}
                                             maxDuration={currentQuestion.maxDuration || 90}
                                             questionText={currentQuestion.question}
@@ -381,27 +468,29 @@ export default function NewQuestionnairePage() {
                             </div>
 
                             {/* Navigation Buttons */}
-                            <div className="mt-6 flex justify-end gap-3">
-                                {!isFirstQuestion && (
+                            <div className="mt-4 sm:mt-6 flex justify-between sm:justify-end gap-3">
+                                {!isFirstQuestion ? (
                                     <Button
                                         onClick={handlePrevious}
                                         variant="secondary"
-                                        className="h-10 rounded-lg bg-[#f5f5f5] px-6 py-2 text-sm font-medium text-[#171717] hover:bg-gray-200"
+                                        className="h-12 sm:h-10 flex-1 sm:flex-none rounded-lg bg-[#f5f5f5] px-4 sm:px-6 py-2 text-sm font-medium text-[#171717] hover:bg-gray-200"
                                     >
                                         Previous
                                     </Button>
+                                ) : (
+                                    <div className="flex-1 sm:hidden" />
                                 )}
                                 <Button
                                     onClick={handleNext}
                                     disabled={isSubmitting || (currentQuestion?.type === "voice" && !voiceRecorded)}
-                                    className="h-10 rounded-lg bg-[#EA580C] px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 disabled:opacity-50"
+                                    className="h-12 sm:h-10 flex-1 sm:flex-none rounded-lg bg-[#EA580C] px-4 sm:px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 disabled:opacity-50"
                                 >
                                     {isSubmitting ? "Submitting..." : isLastQuestion ? "Finish SoulPrint" : "Next"}
                                 </Button>
                             </div>
                         </div>
 
-                        {/* Right Side - Progress Stepper */}
+                        {/* Desktop Progress Stepper - hidden on mobile */}
                         <ProgressStepper
                             currentPart={currentPillar}
                             currentQuestion={questionInPillar}

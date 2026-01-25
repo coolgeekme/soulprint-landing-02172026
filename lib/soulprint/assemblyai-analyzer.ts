@@ -13,7 +13,7 @@
  * This runs SERVER-SIDE only to protect the API key
  */
 
-import { AssemblyAI, type TranscriptWord, type SentimentAnalysisResult } from 'assemblyai';
+import { AssemblyAI, type SentimentAnalysisResult } from 'assemblyai';
 
 // Initialize client (server-side only)
 const client = new AssemblyAI({
@@ -108,19 +108,18 @@ export interface AssemblyAIAnalysisResult {
 /**
  * Analyze audio file using AssemblyAI
  * @param audioData - Audio file as Buffer or base64 string
- * @param mimeType - Audio MIME type (audio/webm, audio/wav, etc.)
+ * @param _mimeType - Audio MIME type (audio/webm, audio/wav, etc.) - reserved for future use
  */
 export async function analyzeWithAssemblyAI(
   audioData: Buffer | string,
-  mimeType: string = 'audio/webm'
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _mimeType: string = 'audio/webm'
 ): Promise<AssemblyAIAnalysisResult> {
   
   // Convert base64 to buffer if needed
   const audioBuffer = typeof audioData === 'string' 
     ? Buffer.from(audioData, 'base64')
     : audioData;
-  
-  console.log('[AssemblyAI] Starting transcription, audio size:', audioBuffer.length, 'bytes');
   
   // Upload and transcribe with all features enabled
   const transcript = await client.transcripts.transcribe({
@@ -132,9 +131,7 @@ export async function analyzeWithAssemblyAI(
   if (transcript.status === 'error') {
     throw new Error(`AssemblyAI transcription failed: ${transcript.error}`);
   }
-  
-  console.log('[AssemblyAI] Transcription complete, confidence:', transcript.confidence);
-  
+
   // Extract words
   const words = (transcript.words || []).map(w => ({
     text: w.text,

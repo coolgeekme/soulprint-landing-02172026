@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { processSoulPrint } from '@/lib/soulprint/service';
-import type { QuestionnaireAnswers } from '@/lib/gemini';
+import type { QuestionnaireAnswers } from '@/lib/soulprint/types';
 
 export const maxDuration = 60; // Allow up to 60 seconds for processing
-export const runtime = 'edge'; // Use Edge Runtime for longer timeout on Hobby plan
 
 // Supabase admin client
 const supabaseAdmin = createAdminClient(
@@ -38,7 +37,6 @@ export async function POST(request: NextRequest) {
 
         // Verify user permission
         if (user.id !== user_id && user.email !== user_id) {
-            console.warn(`Unauthorized attempt: User ${user.id}/${user.email} tried to submit for ${user_id}`);
             return NextResponse.json(
                 { error: 'Unauthorized: User ID mismatch' },
                 { status: 403 }

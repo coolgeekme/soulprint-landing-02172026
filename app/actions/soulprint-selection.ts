@@ -51,14 +51,8 @@ export async function listMySoulPrints() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
-    // Auto-focus logic
-    const currentFocus = cookieStore.get(COOKIE_NAME)?.value
-    if (data && data.length > 0) {
-        if (!currentFocus || !data.find(s => s.id === currentFocus)) {
-            // Default to most recent (index 0)
-            await switchSoulPrint(data[0].id)
-        }
-    }
+    // Note: Auto-focus repair is handled client-side to avoid cookie modification in Server Components
+    // If the current focus is invalid, the client will detect and repair it
 
     // Map to simpler format for UI, extracting name from json if possible
     return data?.map(sp => ({
@@ -70,5 +64,41 @@ export async function listMySoulPrints() {
 
 export async function getSelectedSoulPrintId() {
     const cookieStore = await cookies()
-    return cookieStore.get(COOKIE_NAME)?.value
+    const currentId = cookieStore.get(COOKIE_NAME)?.value
+
+    // Safety check: Validate this ID actually belongs to the user
+    // This prevents "Unrecognized Name" errors if cookies get stale/mixed
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: { getAll() { return cookieStore.getAll() } }
+        }
+    )
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    // Fetch user's soulprints to validate
+    const { data: soulprints } = await supabase
+        .from('soulprints')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+
+    if (soulprints && soulprints.length > 0) {
+        // If we have an ID, check if it's valid
+        const isValid = currentId && soulprints.some(s => s.id === currentId)
+
+        if (!isValid) {
+            // Invalid or missing cookie ID - return the most recent soulprint
+            // Client will handle repair via Server Action
+            return soulprints[0].id
+        }
+    } else {
+        // User has no soulprints
+        return null
+    }
+
+    return currentId
 }

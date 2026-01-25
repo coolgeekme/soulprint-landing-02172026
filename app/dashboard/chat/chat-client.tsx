@@ -1,42 +1,107 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import dynamic from "next/dynamic"
+import { useState, useEffect, useRef, useCallback, type CSSProperties } from "react"
 import { Button } from "@/components/ui/button"
-import { generateApiKey, listApiKeys } from "@/app/actions/api-keys"
+import { listApiKeys } from "@/app/actions/api-keys"
 import { getChatHistory, saveChatMessage, clearChatHistory, getChatSessions, type ChatSession } from "@/app/actions/chat-history"
-import { Send, Bot, User, Loader2, Trash2, Plus, MessageSquare, ChevronLeft, ChevronRight, Menu } from "lucide-react"
+import {
+    Bot, Loader2, Trash2, Plus, MessageSquare,
+    ChevronLeft, ChevronRight,
+    ChevronsUpDown, X, Download, FileJson, FileText, FileCode,
+    Sparkles, User
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
-
-// Dynamic import to avoid SSR issues with canvas
-const SoulprintBackground = dynamic(
-    () => import("@/components/visualizer/SoulprintBackground"),
-    { ssr: false }
-)
+import { getSoulprintTheme, type SoulprintTheme } from "@/lib/soulprint-theme"
+import { ChatMessage } from "./chat-message"
+import { ChatInput } from "./chat-input"
 
 interface Message {
     role: "user" | "assistant"
     content: string
 }
 
+interface SuggestionCard {
+    title: string
+    description: string
+    prompt: string
+    isPersonalized?: boolean
+}
+
+const defaultSuggestions: SuggestionCard[] = [
+    {
+        title: "Summarize Text",
+        description: "Turn Articles into easy-to-read summaries.",
+        prompt: "Please summarize the following text for me:"
+    },
+    {
+        title: "Social Media Post",
+        description: "Get help creating your next social media post.",
+        prompt: "Help me create an engaging social media post about:"
+    },
+    {
+        title: "Analyze Spreadsheet",
+        description: "Take a deep dive into your excel documents.",
+        prompt: "Help me analyze this spreadsheet data:"
+    }
+]
+
+// Generate personalized suggestions from past chat sessions (based on user's messages)
+function generatePersonalizedSuggestions(sessions: ChatSession[]): SuggestionCard[] {
+    if (!sessions || sessions.length === 0) return []
+
+    const personalized: SuggestionCard[] = []
+
+    // Get the 3 most recent sessions with meaningful user content
+    const recentSessions = sessions
+        .filter(s => s.last_message && s.last_message.length > 10 && s.session_id !== 'legacy')
+        .slice(0, 3)
+
+    for (const session of recentSessions) {
+        const userMsg = session.last_message || ""
+        // Clean up and summarize the user's question/topic
+        const cleanedTopic = userMsg
+            .replace(/\n/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+
+        // Create a cleaner title - capitalize first letter, limit length
+        const displayTitle = cleanedTopic.length > 40
+            ? cleanedTopic.slice(0, 40).trim() + '...'
+            : cleanedTopic
+
+        personalized.push({
+            title: displayTitle.charAt(0).toUpperCase() + displayTitle.slice(1),
+            description: "Continue this conversation",
+            prompt: userMsg, // Send the original user message as context
+            isPersonalized: true
+        })
+    }
+
+    return personalized
+}
+
 export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string | null }) {
     const [messages, setMessages] = useState<Message[]>([])
     const [sessions, setSessions] = useState<ChatSession[]>([])
+    const [smartSuggestions, setSmartSuggestions] = useState<SuggestionCard[]>(defaultSuggestions)
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
-    const [input, setInput] = useState("")
     const [loading, setLoading] = useState(false)
     const [apiKey, setApiKey] = useState<string | null>(null)
     const [initializing, setInitializing] = useState(true)
     const [user, setUser] = useState<{ id?: string; email?: string } | null>(null)
-    const [personality, setPersonality] = useState<string>("Default System")
+    const [, setPersonality] = useState<string>("Default System")
     const [displayName, setDisplayName] = useState<string>("SoulPrint")
     const [shouldAutoScroll, setShouldAutoScroll] = useState(false)
-    const [sidebarOpen, setSidebarOpen] = useState(false) // Default closed for mobile safety
+    const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [exportMenuOpen, setExportMenuOpen] = useState(false)
+    const [coachingMode] = useState(false)
+    const [coachingGoal] = useState<string | null>(null)
+    const [soulprintTheme, setSoulprintTheme] = useState<SoulprintTheme>(() => getSoulprintTheme(null))
 
     // Initialize sidebar state based on screen width
     useEffect(() => {
-        if (window.innerWidth >= 768) {
+        if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
             setSidebarOpen(true)
         }
     }, [])
@@ -90,6 +155,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                         // Determine display name
                         const name = soulprintData?.name || soulprintData?.archetype || "SoulPrint"
                         setDisplayName(name)
+                        setSoulprintTheme(getSoulprintTheme(soulprintData))
 
                         const personalityStr =
                             soulprintData?.full_system_prompt ||
@@ -99,9 +165,10 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                             'Default System'
                         setPersonality(personalityStr)
                     }
-                } catch (e) {
+                } catch {
                     setPersonality(currentUser.email || 'Default System')
                     setDisplayName("SoulPrint")
+                    setSoulprintTheme(getSoulprintTheme(null))
                 }
 
                 // 3. Load Sessions
@@ -113,9 +180,10 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                     setApiKey(storedKey)
                 } else {
                     const { keys } = await listApiKeys()
-                    if (keys && keys.length > 0) {
-                        setApiKey(keys[0].encrypted_key || "legacy-key-placeholder")
+                    if (keys && keys.length > 0 && keys[0].encrypted_key) {
+                        setApiKey(keys[0].encrypted_key)
                     }
+                    // If no valid key exists, apiKey remains null and chat will be blocked
                 }
 
             } catch (error) {
@@ -126,12 +194,23 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
         }
 
         init()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedSoulprintId])
 
     // Load sessions from server
     async function loadSessions() {
         const userSessions = await getChatSessions()
         setSessions(userSessions)
+
+        // Generate personalized suggestions based on chat history
+        const personalized = generatePersonalizedSuggestions(userSessions)
+        if (personalized.length > 0) {
+            // Show personalized suggestions first, then fill with defaults
+            const combined = [...personalized, ...defaultSuggestions].slice(0, 3)
+            setSmartSuggestions(combined)
+        } else {
+            setSmartSuggestions(defaultSuggestions)
+        }
     }
 
     // Load history when session changes
@@ -173,11 +252,11 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
         }
     }, [messages, shouldAutoScroll])
 
-    async function handleSend() {
-        if (!input.trim() || !apiKey) return
 
-        const userMsg = input
-        setInput("")
+
+    const handleSend = useCallback(async (userMsg: string) => {
+        if (!userMsg.trim() || !apiKey) return
+
         setShouldAutoScroll(true)
         setMessages(prev => [...prev, { role: "user", content: userMsg }])
         setLoading(true)
@@ -197,7 +276,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
         })
 
         try {
-            const res = await fetch("/api/v1/chat/completions", {
+            const res = await fetch("/api/llm/chat", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -207,7 +286,9 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                     model: "gpt-4o",
                     stream: true,
                     soulprint_id: selectedSoulprintId,
-                    session_id: sessionIdToUse, // Pass session ID to API if needed (though API mostly uses history)
+                    session_id: sessionIdToUse,
+                    coaching_mode: coachingMode,
+                    coaching_goal: coachingGoal,
                     messages: [
                         ...messages.map(m => ({ role: m.role, content: m.content })),
                         { role: "user", content: userMsg }
@@ -243,7 +324,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                     if (lastMsg.role === "assistant") lastMsg.content = botMsg
                                     return newMessages
                                 })
-                            } catch (e) { }
+                            } catch { /* ignore parse errors */ }
                         }
                     }
                 }
@@ -259,202 +340,553 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                 loadSessions()
             }
 
-        } catch (e) {
+        } catch {
             setMessages(prev => [...prev, { role: "assistant", content: "Error: Failed to reply." }])
         } finally {
             setLoading(false)
         }
-    }
+    }, [apiKey, currentSessionId, selectedSoulprintId, coachingMode, coachingGoal, messages])
 
     async function handleClearHistory() {
         if (confirm("Are you sure? This will delete messages in this session.")) {
             await clearChatHistory(currentSessionId || undefined)
             setMessages([])
-            loadSessions() // Refresh list
-            if (currentSessionId) setCurrentSessionId(null) // Reset to new chat
+            loadSessions()
+            if (currentSessionId) setCurrentSessionId(null)
         }
     }
 
     function handleNewChat() {
         setCurrentSessionId(null);
         setMessages([]);
-        if (window.innerWidth < 768) setSidebarOpen(false);
+        if (typeof window !== 'undefined' && window.innerWidth < 1024) setSidebarOpen(false);
+    }
+
+    function handleSuggestionClick(prompt: string) {
+        handleSend(prompt)
+    }
+
+    // Export functions
+    function exportAsJSON() {
+        const exportData = {
+            exportedAt: new Date().toISOString(),
+            soulprint: displayName,
+            sessionId: currentSessionId,
+            messages: messages.map(m => ({
+                role: m.role,
+                content: m.content
+            }))
+        }
+        downloadFile(
+            JSON.stringify(exportData, null, 2),
+            `soulprint-chat-${new Date().toISOString().split('T')[0]}.json`,
+            'application/json'
+        )
+        setExportMenuOpen(false)
+    }
+
+    function exportAsMarkdown() {
+        let md = `# SoulPrint Chat Export\n\n`
+        md += `**Date:** ${new Date().toLocaleDateString()}\n`
+        md += `**SoulPrint:** ${displayName}\n\n`
+        md += `---\n\n`
+
+        messages.forEach(msg => {
+            const speaker = msg.role === 'user' ? '**You**' : `**${displayName}**`
+            md += `${speaker}:\n\n${msg.content}\n\n---\n\n`
+        })
+
+        downloadFile(
+            md,
+            `soulprint-chat-${new Date().toISOString().split('T')[0]}.md`,
+            'text/markdown'
+        )
+        setExportMenuOpen(false)
+    }
+
+    function exportAsText() {
+        let txt = `SoulPrint Chat Export\n`
+        txt += `Date: ${new Date().toLocaleDateString()}\n`
+        txt += `SoulPrint: ${displayName}\n`
+        txt += `${'='.repeat(50)}\n\n`
+
+        messages.forEach(msg => {
+            const speaker = msg.role === 'user' ? 'You' : displayName
+            txt += `[${speaker}]\n${msg.content}\n\n`
+        })
+
+        downloadFile(
+            txt,
+            `soulprint-chat-${new Date().toISOString().split('T')[0]}.txt`,
+            'text/plain'
+        )
+        setExportMenuOpen(false)
+    }
+
+    function downloadFile(content: string, filename: string, mimeType: string) {
+        const blob = new Blob([content], { type: mimeType })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
     }
 
     if (initializing) {
         return (
-            <div className="flex h-full items-center justify-center text-gray-400">
-                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                Updating SoulContext...
+            <div className="flex h-full items-center justify-center bg-zinc-300">
+                <div className="text-center">
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-zinc-600" />
+                    <p className="mt-2 text-zinc-600">Updating SoulContext...</p>
+                </div>
             </div>
         )
     }
 
+    const showWelcome = messages.length === 0
+
     return (
-        <div className="relative flex h-full overflow-hidden rounded-xl border border-[#222]">
-            {/* Background (Global) */}
-            <div className="absolute inset-0 z-0 opacity-80 pointer-events-none">
-                <SoulprintBackground personality={personality} />
-            </div>
-            <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/10 via-transparent to-black/40" />
+        <div className="flex h-full w-full overflow-hidden rounded-xl bg-zinc-100 shadow-[0px_4px_4px_2px_rgba(0,0,0,0.25)]">
+            {/* Mobile Backdrop */}
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
 
-            {/* Content Container with Sidebar */}
-            <div className="relative z-10 flex h-full w-full bg-[#111]/60 backdrop-blur-sm">
-
-                {/* Mobile Backdrop to close sidebar */}
+            {/* Light Sidebar */}
+            <div className={cn(
+                "flex flex-col bg-white transition-all duration-300 ease-in-out z-50 border-r border-zinc-200",
+                "fixed inset-y-0 left-0 lg:relative lg:inset-auto",
+                sidebarOpen
+                    ? "w-[280px] translate-x-0"
+                    : "w-0 -translate-x-full lg:translate-x-0"
+            )}>
                 {sidebarOpen && (
-                    <div
-                        className="absolute inset-0 z-20 bg-black/50 backdrop-blur-[1px] md:hidden"
-                        onClick={() => setSidebarOpen(false)}
-                    />
-                )}
-
-                {/* Session Sidebar */}
-                <div className={cn(
-                    "flex flex-col border-r border-[#222] bg-[#0A0A0A] shadow-xl md:shadow-none transition-all duration-300 ease-in-out md:static absolute inset-y-0 left-0 z-30",
-                    sidebarOpen ? "w-[80%] max-w-[300px] md:w-64 translate-x-0" : "w-0 -translate-x-full md:w-0 md:translate-x-0 md:opacity-0 md:overflow-hidden"
-                )}>
-                    <div className="p-4 border-b border-[#222] flex items-center justify-between">
-                        <Button
-                            onClick={handleNewChat}
-                            className="w-full bg-orange-600 hover:bg-orange-700 text-white flex gap-2"
-                        >
-                            <Plus className="h-4 w-4" />
-                            New Chat
-                        </Button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                        {sessions.length === 0 && (
-                            <div className="text-xs text-center text-gray-500 py-4">No saved sessions</div>
-                        )}
-                        {sessions.map((session) => (
-                            <button
-                                key={session.session_id}
-                                onClick={() => {
-                                    setCurrentSessionId(session.session_id);
-                                    if (window.innerWidth < 768) setSidebarOpen(false);
-                                }}
-                                className={cn(
-                                    "w-full text-left px-3 py-3 rounded-lg text-sm flex items-start gap-3 transition-colors",
-                                    currentSessionId === session.session_id
-                                        ? "bg-[#222] text-white"
-                                        : "text-gray-400 hover:bg-[#1a1a1a] hover:text-gray-200"
-                                )}
-                            >
-                                <MessageSquare className="h-4 w-4 mt-0.5 shrink-0" />
-                                <div className="truncate">
-                                    <div className="font-medium truncate">{session.last_message || "New Conversation"}</div>
-                                    <div className="text-[10px] text-gray-600 mt-1">
-                                        {new Date(session.created_at).toLocaleDateString()}
-                                    </div>
+                    <div className="flex flex-col h-full w-[280px] overflow-hidden pt-[env(safe-area-inset-top)]">
+                        {/* Sidebar Header - Your SoulPrint Identity */}
+                        <div className="p-4 bg-gradient-to-br from-zinc-900 to-zinc-800">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-[#E8632B] flex items-center justify-center shadow-lg">
+                                    <Sparkles className="h-5 w-5 text-white" />
                                 </div>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Main Chat Area */}
-                <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-                    {/* Toggle Sidebar Button (Mobile/Desktop) */}
-                    <div className="absolute left-2 top-2 z-30 md:hidden">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="text-gray-400 hover:text-white bg-black/20 backdrop-blur-sm border border-white/10"
-                        >
-                            <Menu className="h-4 w-4" />
-                        </Button>
-                    </div>
-                    {/* Toggle Sidebar Button (Desktop only) */}
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 z-30 hidden md:block">
-                        <button
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="h-16 w-4 bg-[#111] border-y border-r border-[#222] rounded-r-md flex items-center justify-center text-gray-500 hover:text-white hover:bg-[#222] transition-colors"
-                        >
-                            {sidebarOpen ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                        </button>
-                    </div>
-
-                    {/* Chat Header */}
-                    <div className="flex items-center justify-between border-b border-[#222] bg-[#111]/95 p-3 pl-14 md:pl-6 min-h-[60px] relative z-20">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-500/20 text-green-500">
-                                <Bot className="h-5 w-5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <h2 className="font-semibold text-white truncate text-sm md:text-base">{displayName}</h2>
-                                <p className="text-xs text-gray-500 truncate">
-                                    {currentSessionId ? 'Active Session' : 'New Session'} • {user?.email?.split('@')[0]}
-                                </p>
+                                <div className="flex-1 min-w-0">
+                                    <span className="text-base font-semibold text-white block truncate">
+                                        {displayName}
+                                    </span>
+                                    <span className="text-xs text-zinc-400">AI Companion</span>
+                                </div>
+                                <button
+                                    onClick={() => setSidebarOpen(false)}
+                                    className="lg:hidden p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                                >
+                                    <X className="h-4 w-4 text-zinc-300" />
+                                </button>
                             </div>
                         </div>
-                        {messages.length > 0 && (
-                            <Button variant="ghost" size="sm" onClick={handleClearHistory} className="text-gray-400 hover:text-red-400 shrink-0 ml-2">
-                                <Trash2 className="h-4 w-4 md:mr-1" />
-                                <span className="hidden md:inline">Clear</span>
-                            </Button>
-                        )}
-                    </div>
 
-                    {/* Messages Area */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        {messages.length === 0 && (
-                            <div className="flex h-full flex-col items-center justify-center text-center text-gray-500">
-                                <Bot className="mb-4 h-12 w-12 opacity-20" />
-                                <p>Start chatting to see your SoulPrint in action.</p>
+                        {/* New Conversation Button */}
+                        <div className="p-3 border-b border-zinc-100">
+                            <Button
+                                onClick={handleNewChat}
+                                className="w-full bg-[#E8632B] hover:bg-[#d55a26] text-white gap-2 h-10 font-medium shadow-sm"
+                            >
+                                <Plus className="h-4 w-4" />
+                                New Conversation
+                            </Button>
+                        </div>
+
+                        {/* Conversations List - Limited to 5 recent, expandable */}
+                        <div className="flex-1 overflow-hidden flex flex-col relative">
+                            <div className="p-3 flex-1 flex flex-col">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Recent</span>
+                                    {sessions.length > 0 && (
+                                        <span className="text-xs text-zinc-400">{sessions.length}</span>
+                                    )}
+                                </div>
+
+                                {sessions.length === 0 ? (
+                                    <div className="py-8 text-center">
+                                        <MessageSquare className="h-8 w-8 text-zinc-300 mx-auto mb-2" />
+                                        <p className="text-sm text-zinc-400">No conversations yet</p>
+                                        <p className="text-xs text-zinc-400 mt-1">Start chatting to see history</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="space-y-1">
+                                            {sessions.slice(0, 5).map((session) => (
+                                                <button
+                                                    key={session.session_id}
+                                                    onClick={() => {
+                                                        setCurrentSessionId(session.session_id);
+                                                        if (typeof window !== 'undefined' && window.innerWidth < 1024) setSidebarOpen(false);
+                                                    }}
+                                                    className={cn(
+                                                        "w-full px-3 py-2 rounded-lg flex items-center gap-3 transition-all text-left group",
+                                                        currentSessionId === session.session_id
+                                                            ? "bg-[#E8632B]/10 border border-[#E8632B]/20"
+                                                            : "hover:bg-zinc-50 border border-transparent"
+                                                    )}
+                                                >
+                                                    <MessageSquare className={cn(
+                                                        "h-4 w-4 shrink-0 transition-colors",
+                                                        currentSessionId === session.session_id
+                                                            ? "text-[#E8632B]"
+                                                            : "text-zinc-400 group-hover:text-zinc-600"
+                                                    )} />
+                                                    <span className={cn(
+                                                        "flex-1 text-sm truncate",
+                                                        currentSessionId === session.session_id
+                                                            ? "text-[#E8632B] font-medium"
+                                                            : "text-zinc-700"
+                                                    )}>
+                                                        {session.last_message?.slice(0, 25) || "New Conversation"}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {sessions.length > 5 && (
+                                            <button
+                                                onClick={() => {
+                                                    const el = document.getElementById('full-history-drawer');
+                                                    if (el) el.classList.toggle('hidden');
+                                                }}
+                                                className="w-full mt-2 px-3 py-2 text-xs text-[#E8632B] hover:bg-[#E8632B]/5 rounded-lg transition-colors flex items-center justify-center gap-1 font-medium"
+                                            >
+                                                View all ({sessions.length})
+                                                <ChevronRight className="h-3 w-3" />
+                                            </button>
+                                        )}
+                                    </>
+                                )}
                             </div>
-                        )}
-                        {messages.map((msg, i) => (
-                            <div key={i} className={cn("flex gap-3", msg.role === "user" ? "justify-end" : "justify-start")}>
-                                {msg.role === "assistant" && (
-                                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20 text-green-500">
+
+                            {/* Full History Drawer - Hidden by default */}
+                            {sessions.length > 5 && (
+                                <div id="full-history-drawer" className="hidden absolute inset-0 bg-white z-10 flex flex-col">
+                                    <div className="p-3 border-b border-zinc-200 flex items-center justify-between">
+                                        <span className="text-sm font-semibold text-zinc-700">All Conversations</span>
+                                        <button
+                                            onClick={() => {
+                                                const el = document.getElementById('full-history-drawer');
+                                                if (el) el.classList.add('hidden');
+                                            }}
+                                            className="p-1 hover:bg-zinc-100 rounded"
+                                        >
+                                            <X className="h-4 w-4 text-zinc-500" />
+                                        </button>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto p-3 space-y-1">
+                                        {sessions.map((session) => (
+                                            <button
+                                                key={session.session_id}
+                                                onClick={() => {
+                                                    setCurrentSessionId(session.session_id);
+                                                    const el = document.getElementById('full-history-drawer');
+                                                    if (el) el.classList.add('hidden');
+                                                    if (typeof window !== 'undefined' && window.innerWidth < 1024) setSidebarOpen(false);
+                                                }}
+                                                className={cn(
+                                                    "w-full px-3 py-2 rounded-lg flex items-center gap-3 transition-all text-left group",
+                                                    currentSessionId === session.session_id
+                                                        ? "bg-[#E8632B]/10 border border-[#E8632B]/20"
+                                                        : "hover:bg-zinc-50 border border-transparent"
+                                                )}
+                                            >
+                                                <MessageSquare className={cn(
+                                                    "h-4 w-4 shrink-0 transition-colors",
+                                                    currentSessionId === session.session_id
+                                                        ? "text-[#E8632B]"
+                                                        : "text-zinc-400 group-hover:text-zinc-600"
+                                                )} />
+                                                <span className={cn(
+                                                    "flex-1 text-sm truncate",
+                                                    currentSessionId === session.session_id
+                                                        ? "text-[#E8632B] font-medium"
+                                                        : "text-zinc-700"
+                                                )}>
+                                                    {session.last_message?.slice(0, 25) || "New Conversation"}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Sidebar Footer - User Account */}
+                        <div className="p-3 bg-zinc-50 border-t border-zinc-200">
+                            <button
+                                onClick={() => window.open('/dashboard/settings', '_self')}
+                                className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-100 transition-colors"
+                            >
+                                <div className="w-9 h-9 bg-zinc-200 rounded-full flex items-center justify-center">
+                                    <User className="h-4 w-4 text-zinc-600" />
+                                </div>
+                                <div className="flex-1 min-w-0 text-left">
+                                    <div className="text-sm font-medium text-zinc-800 truncate">
+                                        {user?.email?.split('@')[0] || 'User'}
+                                    </div>
+                                    <div className="text-xs text-zinc-500 truncate">
+                                        {user?.email || 'View Account'}
+                                    </div>
+                                </div>
+                                <ChevronsUpDown className="h-4 w-4 text-zinc-400 shrink-0" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Main Chat Area */}
+            <div
+                className="flex-1 flex flex-col h-full overflow-hidden bg-neutral-50 relative"
+                style={
+                    {
+                        "--sp-primary": soulprintTheme.colors.primary,
+                        "--sp-primary-dark": soulprintTheme.colors.primaryDark,
+                        "--sp-accent": soulprintTheme.colors.accent,
+                        "--sp-text": soulprintTheme.colors.text,
+                        "--sp-bg": soulprintTheme.colors.bg,
+                        "--sp-surface": soulprintTheme.colors.surface,
+                        "--sp-muted": soulprintTheme.colors.muted,
+                        fontFamily: soulprintTheme.fontFamily
+                    } as CSSProperties
+                }
+            >
+
+                {/* Mobile Chat Header */}
+                <div className="flex items-center gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] lg:hidden border-b border-zinc-200 bg-white">
+                    <button
+                        onClick={() => setSidebarOpen(true)}
+                        className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-zinc-700 hover:bg-zinc-100"
+                        aria-label="Open history"
+                    >
+                        <MessageSquare className="h-4 w-4" />
+                    </button>
+                    <div className="flex-1 min-w-0 text-center">
+                        <div className="text-sm font-semibold truncate text-[color:var(--sp-text)]">{displayName}</div>
+                    </div>
+                    {messages.length > 0 && (
+                        <div className="relative">
+                            <button
+                                onClick={() => setExportMenuOpen(!exportMenuOpen)}
+                                className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white p-2 text-zinc-600 hover:bg-zinc-100"
+                                title="Export"
+                            >
+                                <Download className="h-4 w-4" />
+                            </button>
+                            {exportMenuOpen && (
+                                <>
+                                    <div
+                                        className="fixed inset-0 z-40"
+                                        onClick={() => setExportMenuOpen(false)}
+                                    />
+                                    <div className="absolute right-0 mt-2 w-44 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg z-50">
+                                        <button
+                                            onClick={exportAsJSON}
+                                            className="w-full px-4 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-100 flex items-center gap-2"
+                                        >
+                                            <FileJson className="h-4 w-4 text-orange-500" />
+                                            Export JSON
+                                        </button>
+                                        <button
+                                            onClick={exportAsMarkdown}
+                                            className="w-full px-4 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-100 flex items-center gap-2"
+                                        >
+                                            <FileCode className="h-4 w-4 text-blue-500" />
+                                            Export Markdown
+                                        </button>
+                                        <button
+                                            onClick={exportAsText}
+                                            className="w-full px-4 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-100 flex items-center gap-2"
+                                        >
+                                            <FileText className="h-4 w-4 text-zinc-500" />
+                                            Export Text
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Desktop Toggle Button */}
+                <button
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 h-16 w-4 bg-zinc-200 hover:bg-zinc-300 items-center justify-center rounded-r-md transition-colors"
+                >
+                    {sidebarOpen ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                </button>
+
+                {showWelcome ? (
+                    /* Welcome Screen - Content centered in middle of white area */
+                    <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-10 xl:px-16 py-6 overflow-y-auto">
+                        <div className="w-full max-w-[1100px] flex flex-col items-center">
+                            {/* Logo - At top of content group */}
+                            <div className="flex items-center justify-center gap-3 mb-8 sm:mb-10">
+                                <span className="font-koulen text-5xl sm:text-6xl lg:text-7xl text-black tracking-wide">
+                                    SOULPRINT
+                                </span>
+                                <span className="font-inter italic font-thin text-4xl sm:text-5xl lg:text-6xl text-black tracking-tight">
+                                    Engine
+                                </span>
+                            </div>
+
+                            {/* Input Card - Larger */}
+                            <div className="w-full mb-8 sm:mb-10">
+                                <div className="border border-stone-300 rounded-2xl p-5 sm:p-6 bg-white shadow-sm">
+                                    <ChatInput
+                                        onSend={handleSend}
+                                        disabled={loading}
+                                        placeholder="Ask me anything..."
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Suggestion Cards - Larger */}
+                            <div className="w-full">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+                                    {smartSuggestions.map((suggestion, idx) => (
+                                        <button
+                                            key={`${suggestion.title}-${idx}`}
+                                            onClick={() => handleSuggestionClick(suggestion.prompt)}
+                                            className={cn(
+                                                "hover:scale-[1.02] active:scale-[0.98] border rounded-xl p-5 sm:p-6 text-left transition-all flex flex-col justify-start shadow-sm min-h-[120px]",
+                                                suggestion.isPersonalized
+                                                    ? "bg-[color:var(--sp-bg)] border-[color:var(--sp-accent)] hover:bg-white"
+                                                    : "bg-white border-stone-200 hover:bg-zinc-50"
+                                            )}
+                                        >
+                                            <h3 className="text-lg sm:text-base font-semibold text-black leading-snug">
+                                                {suggestion.title}
+                                            </h3>
+                                            <p className="text-base sm:text-sm text-neutral-500 mt-3 leading-relaxed">
+                                                {suggestion.description}
+                                            </p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    /* Chat Messages View */
+                    <>
+                        {/* Desktop Chat Header */}
+                        <div className="hidden lg:flex items-center justify-between border-b border-zinc-200 bg-white p-3 min-h-[52px]">
+                            <div className="flex items-center gap-3 pl-6">
+                                <div
+                                    className="flex h-8 w-8 items-center justify-center rounded-full"
+                                    style={{ backgroundColor: "var(--sp-accent)", color: "var(--sp-primary)" }}
+                                >
+                                    <Bot className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h2 className="font-semibold text-sm text-[color:var(--sp-text)]">{displayName}</h2>
+                                    <p className="text-xs text-[color:var(--sp-muted)]">
+                                        {currentSessionId ? 'Active Session' : 'New Session'}
+                                    </p>
+                                </div>
+                            </div>
+                            {messages.length > 0 && (
+                                <div className="flex items-center gap-2">
+                                    {/* Export Dropdown */}
+                                    <div className="relative">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setExportMenuOpen(!exportMenuOpen)}
+                                            className="text-zinc-500 hover:text-zinc-700"
+                                        >
+                                            <Download className="h-4 w-4 mr-1" />
+                                            Export
+                                        </Button>
+                                        {exportMenuOpen && (
+                                            <>
+                                                <div
+                                                    className="fixed inset-0 z-40"
+                                                    onClick={() => setExportMenuOpen(false)}
+                                                />
+                                                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-zinc-200 py-1 z-50">
+                                                    <button
+                                                        onClick={exportAsJSON}
+                                                        className="w-full px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 flex items-center gap-2"
+                                                    >
+                                                        <FileJson className="h-4 w-4 text-orange-500" />
+                                                        Export as JSON
+                                                    </button>
+                                                    <button
+                                                        onClick={exportAsMarkdown}
+                                                        className="w-full px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 flex items-center gap-2"
+                                                    >
+                                                        <FileCode className="h-4 w-4 text-blue-500" />
+                                                        Export as Markdown
+                                                    </button>
+                                                    <button
+                                                        onClick={exportAsText}
+                                                        className="w-full px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 flex items-center gap-2"
+                                                    >
+                                                        <FileText className="h-4 w-4 text-zinc-500" />
+                                                        Export as Text
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleClearHistory}
+                                        className="text-zinc-500 hover:text-red-500"
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-1" />
+                                        Clear
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Messages Area */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {messages.map((msg, i) => (
+                                <ChatMessage key={i} message={msg} />
+                            ))}
+                            {loading && (
+                                <div className="flex gap-3">
+                                    <div
+                                        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
+                                        style={{ backgroundColor: "var(--sp-accent)", color: "var(--sp-primary)" }}
+                                    >
                                         <Bot className="h-4 w-4" />
                                     </div>
-                                )}
-                                <div className={cn("max-w-[80%] rounded-lg p-3 text-sm", msg.role === "user" ? "bg-orange-600 text-white" : "bg-[#222] text-gray-200")}>
-                                    {msg.content}
-                                </div>
-                                {msg.role === "user" && (
-                                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-600/20 text-orange-500">
-                                        <User className="h-4 w-4" />
+                                    <div className="flex items-center gap-1 rounded-xl bg-white border border-zinc-200 p-3">
+                                        <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400" style={{ animationDelay: "0ms" }} />
+                                        <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400" style={{ animationDelay: "150ms" }} />
+                                        <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400" style={{ animationDelay: "300ms" }} />
                                     </div>
-                                )}
-                            </div>
-                        ))}
-                        {loading && (
-                            <div className="flex gap-3">
-                                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20 text-green-500">
-                                    <Bot className="h-4 w-4" />
                                 </div>
-                                <div className="flex items-center gap-1 rounded-lg bg-[#222] p-3">
-                                    <span className="h-2 w-2 animate-bounce rounded-full bg-gray-500" style={{ animationDelay: "0ms" }} />
-                                    <span className="h-2 w-2 animate-bounce rounded-full bg-gray-500" style={{ animationDelay: "150ms" }} />
-                                    <span className="h-2 w-2 animate-bounce rounded-full bg-gray-500" style={{ animationDelay: "300ms" }} />
-                                </div>
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    {/* Input Area */}
-                    <div className="border-t border-[#222] p-4">
-                        <div className="flex gap-2">
-                            <input
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && !loading && handleSend()}
-                                placeholder="Type a message..."
-                                className="flex-1 rounded-md border border-[#333] bg-[#0A0A0A]/80 px-4 py-2 text-white placeholder:text-gray-600 focus:border-orange-500 focus:outline-none"
-                                disabled={loading}
-                            />
-                            <Button onClick={handleSend} disabled={loading || !input.trim()} className="bg-orange-600 hover:bg-orange-700">
-                                <Send className="h-4 w-4" />
-                            </Button>
+                            )}
+                            <div ref={messagesEndRef} />
                         </div>
-                    </div>
-                </div>
+
+                        {/* Input Area (Active Chat) */}
+                        <div className="border-t border-zinc-200 p-3 sm:p-4 bg-white">
+                            <div className="max-w-4xl mx-auto">
+                                <ChatInput
+                                    onSend={handleSend}
+                                    disabled={loading}
+                                    placeholder="Type a message..."
+                                />
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     )

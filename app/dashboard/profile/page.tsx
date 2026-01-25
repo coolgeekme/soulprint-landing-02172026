@@ -4,10 +4,11 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Download, RefreshCw, Loader2, Brain, Heart, Scale, Users, Cpu, Shield, Plus, Trash2, ArrowLeft, Pencil, Check, X } from "lucide-react"
-import { listMySoulPrints, switchSoulPrint } from "@/app/actions/soulprint-selection"
+import { Download, Loader2, Brain, Heart, Scale, Users, Cpu, Shield, Plus, Trash2, ArrowLeft, Pencil, Check, X, Link2, Globe } from "lucide-react"
+import { listMySoulPrints } from "@/app/actions/soulprint-selection"
 import { deleteSoulPrint, updateSoulPrintName } from "@/app/actions/soulprint-management"
-import type { SoulPrintData } from "@/lib/gemini/types"
+import { togglePublicProfile, getPublicProfileStatus } from "@/app/actions/public-profile"
+import type { SoulPrintData, SoulPrintPillar } from "@/lib/soulprint/types"
 
 const pillarIcons: Record<string, React.ReactNode> = {
     communication_style: <Brain className="w-5 h-5" />,
@@ -32,7 +33,12 @@ export default function ProfilePage() {
     const supabase = createClient()
 
     const [view, setView] = useState<'list' | 'detail'>('list')
-    const [soulprints, setSoulprints] = useState<any[]>([])
+    interface SoulPrintListItem {
+        id: string;
+        name?: string;
+        archetype?: string;
+    }
+    const [soulprints, setSoulprints] = useState<SoulPrintListItem[]>([])
     const [selectedSoulprint, setSelectedSoulprint] = useState<SoulPrintData | null>(null)
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState(false)
@@ -41,9 +47,16 @@ export default function ProfilePage() {
     const [editingId, setEditingId] = useState<string | null>(null)
     const [editingName, setEditingName] = useState("")
 
+    // Share state
+    const [selectedId, setSelectedId] = useState<string | null>(null)
+    const [isPublic, setIsPublic] = useState(false)
+    const [shareUrl, setShareUrl] = useState<string | null>(null)
+    const [copied, setCopied] = useState(false)
+
     // Load list on mount
     useEffect(() => {
         loadList()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     async function loadList() {
@@ -64,18 +77,39 @@ export default function ProfilePage() {
 
     async function handleViewDetail(id: string) {
         setLoading(true)
-        // Fetch full detail
-        const { data } = await supabase
-            .from('soulprints')
-            .select('soulprint_data')
-            .eq('id', id)
-            .single()
+        setSelectedId(id)
 
-        if (data?.soulprint_data) {
-            setSelectedSoulprint(data.soulprint_data as SoulPrintData)
+        // Fetch full detail and public status in parallel
+        const [detailResult, publicStatus] = await Promise.all([
+            supabase.from('soulprints').select('soulprint_data').eq('id', id).single(),
+            getPublicProfileStatus(id)
+        ])
+
+        if (detailResult.data?.soulprint_data) {
+            setSelectedSoulprint(detailResult.data.soulprint_data as SoulPrintData)
+            setIsPublic(publicStatus.isPublic)
+            setShareUrl(publicStatus.shareUrl || null)
             setView('detail')
         }
         setLoading(false)
+    }
+
+    async function handleToggleShare() {
+        if (!selectedId) return
+        setActionLoading(true)
+        const result = await togglePublicProfile(selectedId)
+        if (result.success) {
+            setIsPublic(result.isPublic)
+            setShareUrl(result.shareUrl || null)
+        }
+        setActionLoading(false)
+    }
+
+    function handleCopyLink() {
+        if (!shareUrl) return
+        navigator.clipboard.writeText(shareUrl)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
     }
 
     async function handleDelete(id: string) {
@@ -87,14 +121,8 @@ export default function ProfilePage() {
         setActionLoading(false)
     }
 
-    async function handleSwitchAndEdit(id: string) {
-        // Switch context first? Not strictly needed for viewing, but maybe nice.
-        // For now just view.
-        handleViewDetail(id)
-    }
-
     // Inline name editing handlers
-    function startEditing(sp: any) {
+    function startEditing(sp: SoulPrintListItem) {
         setEditingId(sp.id)
         setEditingName(sp.name || "")
     }
@@ -259,9 +287,45 @@ export default function ProfilePage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
+                    {/* Share Toggle */}
+                    <Button
+                        onClick={handleToggleShare}
+                        disabled={actionLoading}
+                        variant="outline"
+                        className={isPublic ? "border-orange-500 bg-orange-500/10 text-orange-500 hover:bg-orange-500/20" : "border-[#333] text-white hover:bg-[#222]"}
+                    >
+                        {actionLoading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Globe className="mr-2 h-4 w-4" />
+                        )}
+                        {isPublic ? "Public" : "Make Public"}
+                    </Button>
+
+                    {/* Copy Link (only shown when public) */}
+                    {isPublic && shareUrl && (
+                        <Button
+                            onClick={handleCopyLink}
+                            variant="outline"
+                            className="border-[#333] text-white hover:bg-[#222]"
+                        >
+                            {copied ? (
+                                <>
+                                    <Check className="mr-2 h-4 w-4 text-green-500" />
+                                    Copied!
+                                </>
+                            ) : (
+                                <>
+                                    <Link2 className="mr-2 h-4 w-4" />
+                                    Copy Link
+                                </>
+                            )}
+                        </Button>
+                    )}
+
                     <Button onClick={handleExport} variant="outline" className="border-[#333] text-white hover:bg-[#222]">
                         <Download className="mr-2 h-4 w-4" />
-                        Export JSON
+                        Export
                     </Button>
                 </div>
             </div>
@@ -291,7 +355,7 @@ export default function ProfilePage() {
             {/* Pillars */}
             <div className="grid gap-4">
                 <h2 className="text-lg font-semibold text-white">Personality Pillars</h2>
-                {selectedSoulprint.pillars && Object.entries(selectedSoulprint.pillars).map(([key, pillar]) => (
+                {selectedSoulprint.pillars && Object.entries(selectedSoulprint.pillars).map(([key, pillar]: [string, SoulPrintPillar]) => (
                     <div key={key} className="rounded-xl border border-[#222] bg-[#111] p-5">
                         <div className="flex items-center gap-3 mb-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#222] text-orange-500">
@@ -303,7 +367,7 @@ export default function ProfilePage() {
 
                         {pillar.markers && pillar.markers.length > 0 && (
                             <div className="flex flex-wrap gap-2">
-                                {pillar.markers.slice(0, 5).map((marker, i) => (
+                                {pillar.markers.slice(0, 5).map((marker: string, i: number) => (
                                     <span key={i} className="rounded-full bg-[#222] px-3 py-1 text-xs text-gray-300">
                                         {marker}
                                     </span>
@@ -320,7 +384,7 @@ export default function ProfilePage() {
                     <h2 className="text-lg font-semibold text-red-400 mb-4">Communication Triggers</h2>
                     <p className="text-sm text-gray-400 mb-4">Things that may cause friction or discomfort:</p>
                     <ul className="space-y-2">
-                        {selectedSoulprint.flinch_warnings.map((warning, i) => (
+                        {selectedSoulprint.flinch_warnings.map((warning: string, i: number) => (
                             <li key={i} className="flex items-start gap-2 text-gray-300">
                                 <span className="text-red-500 mt-1">•</span>
                                 {warning}

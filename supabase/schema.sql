@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS public.api_keys (
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   label TEXT NOT NULL,
   key_hash TEXT NOT NULL UNIQUE,
+  encrypted_key TEXT,
+  status TEXT DEFAULT 'active',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   last_used_at TIMESTAMP WITH TIME ZONE
 );

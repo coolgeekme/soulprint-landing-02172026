@@ -1,9 +1,8 @@
 /**
  * Voice Recorder Components
- * 
+ *
  * Provides React components for capturing voice recordings in the browser
- * using the MediaRecorder API.
+ * using the MediaRecorder API. Uses server-side AssemblyAI for analysis.
  */
 
-export { VoiceRecorder, default } from './VoiceRecorder';
-export type { VoiceAnalysisResult } from './VoiceRecorder';
+export { VoiceRecorderV3, default } from './VoiceRecorderV3';

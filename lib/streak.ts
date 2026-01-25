@@ -1,16 +1,20 @@
 import { sendConfirmationEmail } from '@/lib/email';
 
-// Streak Configuration
-const STREAK_API_KEY = 'strk_LitL1WFFkGdFSuTpHRQDNYIZQ2l';
-const PIPELINE_KEY = 'agxzfm1haWxmb29nYWVyNQsSDE9yZ2FuaXphdGlvbiIOYXJjaGVmb3JnZS5jb20MCxIIV29ya2Zsb3cYgIClntjvsAoM';
-const STAGE_KEY_LEAD_COLLECTED = '5001';
+// Streak Configuration - loaded from environment variables
+const STREAK_API_KEY = process.env.STREAK_API_KEY;
+const PIPELINE_KEY = process.env.STREAK_PIPELINE_KEY;
+const STAGE_KEY_LEAD_COLLECTED = process.env.STREAK_STAGE_KEY || '5001';
 
 /**
  * Creates a new Lead in Streak (creates Box + adds Comment + sends Email)
  */
 export async function createStreakLead(name: string, email: string, ndaAgreed: boolean) {
+    // Skip if Streak is not configured
+    if (!STREAK_API_KEY || !PIPELINE_KEY) {
+        return { success: false, error: 'Streak not configured' };
+    }
+
     try {
-        console.log(`Creating Streak Lead for: ${email}`);
 
         // 1. Create the Box
         const createBoxResponse = await fetch(

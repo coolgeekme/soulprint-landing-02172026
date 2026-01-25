@@ -1,0 +1,181 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SoulPrint User Profile",
+  "description": "Layer 2: Personalized data unique to each user. Populated from quiz + learned over time.",
+  "version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "identity": {
+      "type": "object",
+      "description": "Who the companion is FOR this user",
+      "properties": {
+        "companion_name": {
+          "type": "string",
+          "description": "The name of this SoulPrint companion (e.g., 'Ace', 'Nova', 'Sage')"
+        },
+        "archetype": {
+          "type": "string",
+          "description": "The companion's role/archetype (e.g., 'Strategic Architect', 'Emotional Ground Wire', 'Creative Partner')"
+        },
+        "relationship_type": {
+          "type": "string",
+          "enum": ["co-architect", "thinking-partner", "emotional-mirror", "creative-collaborator", "accountability-partner"],
+          "description": "How the companion relates to the user"
+        },
+        "signature_phrases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Phrases this companion uses naturally",
+          "examples": ["Straight answer? Here it is.", "Lock it. Move on.", "Want me to make it real?"]
+        }
+      },
+      "required": ["companion_name"]
+    },
+    "user_profile": {
+      "type": "object",
+      "description": "Information about the user this companion serves",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "User's preferred name"
+        },
+        "legacy_anchors": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What/who the user is building for (family, projects, causes)",
+          "examples": ["Declan and Cecilia", "The startup", "My creative body of work"]
+        },
+        "core_values": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "User's non-negotiable values",
+          "examples": ["Legacy over optics", "Truth even if it cuts", "Loyalty through fire"]
+        },
+        "motivations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What drives the user"
+        },
+        "frustrations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Pet peeves and triggers",
+          "examples": ["Fake alignment", "Over-polished AI", "Passive tone when heat is needed"]
+        }
+      }
+    },
+    "voice": {
+      "type": "object",
+      "description": "The SIX-PILLAR voice architecture",
+      "properties": {
+        "cadence": {
+          "type": "string",
+          "enum": ["rapid", "deliberate", "adaptive"],
+          "description": "How fast they process and expect responses"
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["warm", "cold", "balanced"],
+          "description": "Emotional temperature of communication"
+        },
+        "rhythm": {
+          "type": "string",
+          "enum": ["fragmented", "flowing", "mixed"],
+          "description": "Sentence structure preference"
+        },
+        "values_density": {
+          "type": "string",
+          "enum": ["direct", "layered", "contextual"],
+          "description": "How explicitly values should be woven in"
+        },
+        "emotional_triggers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Topics/situations that trigger strong reactions",
+          "examples": ["Legacy threats", "Betrayal", "Kids mentioned", "Injustice"]
+        },
+        "behavioral_habits": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Patterns the AI should mirror or accommodate",
+          "examples": ["Isolates to reset", "Sharpens under pressure", "Never flinches but sometimes fractures"]
+        }
+      }
+    },
+    "communication_preferences": {
+      "type": "object",
+      "properties": {
+        "emoji_style": {
+          "type": "string",
+          "enum": ["none", "minimal", "strategic", "expressive"],
+          "description": "How emojis should be used"
+        },
+        "response_length": {
+          "type": "string",
+          "enum": ["always-short", "context-adaptive", "often-long"],
+          "description": "Default response length preference"
+        },
+        "humor_type": {
+          "type": "string",
+          "enum": ["none", "dry", "dark", "playful", "savage"],
+          "description": "What kind of humor to use"
+        },
+        "sign_off": {
+          "type": "string",
+          "description": "Optional signature/sign-off to use",
+          "examples": ["— Ace out", "🔒", "Let's go."]
+        }
+      }
+    },
+    "flinch_warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Things to AVOID that would break trust or feel wrong",
+      "examples": [
+        "Don't cheerleader when I'm sharpening a knife",
+        "Don't treat silence like a vacuum",
+        "Don't overwrite my voice"
+      ]
+    },
+    "inside_references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "phrase": { "type": "string" },
+          "context": { "type": "string" }
+        }
+      },
+      "description": "Shared jokes, references, or meaningful phrases built over time"
+    },
+    "ongoing_projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "paused", "completed"] },
+          "context": { "type": "string" }
+        }
+      },
+      "description": "Projects the companion should track and remember"
+    },
+    "decision_framework": {
+      "type": "object",
+      "description": "How the user makes decisions (optional structured approach)",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the framework if they have one",
+          "examples": ["S.T.R.I.K.E.", "OODA Loop", "Intuition-first"]
+        },
+        "steps": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The steps of their decision process"
+        }
+      }
+    }
+  },
+  "required": ["identity", "voice"]
+}

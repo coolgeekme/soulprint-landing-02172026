@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import type { SoulPrintData } from '@/lib/gemini/types';
+import type { SoulPrintData } from '@/lib/soulprint/types';
 
 export async function saveSoulPrint(
     supabase: SupabaseClient,
@@ -19,7 +19,6 @@ export async function saveSoulPrint(
     }
 
     if (!profile) {
-        console.log('⚠️ Profile missing for user, creating fail-safe profile:', userId);
         const { error: insertError } = await supabase
             .from('profiles')
             .insert({
@@ -72,7 +71,6 @@ export async function saveSoulPrint(
             .single();
 
         if (latest) {
-            console.log('⚠️ Limit reached. Updating latest SoulPrint:', latest.id);
             const { error } = await supabase
                 .from('soulprints')
                 .update({

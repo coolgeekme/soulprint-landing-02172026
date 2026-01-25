@@ -1,13 +1,20 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import Image from "next/image"
 
 export default function QuestionnaireIntroPage() {
     const router = useRouter()
+    const [userName, setUserName] = useState("")
 
     const handleLetsGo = () => {
+        // Store name in sessionStorage to pass to questionnaire
+        if (userName.trim()) {
+            sessionStorage.setItem('soulprint_user_name', userName.trim())
+        }
         router.push('/questionnaire/new')
     }
 
@@ -73,7 +80,7 @@ export default function QuestionnaireIntroPage() {
                                     SOULPRINT
                                 </span>
                                 <span className="font-inter font-thin italic text-[54px] leading-[52px] text-white tracking-[-2px]">
-                                    Studio
+                                    Engine
                                 </span>
                             </div>
 
@@ -105,13 +112,30 @@ export default function QuestionnaireIntroPage() {
                             {/* Info Card */}
                             <div className="mb-6 rounded-xl border border-[#e5e5e5] bg-white p-6 shadow-sm">
                                 <p className="font-inter text-base leading-7 text-black opacity-80">
-                                    Let's get your SoulPrint set up.
+                                    Let&apos;s get your SoulPrint set up.
                                 </p>
                                 <p className="mt-4 font-inter text-base leading-7 text-black opacity-80">
-                                    This is a guided, step-by-step process designed to be quick and easy. Simply answer the questions in each section, and we'll build your SoulPrint as you go.
+                                    This is a guided, step-by-step process designed to be quick and easy. Simply answer the questions in each section, and we&apos;ll build your SoulPrint as you go.
                                 </p>
                                 <p className="mt-4 font-inter text-base leading-7 text-black opacity-80">
-                                    There's nothing to prepare. Just respond naturally, and we'll handle the rest.
+                                    There&apos;s nothing to prepare. Just respond naturally, and we&apos;ll handle the rest.
+                                </p>
+                            </div>
+
+                            {/* Name Input */}
+                            <div className="mb-6 rounded-xl border border-[#e5e5e5] bg-white p-6 shadow-sm">
+                                <label className="block font-inter text-sm font-medium text-black opacity-90 mb-2">
+                                    What&apos;s your name?
+                                </label>
+                                <Input
+                                    type="text"
+                                    value={userName}
+                                    onChange={(e) => setUserName(e.target.value)}
+                                    placeholder="Enter your name"
+                                    className="w-full rounded-lg border border-[#e5e5e5] bg-white px-4 py-2 text-black placeholder:text-gray-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                />
+                                <p className="mt-2 font-inter text-xs text-gray-500">
+                                    This helps your AI companion address you personally in conversations.
                                 </p>
                             </div>
 
@@ -121,7 +145,7 @@ export default function QuestionnaireIntroPage() {
                                     onClick={handleLetsGo}
                                     className="h-10 rounded-lg bg-[#EA580C] px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700"
                                 >
-                                    Let's Go
+                                    Let&apos;s Go
                                 </Button>
                             </div>
                         </div>
