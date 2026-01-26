@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Send, Loader2, Sparkles, ChevronLeft, Paperclip, Smile, Mic } from "lucide-react"
+import { Send, Loader2, Sparkles, ChevronLeft, Paperclip, Smile } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import ReactMarkdown from "react-markdown"
@@ -321,8 +321,8 @@ export function MobileChatClient() {
                         )}
                     </button>
                 ) : (
-                    <button className="mic-btn">
-                        <Mic className="h-5 w-5" />
+                    <button className="voice-logo-btn">
+                        <Sparkles className="h-5 w-5 text-white" />
                     </button>
                 )}
             </footer>

@@ -1,6 +1,6 @@
 /**
- * SoulPrint Mobile Chat - Telegram Clone with SoulPrint Colors
- * Purple (#8B5CF6) and Orange (#EA580C) theme
+ * SoulPrint Mobile Chat - Telegram Clone
+ * Brand Orange: #E8632B
  */
 
 /* Container */
@@ -35,14 +35,14 @@
     display: flex;
     align-items: center;
     gap: 2px;
-    color: #8B5CF6;
+    color: #E8632B;
     padding: 8px;
     border-radius: 20px;
     transition: background 0.15s;
 }
 
 .header-back:active {
-    background: rgba(139, 92, 246, 0.1);
+    background: rgba(232, 99, 43, 0.1);
 }
 
 .header-center {
@@ -65,7 +65,7 @@
 }
 
 .header-status.typing {
-    color: #8B5CF6;
+    color: #E8632B;
     font-weight: 500;
 }
 
@@ -73,12 +73,12 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    background: linear-gradient(135deg, #E8632B 0%, #D15420 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     margin-right: 4px;
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 2px 8px rgba(232, 99, 43, 0.3);
 }
 
 /* ===== MESSAGES AREA ===== */
@@ -88,8 +88,8 @@
     overflow-x: hidden;
     padding: 8px 8px;
     background-color: #0e0e12;
-    /* Subtle pattern like Telegram */
-    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%238B5CF6' fill-opacity='0.03'%3E%3Cpath d='M30 30c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10zm-20 0c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    /* Subtle pattern */
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23E8632B' fill-opacity='0.02'%3E%3Cpath d='M30 30c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10zm-20 0c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
 .mobile-chat-messages::-webkit-scrollbar {
@@ -111,12 +111,12 @@
     width: 90px;
     height: 90px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    background: linear-gradient(135deg, #E8632B 0%, #D15420 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 16px;
-    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 4px 20px rgba(232, 99, 43, 0.4);
 }
 
 .empty-title {
@@ -162,9 +162,9 @@
     border-radius: 18px;
 }
 
-/* User bubble - Purple gradient */
+/* User bubble - Orange gradient */
 .message-bubble.user {
-    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    background: linear-gradient(135deg, #E8632B 0%, #D15420 100%);
     color: white;
     border-bottom-right-radius: 4px;
 }
@@ -178,7 +178,7 @@
     border-top-right-radius: 18px;
 }
 
-/* Assistant bubble - Dark with purple tint */
+/* Assistant bubble - Dark */
 .message-bubble.assistant {
     background: #1e1e28;
     color: #f0f0f2;
@@ -202,7 +202,7 @@
     display: block;
     font-size: 13px;
     font-weight: 600;
-    color: #8B5CF6;
+    color: #E8632B;
     margin-bottom: 2px;
 }
 
@@ -227,7 +227,7 @@
 }
 
 .bubble-markdown strong {
-    color: #C4B5FD;
+    color: #F07942;
     font-weight: 600;
 }
 
@@ -269,7 +269,7 @@
 }
 
 .bubble-markdown a {
-    color: #C4B5FD;
+    color: #F07942;
     text-decoration: underline;
 }
 
@@ -298,7 +298,7 @@
 .typing-dots .dot {
     width: 8px;
     height: 8px;
-    background: #8B5CF6;
+    background: #E8632B;
     border-radius: 50%;
     animation: typingBounce 1.4s ease-in-out infinite;
 }
@@ -347,7 +347,7 @@
 }
 
 .input-icon-btn:active {
-    color: #8B5CF6;
+    color: #E8632B;
 }
 
 .input-field-wrapper {
@@ -392,20 +392,21 @@
 }
 
 .input-emoji-btn:active {
-    color: #EA580C;
+    color: #E8632B;
 }
 
 .send-btn {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    background: linear-gradient(135deg, #E8632B 0%, #D15420 100%);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     transition: transform 0.1s;
+    box-shadow: 0 2px 8px rgba(232, 99, 43, 0.3);
 }
 
 .send-btn:active {
@@ -420,12 +421,26 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    background: linear-gradient(135deg, #E8632B 0%, #D15420 100%);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(232, 99, 43, 0.3);
+}
+
+/* Logo button for voice */
+.voice-logo-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #E8632B 0%, #D15420 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(232, 99, 43, 0.3);
 }
 
 /* Animations */
