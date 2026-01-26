@@ -555,8 +555,27 @@ export function MobileChatClient() {
 
     if (isInitializing) {
         return (
-            <div className="mobile-chat-container flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+            <div className="mobile-chat-container">
+                <header className="mobile-chat-header">
+                    <div className="skeleton skeleton-circle" style={{ width: 40, height: 40 }} />
+                    <div className="header-center">
+                        <div className="skeleton skeleton-text" style={{ width: 100, height: 18 }} />
+                    </div>
+                    <div className="skeleton skeleton-circle" style={{ width: 40, height: 40 }} />
+                </header>
+                <main className="mobile-chat-messages">
+                    <div className="skeleton-messages">
+                        <div className="skeleton-bubble left" />
+                        <div className="skeleton-bubble right" />
+                        <div className="skeleton-bubble left wide" />
+                        <div className="skeleton-bubble right" />
+                    </div>
+                </main>
+                <footer className="mobile-chat-input">
+                    <div className="skeleton skeleton-circle" style={{ width: 44, height: 44 }} />
+                    <div className="skeleton skeleton-input" />
+                    <div className="skeleton skeleton-circle" style={{ width: 44, height: 44 }} />
+                </footer>
             </div>
         )
     }

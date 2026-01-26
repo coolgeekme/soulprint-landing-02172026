@@ -1069,6 +1069,65 @@
     }
 }
 
+/* Skeleton Loading */
+.skeleton {
+    background: linear-gradient(90deg, #1e1e28 25%, #2a2a38 50%, #1e1e28 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s infinite;
+    border-radius: 8px;
+}
+
+.skeleton-circle {
+    border-radius: 50%;
+}
+
+.skeleton-text {
+    height: 18px;
+}
+
+.skeleton-input {
+    flex: 1;
+    height: 44px;
+    border-radius: 22px;
+}
+
+.skeleton-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+}
+
+.skeleton-bubble {
+    background: linear-gradient(90deg, #1e1e28 25%, #2a2a38 50%, #1e1e28 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s infinite;
+    border-radius: 18px;
+    height: 48px;
+}
+
+.skeleton-bubble.left {
+    width: 65%;
+    align-self: flex-start;
+}
+
+.skeleton-bubble.right {
+    width: 55%;
+    align-self: flex-end;
+    background: linear-gradient(90deg, rgba(226, 80, 12, 0.2) 25%, rgba(226, 80, 12, 0.3) 50%, rgba(226, 80, 12, 0.2) 75%);
+    background-size: 200% 100%;
+}
+
+.skeleton-bubble.wide {
+    width: 80%;
+    height: 72px;
+}
+
+@keyframes skeletonShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
 /* Animations */
 @keyframes msgFadeIn {
     from {
