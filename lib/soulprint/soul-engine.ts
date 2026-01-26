@@ -2,9 +2,15 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { SoulPrintData } from './types';
 import { ChatMessage } from '@/lib/llm/local-client';
 import { constructDynamicSystemPrompt } from './generator';
-import { inferContext, retrieveUnifiedContext, MemoryResult } from './memory/retrieval';
+import { inferContext } from './memory/retrieval';
 import { getDisplayName } from './name-generator';
 import { searchWeb, formatResultsForLLM } from '@/lib/tavily';
+import { 
+    queryMemoryService, 
+    formatMemoriesForPrompt, 
+    getUserHistoryForMemory,
+    checkMemoryServiceHealth 
+} from '@/lib/memory-service/client';
 
 /**
  * SOUL ENGINE V1
@@ -59,25 +65,30 @@ export class SoulEngine {
             return prompt;
         }
 
-        // 3. Agentic Memory Loop (The "Thinking" Step)
+        // 3. Intelligent Memory Retrieval (via Memory Service)
         try {
-            // A. Infer Context
+            // A. Infer Context for the query
             const contextTopic = await inferContext(recentMessages);
-
-            // B. Retrieve Memories (Vector Search - UNIFIED: native + imported)
-            // We combine the topic with the actual message to ground the search
             const searchQuery = `${contextTopic}: ${content}`;
-            const memories = await retrieveUnifiedContext(this.supabase, this.userId, searchQuery, 10);
+            
+            console.log(`[SoulEngine] Memory query: "${searchQuery.substring(0, 50)}..."`);
 
-            // 4. Inject Memory into Prompt
-            if (memories.length > 0) {
-                let memoryBlock = `\n### L3: ACTIVE MEMORY LAYER (Context: "${contextTopic}")\n`;
-                memories.forEach((m: MemoryResult) => {
-                    const sourceTag = m.source === 'native' ? 'MEMORY' : `${m.source.toUpperCase()}_MEMORY`;
-                    memoryBlock += `[${sourceTag}] "${m.content}"\n`;
-                });
+            // B. Get user's conversation history for memory service
+            const userHistory = await getUserHistoryForMemory(this.supabase, this.userId, 100);
+            
+            // C. Query the memory service (LLM-powered extraction)
+            const memoryResponse = await queryMemoryService(
+                this.userId,
+                searchQuery,
+                userHistory,
+                10
+            );
+
+            // D. Inject Memory into Prompt
+            if (memoryResponse.success && memoryResponse.relevant_memories.length > 0) {
+                const memoryBlock = formatMemoriesForPrompt(memoryResponse);
                 
-                // Replace placeholder if it exists (from generator.ts), otherwise append
+                // Replace placeholder if it exists, otherwise append
                 if (prompt.includes('### L3: ACTIVE MEMORY LAYER (Placeholder)')) {
                     prompt = prompt.replace(
                         '### L3: ACTIVE MEMORY LAYER (Placeholder)\n(Dynamic context will be injected here at runtime)\n', 
@@ -86,19 +97,25 @@ export class SoulEngine {
                 } else {
                     prompt += memoryBlock;
                 }
+                
+                console.log(`[SoulEngine] Injected ${memoryResponse.relevant_memories.length} memories`);
             } else {
                 // Clean up placeholder if no memories
-                 if (prompt.includes('### L3: ACTIVE MEMORY LAYER (Placeholder)')) {
-                     prompt = prompt.replace(
-                         '### L3: ACTIVE MEMORY LAYER (Placeholder)\n(Dynamic context will be injected here at runtime)\n', 
-                         ''
-                     );
-                 }
+                if (prompt.includes('### L3: ACTIVE MEMORY LAYER (Placeholder)')) {
+                    prompt = prompt.replace(
+                        '### L3: ACTIVE MEMORY LAYER (Placeholder)\n(Dynamic context will be injected here at runtime)\n', 
+                        ''
+                    );
+                }
+                
+                if (!memoryResponse.success) {
+                    console.warn('[SoulEngine] Memory service error:', memoryResponse.error);
+                }
             }
 
         } catch (e) {
-            console.error("[SoulEngine] Cognitive Loop Failed (Falling back to base persona):", e);
-            // Fallback is just the base prompt, which we already have.
+            console.error("[SoulEngine] Memory retrieval failed:", e);
+            // Continue without memory - base prompt is still valid
         }
 
         return prompt;

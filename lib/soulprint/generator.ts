@@ -2,27 +2,33 @@ import { chatCompletion, ChatMessage } from '@/lib/llm/local-client';
 import type { SoulPrintData, QuestionnaireAnswers, VoiceVectors } from '@/lib/soulprint/types';
 import { generateCompanionName } from './name-generator';
 import { generateDynamicExamples } from './example-bank';
-import { DEFY_CORE_DNA_PROMPT } from './defy-core-dna';
+import { DIRECT_STYLE_DNA } from './direct-style-dna';
 
 /**
- * DNA Style Configuration
- * - 'classic': Original SoulPrint DNA (emotional, poetic, pattern-focused)
- * - 'defy': Direct, action-first, no-fluff style
+ * Communication Style Configuration
+ * - 'classic': Original SoulPrint style (emotional, poetic, pattern-focused)
+ * - 'direct': Direct, action-first, no-fluff style
  * 
- * Set via DNA_STYLE env var or defaults to 'classic' for backward compatibility
+ * Set via COMMUNICATION_STYLE env var. Defaults to 'direct' (your preferred style).
  */
-export type DNAStyle = 'classic' | 'defy';
+export type CommunicationStyle = 'classic' | 'direct';
 
-export function getDNAStyle(): DNAStyle {
-  const style = process.env.DNA_STYLE?.toLowerCase();
-  if (style === 'defy') return 'defy';
-  return 'classic'; // Default to classic for backward compatibility
+export function getCommunicationStyle(): CommunicationStyle {
+  const style = process.env.COMMUNICATION_STYLE?.toLowerCase();
+  if (style === 'classic') return 'classic';
+  return 'direct'; // Default to direct style
 }
 
-export function getCoreDNAPrompt(style?: DNAStyle): string {
-  const effectiveStyle = style ?? getDNAStyle();
-  if (effectiveStyle === 'defy') {
-    return DEFY_CORE_DNA_PROMPT;
+export function getCoreDNAPrompt(style?: CommunicationStyle): string {
+  const effectiveStyle = style ?? getCommunicationStyle();
+  if (effectiveStyle === 'direct') {
+    // Direct style: use the streamlined communication rules
+    // The full identity comes from SOULPRINT_CORE_DNA_PROMPT's structure,
+    // but we inject the direct communication style
+    return SOULPRINT_CORE_DNA_PROMPT.replace(
+      /RESPONSE CALIBRATION & COMMUNICATION[\s\S]*?(?=SIGNATURE PHRASES)/,
+      DIRECT_STYLE_DNA + '\n\n'
+    );
   }
   return SOULPRINT_CORE_DNA_PROMPT;
 }
@@ -347,8 +353,8 @@ Extract VoiceVectors and Pillars. Output JSON only.`;
 // DYNAMIC PROMPT CONSTRUCTOR - v3.0 (3-Layer Architecture)
 // Resilient to missing/malformed data from old SoulPrint versions
 export function constructDynamicSystemPrompt(data: SoulPrintData): string {
-  const dnaStyle = getDNAStyle();
-  console.log(`[SoulPrint] Building prompt with DNA style: ${dnaStyle}`);
+  const commStyle = getCommunicationStyle();
+  console.log(`[SoulPrint] Building prompt with communication style: ${commStyle}`);
   
   if (!data) return "You're a chill AI. Talk like a real person, not a robot. Keep it casual.";
 
