@@ -19,6 +19,31 @@ const haptic = {
     error: () => navigator.vibrate?.([50, 30, 50]),
 }
 
+// Date formatting for message separators
+const formatMessageDate = (date: Date): string => {
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    
+    const isToday = date.toDateString() === today.toDateString()
+    const isYesterday = date.toDateString() === yesterday.toDateString()
+    
+    if (isToday) return "Today"
+    if (isYesterday) return "Yesterday"
+    
+    // Check if same year
+    if (date.getFullYear() === today.getFullYear()) {
+        return date.toLocaleDateString(undefined, { month: "long", day: "numeric" })
+    }
+    
+    return date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
+}
+
+const shouldShowDateSeparator = (currentMsg: { timestamp: Date }, prevMsg?: { timestamp: Date }): boolean => {
+    if (!prevMsg) return true
+    return currentMsg.timestamp.toDateString() !== prevMsg.timestamp.toDateString()
+}
+
 interface Message {
     id: string
     role: "user" | "assistant"
@@ -629,14 +654,26 @@ export function MobileChatClient() {
                         )}
                     </div>
                 ) : (
-                    messages.map((msg, idx) => (
-                        <MessageBubble 
-                            key={msg.id} 
-                            message={msg} 
-                            soulprintName={soulprintName}
-                            isConsecutive={idx > 0 && messages[idx - 1].role === msg.role}
-                        />
-                    ))
+                    messages.map((msg, idx) => {
+                        const prevMsg = idx > 0 ? messages[idx - 1] : undefined
+                        const showDate = shouldShowDateSeparator(msg, prevMsg)
+                        const isConsecutive = idx > 0 && messages[idx - 1].role === msg.role && !showDate
+                        
+                        return (
+                            <div key={msg.id}>
+                                {showDate && (
+                                    <div className="date-separator">
+                                        <span>{formatMessageDate(msg.timestamp)}</span>
+                                    </div>
+                                )}
+                                <MessageBubble 
+                                    message={msg} 
+                                    soulprintName={soulprintName}
+                                    isConsecutive={isConsecutive}
+                                />
+                            </div>
+                        )
+                    })
                 )}
                 
                 {isLoading && messages[messages.length - 1]?.role === "user" && (

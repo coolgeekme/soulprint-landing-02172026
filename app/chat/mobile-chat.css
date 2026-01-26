@@ -519,6 +519,24 @@
     background: rgba(226, 80, 12, 0.25);
 }
 
+/* Date Separator */
+.date-separator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 0 8px;
+}
+
+.date-separator span {
+    background: rgba(30, 30, 40, 0.85);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 16px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
 /* ===== MESSAGE BUBBLES ===== */
 .message-row {
     display: flex;
