@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Send, Loader2, ChevronLeft, Paperclip, Smile, Mic, Menu, Plus, MessageSquare, X, Trash2 } from "lucide-react"
+import { Send, Loader2, ChevronLeft, Paperclip, Smile, Mic, Menu, Plus, MessageSquare, X, Trash2, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import ReactMarkdown from "react-markdown"
@@ -47,6 +47,12 @@ export function MobileChatClient() {
     const [sessions, setSessions] = useState<ChatSession[]>([])
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
     const [showSidebar, setShowSidebar] = useState(false)
+    const [searchQuery, setSearchQuery] = useState("")
+    
+    // Filter sessions by search query
+    const filteredSessions = sessions.filter(session => 
+        session.last_message.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -453,8 +459,26 @@ export function MobileChatClient() {
                     <span>New Chat</span>
                 </button>
                 
+                {sessions.length > 2 && (
+                    <div className="sidebar-search">
+                        <Search className="h-4 w-4" />
+                        <input
+                            type="text"
+                            placeholder="Search conversations..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="search-input"
+                        />
+                        {searchQuery && (
+                            <button onClick={() => setSearchQuery("")} className="search-clear">
+                                <X className="h-3 w-3" />
+                            </button>
+                        )}
+                    </div>
+                )}
+                
                 <div className="session-list">
-                    {sessions.map(session => (
+                    {filteredSessions.map(session => (
                         <div
                             key={session.session_id}
                             onClick={() => switchSession(session.session_id)}
@@ -479,6 +503,9 @@ export function MobileChatClient() {
                             </button>
                         </div>
                     ))}
+                    {filteredSessions.length === 0 && searchQuery && (
+                        <p className="no-sessions">No matches found</p>
+                    )}
                     {sessions.length === 0 && (
                         <p className="no-sessions">No conversations yet</p>
                     )}
