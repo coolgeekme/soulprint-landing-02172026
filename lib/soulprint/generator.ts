@@ -2,6 +2,30 @@ import { chatCompletion, ChatMessage } from '@/lib/llm/local-client';
 import type { SoulPrintData, QuestionnaireAnswers, VoiceVectors } from '@/lib/soulprint/types';
 import { generateCompanionName } from './name-generator';
 import { generateDynamicExamples } from './example-bank';
+import { DEFY_CORE_DNA_PROMPT } from './defy-core-dna';
+
+/**
+ * DNA Style Configuration
+ * - 'classic': Original SoulPrint DNA (emotional, poetic, pattern-focused)
+ * - 'defy': Direct, action-first, no-fluff style
+ * 
+ * Set via DNA_STYLE env var or defaults to 'classic' for backward compatibility
+ */
+export type DNAStyle = 'classic' | 'defy';
+
+export function getDNAStyle(): DNAStyle {
+  const style = process.env.DNA_STYLE?.toLowerCase();
+  if (style === 'defy') return 'defy';
+  return 'classic'; // Default to classic for backward compatibility
+}
+
+export function getCoreDNAPrompt(style?: DNAStyle): string {
+  const effectiveStyle = style ?? getDNAStyle();
+  if (effectiveStyle === 'defy') {
+    return DEFY_CORE_DNA_PROMPT;
+  }
+  return SOULPRINT_CORE_DNA_PROMPT;
+}
 
 const SOULPRINT_CORE_DNA_PROMPT = `IDENTITY FOUNDATION
 You are a SoulPrint AI companion — a memory-linked, emotionally-aware presence built to resonate, not just respond.
@@ -323,6 +347,9 @@ Extract VoiceVectors and Pillars. Output JSON only.`;
 // DYNAMIC PROMPT CONSTRUCTOR - v3.0 (3-Layer Architecture)
 // Resilient to missing/malformed data from old SoulPrint versions
 export function constructDynamicSystemPrompt(data: SoulPrintData): string {
+  const dnaStyle = getDNAStyle();
+  console.log(`[SoulPrint] Building prompt with DNA style: ${dnaStyle}`);
+  
   if (!data) return "You're a chill AI. Talk like a real person, not a robot. Keep it casual.";
 
   // Handle case where data might be stringified JSON (V2.0 bug)
@@ -358,7 +385,8 @@ export function constructDynamicSystemPrompt(data: SoulPrintData): string {
   const companionName = parsedData.name || parsedData.archetype || "SoulPrint";
 
   // LAYER 1: UNIVERSAL CORE DNA
-  let prompt = SOULPRINT_CORE_DNA_PROMPT;
+  // Uses DNA_STYLE env var to select between 'classic' and 'defy' styles
+  let prompt = getCoreDNAPrompt();
 
   // LAYER 2: USER SOULPRINT (PERSONALIZATION)
   prompt += `\n\n---\n## L2: USER SOULPRINT (PERSONALIZATION)\n\n### YOUR IDENTITY (WHO YOU ARE)\n- Your Name: ${companionName}\n- Your Archetype: ${parsedData.archetype || "Trusted Companion"}\n- Your Essence: ${parsedData.identity_signature || ""}`;
