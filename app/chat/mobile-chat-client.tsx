@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Send, Loader2, Sparkles } from "lucide-react"
+import { Send, Loader2, Sparkles, MoreVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -239,12 +240,17 @@ export function MobileChatClient() {
 
     return (
         <div className="mobile-chat-container">
-            {/* Header - Clean, minimal */}
+            {/* Header - Clean with minimal menu */}
             <header className="mobile-chat-header">
-                <div className="mobile-logo">
-                    <Sparkles className="h-5 w-5 text-white" />
+                <div className="mobile-header-left">
+                    <div className="mobile-logo">
+                        <Sparkles className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="mobile-header-title">{soulprintName}</span>
                 </div>
-                <span className="mobile-header-title">{soulprintName}</span>
+                <Link href="/dashboard" className="mobile-menu-btn">
+                    <MoreVertical className="h-5 w-5" />
+                </Link>
             </header>
 
             {/* Messages Area */}
