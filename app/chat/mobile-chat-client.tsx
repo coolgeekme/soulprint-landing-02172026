@@ -683,28 +683,35 @@ export function MobileChatClient() {
                 <div className="sidebar-overlay" onClick={() => setShowSidebar(false)} />
             )}
 
-            {/* Header - Telegram style */}
+            {/* Header */}
             <header className="mobile-chat-header">
                 <button onClick={() => setShowSidebar(true)} className="header-menu">
-                    <Menu className="h-6 w-6" />
+                    <Menu className="h-5 w-5" />
                 </button>
                 
                 <div className="header-center">
-                    <span className="header-name">{soulprintName}</span>
-                    {!isOnline ? (
-                        <span className="header-status offline">Offline</span>
-                    ) : isLoading ? (
-                        <span className="header-status typing">typing...</span>
-                    ) : null}
+                    <div className="header-avatar">
+                        <img src="/logo.svg" alt="" className="header-avatar-img" />
+                    </div>
+                    <div className="header-info">
+                        <span className="header-name">{soulprintName}</span>
+                        <span className={cn(
+                            "header-status",
+                            !isOnline && "offline",
+                            isLoading && "typing"
+                        )}>
+                            {!isOnline ? "Offline" : isLoading ? "typing..." : "Online"}
+                        </span>
+                    </div>
                 </div>
 
                 <div className="header-actions">
                     {messages.length > 0 && (
-                        <button onClick={exportConversation} className="header-export" title="Export Chat">
+                        <button onClick={exportConversation} className="header-action-btn" title="Export Chat">
                             <Download className="h-5 w-5" />
                         </button>
                     )}
-                    <button onClick={createNewSession} className="header-new-chat" title="New Chat">
+                    <button onClick={createNewSession} className="header-action-btn primary" title="New Chat">
                         <Plus className="h-5 w-5" />
                     </button>
                 </div>
