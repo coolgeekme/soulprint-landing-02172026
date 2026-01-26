@@ -134,13 +134,23 @@ export function MobileChatClient() {
             .order("created_at", { ascending: false })
 
         const sessionsMap = new Map<string, ChatSession>()
+        const sessionCounts = new Map<string, number>()
+        
+        // First pass: count all messages per session
+        sessionMessages?.forEach(msg => {
+            if (msg.session_id) {
+                sessionCounts.set(msg.session_id, (sessionCounts.get(msg.session_id) || 0) + 1)
+            }
+        })
+        
+        // Second pass: build session objects with counts
         sessionMessages?.forEach(msg => {
             if (msg.session_id && !sessionsMap.has(msg.session_id)) {
                 sessionsMap.set(msg.session_id, {
                     session_id: msg.session_id,
                     created_at: msg.created_at,
                     last_message: msg.content.substring(0, 50) + (msg.content.length > 50 ? "..." : ""),
-                    message_count: 1
+                    message_count: sessionCounts.get(msg.session_id) || 1
                 })
             }
         })
@@ -557,9 +567,14 @@ export function MobileChatClient() {
                             <MessageSquare className="h-4 w-4 flex-shrink-0" />
                             <div className="session-info">
                                 <span className="session-preview">{session.last_message}</span>
-                                <span className="session-date">
-                                    {new Date(session.created_at).toLocaleDateString()}
-                                </span>
+                                <div className="session-meta">
+                                    <span className="session-date">
+                                        {new Date(session.created_at).toLocaleDateString()}
+                                    </span>
+                                    {session.message_count > 1 && (
+                                        <span className="session-count">{session.message_count} msgs</span>
+                                    )}
+                                </div>
                             </div>
                             <button 
                                 onClick={(e) => deleteSession(session.session_id, e)}

@@ -255,9 +255,23 @@
     text-overflow: ellipsis;
 }
 
+.session-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .session-date {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.4);
+}
+
+.session-count {
+    font-size: 11px;
+    color: rgba(226, 80, 12, 0.8);
+    background: rgba(226, 80, 12, 0.15);
+    padding: 2px 6px;
+    border-radius: 8px;
 }
 
 .no-sessions {
