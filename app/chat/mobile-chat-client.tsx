@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Send, Loader2, ChevronLeft, Paperclip, Smile, Mic, Menu, Plus, MessageSquare, X, Trash2, Search } from "lucide-react"
+import { Send, Loader2, ChevronLeft, Paperclip, Smile, Mic, Menu, Plus, MessageSquare, X, Trash2, Search, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import ReactMarkdown from "react-markdown"
@@ -215,6 +215,29 @@ export function MobileChatClient() {
             }
         }
     }, [user, supabase, currentSessionId, sessions, loadSessionMessages, createNewSession])
+
+    // Export current conversation
+    const exportConversation = useCallback(() => {
+        if (messages.length === 0) return
+        
+        haptic.success()
+        
+        const content = messages.map(msg => {
+            const time = msg.timestamp.toLocaleString()
+            const role = msg.role === "user" ? "You" : soulprintName
+            return `[${time}] ${role}:\n${msg.content}\n`
+        }).join("\n---\n\n")
+        
+        const header = `# ${soulprintName} Conversation\nExported: ${new Date().toLocaleString()}\nMessages: ${messages.length}\n\n---\n\n`
+        
+        const blob = new Blob([header + content], { type: "text/plain" })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `${soulprintName}-chat-${new Date().toISOString().split("T")[0]}.txt`
+        a.click()
+        URL.revokeObjectURL(url)
+    }, [messages, soulprintName])
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -530,9 +553,16 @@ export function MobileChatClient() {
                     )}
                 </div>
 
-                <button onClick={createNewSession} className="header-new-chat" title="New Chat">
-                    <Plus className="h-5 w-5" />
-                </button>
+                <div className="header-actions">
+                    {messages.length > 0 && (
+                        <button onClick={exportConversation} className="header-export" title="Export Chat">
+                            <Download className="h-5 w-5" />
+                        </button>
+                    )}
+                    <button onClick={createNewSession} className="header-new-chat" title="New Chat">
+                        <Plus className="h-5 w-5" />
+                    </button>
+                </div>
             </header>
 
             {/* Messages Area */}

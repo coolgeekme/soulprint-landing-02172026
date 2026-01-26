@@ -295,6 +295,34 @@
     background: rgba(232, 99, 43, 0.1);
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 4px;
+}
+
+.header-export {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    transition: color 0.15s, background 0.15s;
+}
+
+.header-export:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.header-export:active {
+    transform: scale(0.95);
+    color: #e2500c;
+}
+
 .header-new-chat {
     display: flex;
     align-items: center;
@@ -304,7 +332,6 @@
     color: white;
     background: linear-gradient(135deg, #e2500c 0%, #c94509 100%);
     border-radius: 50%;
-    margin-right: 4px;
     box-shadow: 0 2px 8px rgba(232, 99, 43, 0.3);
     transition: transform 0.1s;
 }
