@@ -357,6 +357,7 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                 // Helper to process SSE lines
                 const processLine = (line: string) => {
                     const trimmedLine = line.trim()
+                    console.log('[Chat] Processing line:', trimmedLine.substring(0, 80))
                     if (trimmedLine.startsWith("data: ")) {
                         const dataStr = trimmedLine.slice(6)
                         if (dataStr === "[DONE]") {
@@ -366,17 +367,21 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                         try {
                             const data = JSON.parse(dataStr)
                             const content = data.choices?.[0]?.delta?.content || ""
+                            console.log('[Chat] Chunk content:', JSON.stringify(content))
                             if (content) {
                                 if (botMsg.length === 0) {
                                     clearTimeout(streamTimeout)
                                     console.log('[Chat] First content received')
                                 }
                                 botMsg += content
+                                console.log('[Chat] Total so far:', botMsg.length, 'chars')
                                 setMessages(prev => {
-                                    const newMessages = [...prev]
-                                    const lastMsg = newMessages[newMessages.length - 1]
-                                    if (lastMsg.role === "assistant") lastMsg.content = botMsg
-                                    return newMessages
+                                    // Create entirely new array with new message object (don't mutate!)
+                                    return prev.map((msg, idx) => 
+                                        idx === prev.length - 1 && msg.role === "assistant"
+                                            ? { ...msg, content: botMsg }
+                                            : msg
+                                    )
                                 })
                             }
                         } catch (parseError) {
@@ -385,27 +390,34 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                     }
                 }
 
+                let chunkCount = 0
                 while (true) {
                     const { done, value } = await reader.read()
+                    chunkCount++
+                    console.log(`[Chat] Read chunk #${chunkCount}, done=${done}, bytes=${value?.length || 0}`)
+                    
                     if (done) {
                         clearTimeout(streamTimeout)
                         // Flush decoder and add any remaining bytes to buffer
                         buffer += decoder.decode()
                         // Process any remaining content in buffer before exiting
                         if (buffer.trim()) {
-                            console.log('[Chat] Processing remaining buffer:', buffer.substring(0, 50))
+                            console.log('[Chat] Processing remaining buffer:', buffer.substring(0, 100))
                             processLine(buffer)
                         }
-                        console.log('[Chat] Stream complete. Total response:', botMsg.length, 'chars')
+                        console.log('[Chat] Stream complete. Total response:', botMsg.length, 'chars, chunks:', chunkCount)
                         break
                     }
                     
                     // Append new chunk to buffer and process complete lines
-                    buffer += decoder.decode(value, { stream: true })
+                    const decoded = decoder.decode(value, { stream: true })
+                    console.log('[Chat] Decoded chunk:', decoded.substring(0, 100))
+                    buffer += decoded
                     const lines = buffer.split("\n")
                     
                     // Keep the last incomplete line in buffer
                     buffer = lines.pop() || ""
+                    console.log(`[Chat] Split into ${lines.length} complete lines, buffer remainder: ${buffer.length} chars`)
                     
                     for (const line of lines) {
                         processLine(line)
