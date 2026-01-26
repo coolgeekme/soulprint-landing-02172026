@@ -831,7 +831,11 @@ export function MobileChatClient() {
 
                 {input.trim() ? (
                     <button
-                        onClick={sendMessage}
+                        onClick={(e) => {
+                            e.currentTarget.classList.add('sending')
+                            setTimeout(() => e.currentTarget.classList.remove('sending'), 300)
+                            sendMessage()
+                        }}
                         disabled={isLoading || !apiKey}
                         className="send-btn"
                     >

@@ -1083,6 +1083,18 @@
     pointer-events: none;
 }
 
+/* Send button fly animation */
+.send-btn.sending {
+    animation: sendFly 0.3s ease-out;
+}
+
+@keyframes sendFly {
+    0% { transform: scale(1); }
+    30% { transform: scale(0.85) rotate(-10deg); }
+    60% { transform: scale(1.1) rotate(5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
 .mic-btn {
     width: 44px;
     height: 44px;
