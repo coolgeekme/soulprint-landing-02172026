@@ -1,64 +1,40 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
-import { MessageSquare, Menu, Send, Mic, MicOff, Plus, Trash2, X } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import {
+    MainContainer,
+    ChatContainer,
+    MessageList,
+    Message,
+    MessageInput,
+    ConversationHeader,
+    Avatar,
+    TypingIndicator
+} from "@chatscope/chat-ui-kit-react"
+import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css"
+import { MessageSquare, Menu, Plus, Trash2, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { listApiKeys } from "@/app/actions/api-keys"
 import { getChatHistory, saveChatMessage, clearChatHistory, getChatSessions, type ChatSession } from "@/app/actions/chat-history"
 import { createClient } from "@/lib/supabase/client"
-import { useSpeechRecognition } from "@/lib/hooks/use-speech-recognition"
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import "./chatscope-overrides.css"
 
-interface Message {
+interface ChatMessage {
     role: "user" | "assistant" | "system"
     content: string
 }
 
 export function MobileChat({ initialSoulprintId }: { initialSoulprintId: string | null }) {
-    const [messages, setMessages] = useState<Message[]>([])
+    const [messages, setMessages] = useState<ChatMessage[]>([])
     const [sessions, setSessions] = useState<ChatSession[]>([])
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
-    const [input, setInput] = useState("")
     const [loading, setLoading] = useState(false)
     const [apiKey, setApiKey] = useState<string | null>(null)
     const [initializing, setInitializing] = useState(true)
     const [displayName, setDisplayName] = useState("SoulPrint")
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
-    const [selectedSoulprintId, setSelectedSoulprintId] = useState<string | null>(initialSoulprintId)
-    
-    const messagesEndRef = useRef<HTMLDivElement>(null)
-    const inputRef = useRef<HTMLTextAreaElement>(null)
-
-    const {
-        isListening,
-        transcript,
-        interimTranscript,
-        isSupported,
-        startListening,
-        stopListening,
-        resetTranscript,
-    } = useSpeechRecognition()
-
-    // Auto-scroll to bottom
-    const scrollToBottom = useCallback(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-    }, [])
-
-    useEffect(() => {
-        if (messages.length > 0) {
-            scrollToBottom()
-        }
-    }, [messages, scrollToBottom])
-
-    // Update input when transcript changes
-    useEffect(() => {
-        if (transcript) {
-            setInput(prev => prev + (prev ? " " : "") + transcript)
-            resetTranscript()
-        }
-    }, [transcript, resetTranscript])
+    const [selectedSoulprintId] = useState<string | null>(initialSoulprintId)
 
     // Initialize
     useEffect(() => {
@@ -118,11 +94,10 @@ export function MobileChat({ initialSoulprintId }: { initialSoulprintId: string 
         loadSession()
     }, [currentSessionId])
 
-    const handleSend = async () => {
-        if (!input.trim() || loading || !apiKey) return
+    const handleSend = useCallback(async (text: string) => {
+        if (!text.trim() || loading || !apiKey) return
 
-        const userMessage = input.trim()
-        setInput("")
+        const userMessage = text.trim()
         setMessages(prev => [...prev, { role: "user", content: userMessage }])
         setLoading(true)
 
@@ -208,7 +183,7 @@ export function MobileChat({ initialSoulprintId }: { initialSoulprintId: string 
         } finally {
             setLoading(false)
         }
-    }
+    }, [apiKey, currentSessionId, loading, messages, selectedSoulprintId])
 
     const handleNewChat = () => {
         setCurrentSessionId(null)
@@ -224,21 +199,6 @@ export function MobileChat({ initialSoulprintId }: { initialSoulprintId: string 
         setMenuOpen(false)
     }
 
-    const handleVoice = () => {
-        if (isListening) {
-            stopListening()
-        } else {
-            startListening()
-        }
-    }
-
-    // Auto-resize textarea
-    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setInput(e.target.value)
-        e.target.style.height = "auto"
-        e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"
-    }
-
     if (initializing) {
         return (
             <div className="flex h-full items-center justify-center bg-black">
@@ -250,34 +210,13 @@ export function MobileChat({ initialSoulprintId }: { initialSoulprintId: string 
         )
     }
 
-    const hasMessages = messages.length > 0
-
     return (
-        <div className="flex flex-col h-full bg-black">
-            {/* Header */}
-            <header className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-900">
-                <button
-                    onClick={() => setSidebarOpen(true)}
-                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-800 transition-colors"
-                >
-                    <MessageSquare className="w-5 h-5 text-zinc-300" />
-                </button>
-                
-                <span className="text-base font-medium text-white">{displayName}</span>
-                
-                <button
-                    onClick={() => setMenuOpen(!menuOpen)}
-                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-800 transition-colors"
-                >
-                    <Menu className="w-5 h-5 text-zinc-300" />
-                </button>
-            </header>
-
+        <div className="h-full w-full relative" style={{ background: "#0a0a0a" }}>
             {/* Menu Dropdown */}
             {menuOpen && (
                 <>
-                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-                    <div className="absolute right-4 top-14 z-50 w-48 rounded-xl bg-zinc-900 border border-zinc-700 shadow-xl py-1">
+                    <div className="fixed inset-0 z-50" onClick={() => setMenuOpen(false)} />
+                    <div className="absolute right-3 top-14 z-50 w-48 rounded-xl bg-zinc-900 border border-zinc-700 shadow-xl py-1">
                         <button
                             onClick={handleNewChat}
                             className="w-full px-4 py-3 text-left text-sm text-zinc-200 hover:bg-zinc-800 flex items-center gap-3"
@@ -285,7 +224,7 @@ export function MobileChat({ initialSoulprintId }: { initialSoulprintId: string 
                             <Plus className="w-4 h-4 text-orange-500" />
                             New Chat
                         </button>
-                        {hasMessages && (
+                        {messages.length > 0 && (
                             <button
                                 onClick={handleClear}
                                 className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-zinc-800 flex items-center gap-3"
@@ -302,7 +241,7 @@ export function MobileChat({ initialSoulprintId }: { initialSoulprintId: string 
             {sidebarOpen && (
                 <>
                     <div 
-                        className="fixed inset-0 z-40 bg-black/60" 
+                        className="fixed inset-0 z-50 bg-black/60" 
                         onClick={() => setSidebarOpen(false)} 
                     />
                     <div className="fixed inset-y-0 left-0 z-50 w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col">
@@ -348,113 +287,79 @@ export function MobileChat({ initialSoulprintId }: { initialSoulprintId: string 
                 </>
             )}
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto">
-                {!hasMessages ? (
-                    <div className="h-full flex flex-col items-center justify-center px-6">
-                        <div className="text-center mb-8">
-                            <h1 className="text-2xl font-semibold text-white mb-2">Hey there 👋</h1>
-                            <p className="text-zinc-400">What&apos;s on your mind?</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="px-4 py-4 space-y-4">
-                        {messages.map((msg, i) => (
-                            <div
-                                key={i}
-                                className={cn(
-                                    "max-w-[85%]",
-                                    msg.role === "user" ? "ml-auto" : "mr-auto"
-                                )}
+            {/* Main Chat - Chatscope */}
+            <MainContainer style={{ border: "none", background: "#0a0a0a" }}>
+                <ChatContainer style={{ background: "#0a0a0a" }}>
+                    <ConversationHeader style={{ background: "#111", borderBottom: "1px solid #222" }}>
+                        <ConversationHeader.Back />
+                        <Avatar 
+                            src="/images/soulprintlogomain.png" 
+                            name={displayName}
+                            style={{ background: "#e2500c" }}
+                        />
+                        <ConversationHeader.Content 
+                            userName={displayName}
+                            info="Online"
+                        />
+                        <ConversationHeader.Actions>
+                            <button
+                                onClick={() => setSidebarOpen(true)}
+                                className="p-2 hover:bg-zinc-800 rounded-full mr-1"
                             >
-                                <div
-                                    className={cn(
-                                        "rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed",
-                                        msg.role === "user"
-                                            ? "bg-orange-600 text-white rounded-br-md"
-                                            : "bg-zinc-800 text-zinc-100 rounded-bl-md"
-                                    )}
-                                >
-                                    {msg.role === "assistant" ? (
-                                        <div className="prose prose-sm prose-invert max-w-none [&>*:last-child]:mb-0">
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                {msg.content || "..."}
-                                            </ReactMarkdown>
-                                        </div>
-                                    ) : (
-                                        <span className="whitespace-pre-wrap">{msg.content}</span>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                        {loading && messages[messages.length - 1]?.role !== "assistant" && (
-                            <div className="max-w-[85%] mr-auto">
-                                <div className="bg-zinc-800 rounded-2xl rounded-bl-md px-4 py-3">
-                                    <div className="flex gap-1">
-                                        <span className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                                        <span className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                                        <span className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-                )}
-            </div>
-
-            {/* Input Area */}
-            <div className="flex-shrink-0 border-t border-zinc-800 bg-zinc-900 p-3">
-                <div className={cn(
-                    "flex items-end gap-2 rounded-2xl bg-zinc-800 px-3 py-2",
-                    isListening && "ring-2 ring-red-500"
-                )}>
-                    <textarea
-                        ref={inputRef}
-                        value={input}
-                        onChange={handleInputChange}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault()
-                                handleSend()
-                            }
-                        }}
-                        placeholder={isListening ? "Listening..." : "Message"}
-                        className="flex-1 bg-transparent text-white text-[15px] placeholder:text-zinc-500 resize-none focus:outline-none min-h-[24px] max-h-[120px] py-1"
-                        rows={1}
-                        disabled={loading}
-                    />
+                                <MessageSquare className="w-5 h-5 text-zinc-300" />
+                            </button>
+                            <button
+                                onClick={() => setMenuOpen(!menuOpen)}
+                                className="p-2 hover:bg-zinc-800 rounded-full"
+                            >
+                                <Menu className="w-5 h-5 text-zinc-300" />
+                            </button>
+                        </ConversationHeader.Actions>
+                    </ConversationHeader>
                     
-                    {input.trim() ? (
-                        <button
-                            onClick={handleSend}
-                            disabled={loading}
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-orange-600 hover:bg-orange-500 text-white transition-colors disabled:opacity-50"
-                        >
-                            <Send className="w-4 h-4" />
-                        </button>
-                    ) : isSupported ? (
-                        <button
-                            onClick={handleVoice}
-                            className={cn(
-                                "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
-                                isListening 
-                                    ? "bg-red-500 text-white" 
-                                    : "text-zinc-400 hover:text-zinc-200"
-                            )}
-                        >
-                            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                        </button>
-                    ) : null}
-                </div>
-                
-                {isListening && (
-                    <div className="flex items-center justify-center gap-2 mt-2 text-xs text-red-400">
-                        <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                        {interimTranscript || "Listening..."}
-                    </div>
-                )}
-            </div>
+                    <MessageList
+                        style={{ background: "#0a0a0a" }}
+                        typingIndicator={loading ? <TypingIndicator content={`${displayName} is typing`} /> : null}
+                    >
+                        {messages.length === 0 ? (
+                            <MessageList.Content style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                height: "100%",
+                                textAlign: "center",
+                                padding: "2rem"
+                            }}>
+                                <h2 style={{ color: "#fff", fontSize: "1.5rem", marginBottom: "0.5rem" }}>
+                                    Hey there 👋
+                                </h2>
+                                <p style={{ color: "#71717a" }}>What&apos;s on your mind?</p>
+                            </MessageList.Content>
+                        ) : (
+                            messages.filter(m => m.role !== "system").map((msg, i) => (
+                                <Message
+                                    key={i}
+                                    model={{
+                                        message: msg.content || "...",
+                                        sentTime: "now",
+                                        sender: msg.role === "user" ? "You" : displayName,
+                                        direction: msg.role === "user" ? "outgoing" : "incoming",
+                                        position: "single"
+                                    }}
+                                />
+                            ))
+                        )}
+                    </MessageList>
+                    
+                    <MessageInput 
+                        placeholder="Type message here..."
+                        onSend={handleSend}
+                        attachButton={false}
+                        style={{ background: "#111", borderTop: "1px solid #222" }}
+                    />
+                </ChatContainer>
+            </MainContainer>
         </div>
     )
 }
