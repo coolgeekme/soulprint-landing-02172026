@@ -268,6 +268,29 @@ export function MobileChatClient() {
         }
     }, [user, supabase, currentSessionId, sessions, loadSessionMessages, createNewSession])
 
+    // Clear all conversations
+    const clearAllConversations = useCallback(async () => {
+        if (!user?.id) return
+        if (sessions.length === 0) return
+        
+        haptic.heavy()
+        if (!confirm(`Delete all ${sessions.length} conversations? This cannot be undone.`)) return
+        
+        haptic.success()
+        
+        // Delete all chat logs for this user
+        await supabase
+            .from("chat_logs")
+            .delete()
+            .eq("user_id", user.id)
+        
+        // Clear local state
+        setSessions([])
+        setMessages([])
+        createNewSession()
+        setShowSidebar(false)
+    }, [user, supabase, sessions.length, createNewSession])
+
     // Export current conversation
     const exportConversation = useCallback(() => {
         if (messages.length === 0) return
@@ -592,6 +615,13 @@ export function MobileChatClient() {
                         <p className="no-sessions">No conversations yet</p>
                     )}
                 </div>
+                
+                {sessions.length > 0 && (
+                    <button onClick={clearAllConversations} className="clear-all-btn">
+                        <Trash2 className="h-4 w-4" />
+                        <span>Clear All Conversations</span>
+                    </button>
+                )}
             </div>
             
             {/* Sidebar Overlay */}

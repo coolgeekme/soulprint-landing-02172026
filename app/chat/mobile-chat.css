@@ -281,6 +281,32 @@
     font-size: 14px;
 }
 
+.clear-all-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: calc(100% - 24px);
+    margin: 12px;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 10px;
+    color: rgba(239, 68, 68, 0.8);
+    font-size: 14px;
+    transition: all 0.15s;
+}
+
+.clear-all-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #ef4444;
+}
+
+.clear-all-btn:active {
+    transform: scale(0.98);
+}
+
 /* ===== HEADER - Telegram style ===== */
 .mobile-chat-header {
     display: flex;
