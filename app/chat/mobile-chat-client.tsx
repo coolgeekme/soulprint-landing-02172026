@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Send, Loader2, Sparkles, ChevronLeft, Paperclip, Smile, Mic, MicOff } from "lucide-react"
+import { Send, Loader2, Sparkles, ChevronLeft, Paperclip, Smile, Mic } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import ReactMarkdown from "react-markdown"
@@ -277,7 +277,14 @@ export function MobileChatClient() {
                             <Sparkles className="h-12 w-12 text-white" />
                         </div>
                         <h2 className="empty-title">{soulprintName}</h2>
-                        <p className="empty-subtitle">Your AI companion</p>
+                        <p className="empty-subtitle">
+                            {!apiKey ? "Setting up..." : "Your AI companion"}
+                        </p>
+                        {!apiKey && (
+                            <p className="empty-hint">
+                                Go to Settings to create an API key
+                            </p>
+                        )}
                     </div>
                 ) : (
                     messages.map((msg, idx) => (
