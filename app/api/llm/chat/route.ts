@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createHash } from 'crypto';
 import { streamChatCompletion, ChatMessage } from '@/lib/llm/local-client';
 import { SoulEngine } from '@/lib/soulprint/soul-engine';
-import { generateEmbedding } from '@/lib/soulprint/memory/retrieval';
+import { generateEmbedding } from '@/lib/aws/embeddings';
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { runPostChatAnalysis } from '@/lib/soulprint/post-chat-analysis';
 

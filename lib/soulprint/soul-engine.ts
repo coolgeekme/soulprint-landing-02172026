@@ -14,8 +14,7 @@ import { searchWeb, formatResultsForLLM } from '@/lib/tavily';
 import { 
     queryMemoryService, 
     formatMemoriesForPrompt, 
-    getUserHistoryForMemory,
-    checkMemoryServiceHealth 
+    getUserHistoryForMemory
 } from '@/lib/memory-service/client';
 
 /**
