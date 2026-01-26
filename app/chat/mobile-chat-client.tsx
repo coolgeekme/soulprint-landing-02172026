@@ -756,8 +756,18 @@ export function MobileChatClient() {
                         placeholder="Message"
                         disabled={isLoading || !apiKey}
                         rows={1}
-                        className="input-field"
+                        className={cn("input-field", input.length > 3500 && "near-limit")}
+                        maxLength={4000}
                     />
+                    {input.length > 500 && (
+                        <span className={cn(
+                            "char-counter",
+                            input.length > 3500 && "warning",
+                            input.length > 3900 && "danger"
+                        )}>
+                            {input.length}/4000
+                        </span>
+                    )}
                     <button className="input-emoji-btn">
                         <Smile className="h-5 w-5" />
                     </button>

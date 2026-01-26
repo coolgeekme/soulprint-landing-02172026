@@ -919,6 +919,29 @@
     opacity: 0.5;
 }
 
+.char-counter {
+    position: absolute;
+    right: 44px;
+    bottom: 14px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    font-variant-numeric: tabular-nums;
+    transition: color 0.15s;
+}
+
+.char-counter.warning {
+    color: #f59e0b;
+}
+
+.char-counter.danger {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.input-field.near-limit {
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
 .input-emoji-btn {
     position: absolute;
     right: 8px;
