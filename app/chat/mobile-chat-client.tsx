@@ -885,7 +885,39 @@ function MessageBubble({
                     <p className="bubble-text">{message.content}</p>
                 ) : (
                     <div className="bubble-markdown">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                                code: ({ className, children, ...props }) => {
+                                    const isCodeBlock = className?.includes('language-')
+                                    const codeContent = String(children).replace(/\n$/, '')
+                                    
+                                    if (isCodeBlock) {
+                                        return (
+                                            <div className="code-block-wrapper">
+                                                <button 
+                                                    className="code-copy-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        navigator.clipboard.writeText(codeContent)
+                                                        haptic.success()
+                                                        const btn = e.currentTarget
+                                                        btn.textContent = 'Copied!'
+                                                        setTimeout(() => btn.textContent = 'Copy', 1500)
+                                                    }}
+                                                >
+                                                    Copy
+                                                </button>
+                                                <code className={className} {...props}>
+                                                    {children}
+                                                </code>
+                                            </div>
+                                        )
+                                    }
+                                    return <code className={className} {...props}>{children}</code>
+                                }
+                            }}
+                        >
                             {message.content}
                         </ReactMarkdown>
                     </div>
