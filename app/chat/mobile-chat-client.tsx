@@ -210,6 +210,29 @@ export function MobileChatClient() {
         }
     }, [user, supabase, currentSessionId, sessions, loadSessionMessages, createNewSession])
 
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Ctrl/Cmd + N: New chat
+            if ((e.ctrlKey || e.metaKey) && e.key === "n") {
+                e.preventDefault()
+                createNewSession()
+            }
+            // Escape: Close sidebar
+            if (e.key === "Escape" && showSidebar) {
+                setShowSidebar(false)
+            }
+            // Ctrl/Cmd + /: Toggle sidebar
+            if ((e.ctrlKey || e.metaKey) && e.key === "/") {
+                e.preventDefault()
+                setShowSidebar(prev => !prev)
+            }
+        }
+        
+        window.addEventListener("keydown", handleKeyDown)
+        return () => window.removeEventListener("keydown", handleKeyDown)
+    }, [showSidebar, createNewSession])
+
     // Initialize
     useEffect(() => {
         async function init() {
