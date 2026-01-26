@@ -13,8 +13,8 @@ import {
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { getSoulprintTheme, type SoulprintTheme } from "@/lib/soulprint-theme"
-import { ChatMessage } from "./chat-message"
-import { ChatInput } from "./chat-input"
+import { TelegramChatMessage } from "./telegram-chat-message"
+import { TelegramChatInput } from "./telegram-chat-input"
 // import { toast } from "@/components/ui/use-toast"
 
 interface Message {
@@ -844,10 +844,10 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                 </span>
                             </div>
 
-                            {/* Input Card - Dark theme */}
+                            {/* Input Card - Telegram Style */}
                             <div className="w-full mb-8 sm:mb-10">
-                                <div className="border border-zinc-700 rounded-2xl p-5 sm:p-6 bg-zinc-900 shadow-lg">
-                                    <ChatInput
+                                <div className="border border-zinc-700 rounded-2xl overflow-hidden bg-zinc-900 shadow-lg">
+                                    <TelegramChatInput
                                         onSend={handleSend}
                                         disabled={loading}
                                         placeholder="Ask me anything..."
@@ -957,38 +957,41 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                             )}
                         </div>
 
-                        {/* Messages Area */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                        {/* Messages Area - Telegram Style */}
+                        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
                             {messages.map((msg, i) => (
-                                <ChatMessage key={i} message={msg} />
+                                <TelegramChatMessage 
+                                    key={i} 
+                                    message={msg} 
+                                    displayName={displayName}
+                                    showAvatar={i === 0 || messages[i - 1]?.role !== msg.role}
+                                />
                             ))}
                             {loading && (
-                                <div className="flex gap-3">
-                                    <div
-                                        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-600"
-                                    >
-                                        <Bot className="h-4 w-4 text-white" />
+                                <div className="flex gap-2 max-w-[90%] mr-auto">
+                                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center self-end">
+                                        <span className="text-white text-xs font-bold">
+                                            {displayName.charAt(0).toUpperCase()}
+                                        </span>
                                     </div>
-                                    <div className="flex items-center gap-1 rounded-xl bg-zinc-800 border border-zinc-700 p-3">
-                                        <span className="h-2 w-2 animate-bounce rounded-full bg-orange-500" style={{ animationDelay: "0ms" }} />
-                                        <span className="h-2 w-2 animate-bounce rounded-full bg-orange-500" style={{ animationDelay: "150ms" }} />
-                                        <span className="h-2 w-2 animate-bounce rounded-full bg-orange-500" style={{ animationDelay: "300ms" }} />
+                                    <div className="bg-[#212121] rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+                                        <div className="flex items-center gap-1">
+                                            <span className="h-2 w-2 animate-bounce rounded-full bg-orange-500" style={{ animationDelay: "0ms" }} />
+                                            <span className="h-2 w-2 animate-bounce rounded-full bg-orange-500" style={{ animationDelay: "150ms" }} />
+                                            <span className="h-2 w-2 animate-bounce rounded-full bg-orange-500" style={{ animationDelay: "300ms" }} />
+                                        </div>
                                     </div>
                                 </div>
                             )}
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input Area (Active Chat) */}
-                        <div className="border-t border-zinc-800 p-3 sm:p-4 bg-[#111111]">
-                            <div className="max-w-4xl mx-auto">
-                                <ChatInput
-                                    onSend={handleSend}
-                                    disabled={loading}
-                                    placeholder="Type a message..."
-                                />
-                            </div>
-                        </div>
+                        {/* Input Area - Telegram Style */}
+                        <TelegramChatInput
+                            onSend={handleSend}
+                            disabled={loading}
+                            placeholder="Message"
+                        />
                     </>
                 )}
             </div>
