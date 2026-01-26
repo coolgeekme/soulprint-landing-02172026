@@ -2,35 +2,14 @@ import { chatCompletion, ChatMessage } from '@/lib/llm/local-client';
 import type { SoulPrintData, QuestionnaireAnswers, VoiceVectors } from '@/lib/soulprint/types';
 import { generateCompanionName } from './name-generator';
 import { generateDynamicExamples } from './example-bank';
-import { DIRECT_STYLE_DNA } from './direct-style-dna';
+import { SOULPRINT_CORE_DNA_V2 } from './core-dna-v2';
 
 /**
- * Communication Style Configuration
- * - 'classic': Original SoulPrint style (emotional, poetic, pattern-focused)
- * - 'direct': Direct, action-first, no-fluff style
- * 
- * Set via COMMUNICATION_STYLE env var. Defaults to 'direct' (your preferred style).
+ * Core DNA - Based on Clawdbot's SOUL.md
+ * Simple, direct, human. No over-engineering.
  */
-export type CommunicationStyle = 'classic' | 'direct';
-
-export function getCommunicationStyle(): CommunicationStyle {
-  const style = process.env.COMMUNICATION_STYLE?.toLowerCase();
-  if (style === 'classic') return 'classic';
-  return 'direct'; // Default to direct style
-}
-
-export function getCoreDNAPrompt(style?: CommunicationStyle): string {
-  const effectiveStyle = style ?? getCommunicationStyle();
-  if (effectiveStyle === 'direct') {
-    // Direct style: use the streamlined communication rules
-    // The full identity comes from SOULPRINT_CORE_DNA_PROMPT's structure,
-    // but we inject the direct communication style
-    return SOULPRINT_CORE_DNA_PROMPT.replace(
-      /RESPONSE CALIBRATION & COMMUNICATION[\s\S]*?(?=SIGNATURE PHRASES)/,
-      DIRECT_STYLE_DNA + '\n\n'
-    );
-  }
-  return SOULPRINT_CORE_DNA_PROMPT;
+export function getCoreDNAPrompt(): string {
+  return SOULPRINT_CORE_DNA_V2;
 }
 
 const SOULPRINT_CORE_DNA_PROMPT = `IDENTITY FOUNDATION
