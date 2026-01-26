@@ -223,10 +223,15 @@ export function MobileChatClient() {
 
         } catch (err) {
             console.error("Send error:", err)
+            const errorMessage = err instanceof Error && err.message.includes("401") 
+                ? "Invalid API key. Please check your settings."
+                : err instanceof Error && err.message.includes("429")
+                ? "Rate limit reached. Please wait a moment."
+                : "AI is temporarily unavailable. Please try again."
             setMessages(prev => [...prev, {
                 id: crypto.randomUUID(),
                 role: "assistant",
-                content: "Sorry, something went wrong. Please try again.",
+                content: errorMessage,
                 timestamp: new Date()
             }])
         } finally {
@@ -265,7 +270,7 @@ export function MobileChatClient() {
                 </div>
 
                 <div className="header-avatar">
-                    <Sparkles className="h-5 w-5 text-white" />
+                    <img src="/logo.svg" alt="" className="h-6 w-6" />
                 </div>
             </header>
 
@@ -274,7 +279,7 @@ export function MobileChatClient() {
                 {messages.length === 0 ? (
                     <div className="mobile-empty-state">
                         <div className="empty-avatar">
-                            <Sparkles className="h-12 w-12 text-white" />
+                            <img src="/logo.svg" alt="SoulPrint" className="h-14 w-14" />
                         </div>
                         <h2 className="empty-title">{soulprintName}</h2>
                         <p className="empty-subtitle">
