@@ -486,9 +486,30 @@ export function MobileChatClient() {
                                 Go to Settings to create an API key
                             </p>
                         ) : (
-                            <p className="empty-hint">
-                                Say hello or ask me anything
-                            </p>
+                            <>
+                                <p className="empty-hint">
+                                    Tap a suggestion or type your own
+                                </p>
+                                <div className="starter-prompts">
+                                    {[
+                                        "Tell me about yourself",
+                                        "What can you help me with?",
+                                        "Let's brainstorm ideas",
+                                        "How are you today?"
+                                    ].map((prompt) => (
+                                        <button 
+                                            key={prompt}
+                                            className="starter-prompt"
+                                            onClick={() => {
+                                                setInput(prompt)
+                                                inputRef.current?.focus()
+                                            }}
+                                        >
+                                            {prompt}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
                         )}
                     </div>
                 ) : (
