@@ -863,19 +863,22 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                 </button>
 
                 {showWelcome ? (
-                    /* Welcome Screen - Dark theme */
-                    <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-10 xl:px-16 py-6 overflow-y-auto">
-                        <div className="w-full max-w-[1100px] flex flex-col items-center">
-                            {/* Logo - At top of content group */}
-                            <div className="flex items-center justify-center mb-8 sm:mb-10">
-                                <span className="font-koulen text-5xl sm:text-6xl lg:text-7xl text-white tracking-wide">
-                                    SOULPRINT ENGINE
-                                </span>
+                    /* Welcome Screen - Clean Mobile-First Design */
+                    <div className="flex-1 flex flex-col px-4 py-6 overflow-y-auto">
+                        <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full">
+                            {/* Greeting */}
+                            <div className="text-center mb-6">
+                                <h1 className="text-2xl sm:text-3xl font-semibold text-white mb-2">
+                                    Hey there 👋
+                                </h1>
+                                <p className="text-zinc-400 text-sm sm:text-base">
+                                    What&apos;s on your mind?
+                                </p>
                             </div>
 
-                            {/* Input Card - Telegram Style */}
-                            <div className="w-full mb-8 sm:mb-10">
-                                <div className="border border-zinc-700 rounded-2xl overflow-hidden bg-zinc-900 shadow-lg">
+                            {/* Input Card */}
+                            <div className="w-full mb-6">
+                                <div className="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-900/50">
                                     <TelegramChatInput
                                         onSend={handleSend}
                                         disabled={loading}
@@ -884,30 +887,51 @@ export function ChatClient({ initialSoulprintId }: { initialSoulprintId: string 
                                 </div>
                             </div>
 
-                            {/* Suggestion Cards - Dark theme */}
-                            <div className="w-full">
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
-                                    {smartSuggestions.map((suggestion, idx) => (
-                                        <button
-                                            key={`${suggestion.title}-${idx}`}
-                                            onClick={() => handleSuggestionClick(suggestion.prompt)}
-                                            className={cn(
-                                                "hover:scale-[1.02] active:scale-[0.98] border rounded-xl p-5 sm:p-6 text-left transition-all flex flex-col justify-start shadow-lg min-h-[120px]",
-                                                suggestion.isPersonalized
-                                                    ? "bg-orange-600/10 border-orange-600/30 hover:bg-orange-600/20"
-                                                    : "bg-zinc-900 border-zinc-700 hover:bg-zinc-800"
-                                            )}
-                                        >
-                                            <h3 className="text-lg sm:text-base font-semibold text-white leading-snug">
-                                                {suggestion.title}
-                                            </h3>
-                                            <p className="text-base sm:text-sm text-zinc-400 mt-3 leading-relaxed">
-                                                {suggestion.description}
-                                            </p>
-                                        </button>
-                                    ))}
+                            {/* Quick Actions / Suggestions */}
+                            {smartSuggestions.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-xs text-zinc-500 uppercase tracking-wider px-1 mb-3">
+                                        {smartSuggestions.some(s => s.isPersonalized) ? "Continue a conversation" : "Try asking"}
+                                    </p>
+                                    <div className="space-y-2">
+                                        {smartSuggestions.slice(0, 3).map((suggestion, idx) => (
+                                            <button
+                                                key={`${suggestion.title}-${idx}`}
+                                                onClick={() => handleSuggestionClick(suggestion.prompt)}
+                                                className={cn(
+                                                    "w-full text-left px-4 py-3 rounded-xl transition-all active:scale-[0.98]",
+                                                    "flex items-center gap-3",
+                                                    suggestion.isPersonalized
+                                                        ? "bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/15"
+                                                        : "bg-zinc-800/50 border border-zinc-700/50 hover:bg-zinc-800"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+                                                    suggestion.isPersonalized ? "bg-orange-500/20" : "bg-zinc-700"
+                                                )}>
+                                                    {suggestion.isPersonalized ? (
+                                                        <MessageSquare className="w-4 h-4 text-orange-400" />
+                                                    ) : (
+                                                        <Sparkles className="w-4 h-4 text-zinc-400" />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm text-white truncate">
+                                                        {suggestion.title.length > 40 
+                                                            ? suggestion.title.slice(0, 40) + "..." 
+                                                            : suggestion.title}
+                                                    </p>
+                                                    <p className="text-xs text-zinc-500 truncate">
+                                                        {suggestion.description}
+                                                    </p>
+                                                </div>
+                                                <ChevronRight className="w-4 h-4 text-zinc-500 flex-shrink-0" />
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 ) : (
