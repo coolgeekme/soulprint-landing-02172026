@@ -1132,11 +1132,43 @@
 @keyframes msgFadeIn {
     from {
         opacity: 0;
-        transform: translateY(4px);
+        transform: translateY(8px) scale(0.98);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* User message slides in from right */
+.message-row.user {
+    animation: msgSlideRight 0.2s ease-out;
+}
+
+@keyframes msgSlideRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Assistant message slides in from left */
+.message-row.assistant:not(.typing) {
+    animation: msgSlideLeft 0.25s ease-out;
+}
+
+@keyframes msgSlideLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
     }
 }
 
