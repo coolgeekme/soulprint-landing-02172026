@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AchievementToastProvider } from "@/components/AchievementToast";
 
-const inter = Inter({ 
+const plusJakarta = Plus_Jakarta_Sans({ 
   subsets: ["latin"],
   display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -44,7 +45,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className={`${inter.className} antialiased bg-[#0A0A0B]`}>
+      <body className={`${plusJakarta.className} antialiased bg-[#0A0A0B]`}>
         <AchievementToastProvider>
           {children}
         </AchievementToastProvider>
