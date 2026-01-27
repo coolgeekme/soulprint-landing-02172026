@@ -21,6 +21,8 @@ export default function ChatPage() {
   const [isListening, setIsListening] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  const [aiName, setAiName] = useState<string | null>(null);
+  const [isNamingMode, setIsNamingMode] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -130,15 +132,36 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
-    const loadMessages = async () => {
+    const loadChatState = async () => {
       try {
+        // Check if AI has a name
+        const nameRes = await fetch('/api/profile/ai-name');
+        if (nameRes.ok) {
+          const nameData = await nameRes.json();
+          if (nameData.aiName) {
+            setAiName(nameData.aiName);
+          } else {
+            // No name yet - start naming flow
+            setIsNamingMode(true);
+            setMessages([{ 
+              id: 'intro', 
+              role: 'assistant', 
+              content: "Hey! I'm your new AI — built from your memories and conversations. Before we get started, I need a name. What would you like to call me?" 
+            }]);
+            setLoadingHistory(false);
+            return;
+          }
+        }
+
+        // Load chat history
         const res = await fetch('/api/chat/messages?limit=100');
         if (res.ok) {
           const data = await res.json();
           if (data.messages?.length > 0) {
             setMessages(data.messages);
           } else {
-            setMessages([{ id: 'welcome', role: 'assistant', content: "Hey! I've got your memories loaded. What's on your mind?" }]);
+            const name = aiName || 'your AI';
+            setMessages([{ id: 'welcome', role: 'assistant', content: `Hey! I'm ${name}. I've got your memories loaded. What's on your mind?` }]);
           }
         }
       } catch {
@@ -146,7 +169,7 @@ export default function ChatPage() {
       }
       setLoadingHistory(false);
     };
-    loadMessages();
+    loadChatState();
   }, []);
 
   useEffect(() => {
@@ -178,6 +201,51 @@ export default function ChatPage() {
     setInput('');
     setTimeout(() => inputRef.current?.focus(), 0);
     setIsLoading(true);
+
+    // Handle naming mode
+    if (isNamingMode) {
+      try {
+        const res = await fetch('/api/profile/ai-name', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: userContent }),
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setAiName(data.aiName);
+          setIsNamingMode(false);
+          
+          // Add confirmation message
+          setMessages(prev => [...prev, { 
+            id: (Date.now() + 1).toString(), 
+            role: 'assistant', 
+            content: `${data.aiName}. I like it! 💫\n\nI'm ready when you are. I've got your memories loaded — ask me anything, or just tell me what's on your mind.`
+          }]);
+          
+          // Save the intro messages to history
+          saveMessage('assistant', "Hey! I'm your new AI — built from your memories and conversations. Before we get started, I need a name. What would you like to call me?");
+          saveMessage('user', userContent);
+          saveMessage('assistant', `${data.aiName}. I like it! 💫\n\nI'm ready when you are. I've got your memories loaded — ask me anything, or just tell me what's on your mind.`);
+        } else {
+          setMessages(prev => [...prev, { 
+            id: (Date.now() + 1).toString(), 
+            role: 'assistant', 
+            content: "Hmm, I couldn't save that name. Try again?"
+          }]);
+        }
+      } catch {
+        setMessages(prev => [...prev, { 
+          id: (Date.now() + 1).toString(), 
+          role: 'assistant', 
+          content: "Something went wrong. Try giving me a name again?"
+        }]);
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    // Regular chat flow
     saveMessage('user', userContent);
 
     try {
@@ -240,9 +308,9 @@ export default function ChatPage() {
               🧠
             </div>
             <div className="flex flex-col">
-              <span className="font-semibold text-[17px] leading-tight">SoulPrint</span>
+              <span className="font-semibold text-[17px] leading-tight">{aiName || 'SoulPrint'}</span>
               <span className="text-[13px] text-orange-500/80 leading-tight">
-                {isLoading ? 'typing...' : 'your memory'}
+                {isLoading ? 'typing...' : (aiName ? 'your AI' : 'your memory')}
               </span>
             </div>
           </div>
