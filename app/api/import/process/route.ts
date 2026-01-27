@@ -39,24 +39,44 @@ function getSupabaseAdmin() {
 }
 
 async function downloadAndParseConversations(storagePath: string): Promise<ParsedConversation[]> {
+  console.log('[Process] Getting signed URL from R2...');
+  
   // Get signed URL for download
   const command = new GetObjectCommand({
     Bucket: process.env.R2_BUCKET_NAME,
     Key: storagePath,
   });
   const signedUrl = await getSignedUrl(R2, command, { expiresIn: 600 });
+  console.log('[Process] Got signed URL, starting download...');
   
-  // Download
-  const response = await fetch(signedUrl);
-  if (!response.ok) {
-    throw new Error(`Download failed: ${response.status}`);
+  // Download with timeout
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+  
+  let arrayBuffer: ArrayBuffer;
+  try {
+    const response = await fetch(signedUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+    
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
+    }
+    
+    console.log('[Process] Download response received, reading buffer...');
+    arrayBuffer = await response.arrayBuffer();
+    console.log(`[Process] Downloaded ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)}MB`);
+  } catch (e) {
+    clearTimeout(timeout);
+    if (e instanceof Error && e.name === 'AbortError') {
+      throw new Error('Download timed out after 2 minutes');
+    }
+    throw e;
   }
   
-  const arrayBuffer = await response.arrayBuffer();
-  console.log(`Downloaded ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)}MB`);
-  
   // Load ZIP
+  console.log('[Process] Loading ZIP...');
   const zip = await JSZip.loadAsync(arrayBuffer);
+  console.log('[Process] ZIP loaded, extracting conversations.json...');
   
   // Extract only conversations.json
   const conversationsFile = zip.file('conversations.json');
@@ -65,7 +85,8 @@ async function downloadAndParseConversations(storagePath: string): Promise<Parse
   }
   
   const conversationsJson = await conversationsFile.async('string');
-  console.log(`conversations.json: ${(conversationsJson.length / 1024 / 1024).toFixed(1)}MB`);
+  console.log(`[Process] conversations.json: ${(conversationsJson.length / 1024 / 1024).toFixed(1)}MB`);
+  console.log('[Process] Parsing JSON...');
   
   const raw: ChatGPTConversation[] = JSON.parse(conversationsJson);
   return raw.map(parseConversation).filter(c => c.messages.length > 0);
