@@ -47,25 +47,41 @@ export default function ChatPage() {
     
     const handleResize = () => {
       if (window.visualViewport) {
-        setViewportHeight(`${window.visualViewport.height}px`);
-        // Scroll to bottom when keyboard opens
+        const newHeight = window.visualViewport.height;
+        setViewportHeight(`${newHeight}px`);
+        
+        // Keep page scrolled to top to prevent blank space
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+        
+        // Scroll messages to bottom
         setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+          messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+        }, 50);
       }
+    };
+
+    // Also handle focus on input
+    const handleFocus = () => {
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+      }, 300);
     };
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleResize);
-      window.visualViewport.addEventListener('scroll', handleResize);
       handleResize();
     }
+    
+    inputRef.current?.addEventListener('focus', handleFocus);
 
     return () => {
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleResize);
-        window.visualViewport.removeEventListener('scroll', handleResize);
       }
+      inputRef.current?.removeEventListener('focus', handleFocus);
     };
   }, []);
 
