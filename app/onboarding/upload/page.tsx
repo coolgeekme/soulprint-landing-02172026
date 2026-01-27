@@ -85,8 +85,6 @@ export default function UploadPage() {
       setStatus("complete");
       setStatusMessage("Import complete!");
 
-      setTimeout(() => router.push("/chat"), 1500);
-
     } catch (err) {
       console.error("Import error:", err);
       setStatus("error");
@@ -127,21 +125,34 @@ export default function UploadPage() {
       )}
 
       {/* Processing state */}
-      {status !== "idle" && status !== "error" && (
+      {status === "extracting" || status === "processing" ? (
         <div className="flex items-center gap-4 p-5 bg-[#141414] rounded-2xl mb-6">
-          {status === "complete" ? (
-            <CheckCircle className="w-6 h-6 text-green-500" />
-          ) : (
-            <Loader2 className="w-6 h-6 text-[#EA580C] animate-spin" />
-          )}
+          <Loader2 className="w-6 h-6 text-[#EA580C] animate-spin" />
           <div className="flex-1">
             <p className="text-sm font-medium text-white">{statusMessage}</p>
-            {stats && (
-              <p className="text-xs text-gray-500 mt-1">
-                {stats.conversations} conversations • {stats.messages} messages
-              </p>
-            )}
           </div>
+        </div>
+      ) : null}
+
+      {/* Success state */}
+      {status === "complete" && (
+        <div className="flex-1 flex flex-col items-center justify-center text-center">
+          <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-6">
+            <CheckCircle className="w-10 h-10 text-green-500" />
+          </div>
+          <h2 className="text-2xl font-semibold text-white mb-2">Import Complete!</h2>
+          <p className="text-gray-500 mb-2">Your ChatGPT history has been imported.</p>
+          {stats && (
+            <p className="text-sm text-[#EA580C] mb-8">
+              {stats.conversations} conversations • {stats.messages} messages
+            </p>
+          )}
+          <button
+            onClick={() => router.push("/chat")}
+            className="w-full max-w-xs h-12 bg-[#EA580C] hover:bg-[#d14d0a] text-white font-medium rounded-xl transition-all active:scale-[0.98]"
+          >
+            Continue to Chat
+          </button>
         </div>
       )}
 
