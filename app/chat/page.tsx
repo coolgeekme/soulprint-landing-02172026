@@ -60,8 +60,8 @@ export default function ChatPage() {
     const handleViewport = () => {
       if (window.visualViewport) {
         const vv = window.visualViewport;
-        // Calculate keyboard height
-        const keyboardH = Math.max(0, window.innerHeight - vv.height);
+        // Calculate keyboard height - account for viewport offset too
+        const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
         setKeyboardHeight(keyboardH);
         
         // Prevent iOS from scrolling the page
@@ -71,22 +71,34 @@ export default function ChatPage() {
       }
     };
 
+    // Initial check
+    handleViewport();
+
     // Prevent any scrolling on the body
     document.body.style.overflow = 'hidden';
     document.body.style.position = 'fixed';
     document.body.style.width = '100%';
     document.body.style.height = '100%';
+    document.body.style.top = '0';
+    document.body.style.left = '0';
 
     window.visualViewport?.addEventListener('resize', handleViewport);
     window.visualViewport?.addEventListener('scroll', handleViewport);
     
+    // Also listen for focus events on input
+    const handleFocus = () => setTimeout(handleViewport, 100);
+    inputRef.current?.addEventListener('focus', handleFocus);
+    
     return () => {
       window.visualViewport?.removeEventListener('resize', handleViewport);
       window.visualViewport?.removeEventListener('scroll', handleViewport);
+      inputRef.current?.removeEventListener('focus', handleFocus);
       document.body.style.overflow = '';
       document.body.style.position = '';
       document.body.style.width = '';
       document.body.style.height = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
     };
   }, []);
 
@@ -428,9 +440,9 @@ export default function ChatPage() {
 
       {/* Footer - input bar - FIXED, never moves */}
       <footer 
-        className="fixed left-0 right-0 bg-[#1c1c1d] border-t border-white/5 px-5 lg:px-8 py-3 lg:py-4 z-20"
+        className="fixed left-0 right-0 bottom-0 bg-[#1c1c1d] border-t border-white/5 px-5 lg:px-8 py-3 lg:py-4 z-20"
         style={{ 
-          bottom: keyboardHeight,
+          transform: `translateY(-${keyboardHeight}px)`,
           paddingBottom: keyboardHeight > 0 ? 12 : `calc(${safeAreaBottom} + 12px)`
         }}
       >
