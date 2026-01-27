@@ -530,10 +530,10 @@ export default function ChatPage() {
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div 
-                  className={`max-w-[85%] sm:max-w-[75%] lg:max-w-[70%] text-[15px] sm:text-[16px] leading-[1.7] tracking-[-0.01em] whitespace-pre-wrap ${
+                  className={`text-[15px] sm:text-[16px] leading-[1.7] tracking-[-0.01em] whitespace-pre-wrap ${
                     msg.role === 'user' 
-                      ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-3xl rounded-br-lg px-6 sm:px-7 py-4 sm:py-5 text-left shadow-lg shadow-orange-500/20' 
-                      : 'bg-[#1e1e1e] text-white/90 rounded-3xl rounded-bl-lg border border-white/[0.06] px-5 sm:px-6 py-4 sm:py-5 text-left'
+                      ? 'max-w-[90%] sm:max-w-[80%] lg:max-w-[75%] bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-3xl rounded-br-lg px-7 sm:px-8 py-5 sm:py-6 text-left shadow-lg shadow-orange-500/20' 
+                      : 'max-w-[85%] sm:max-w-[75%] lg:max-w-[70%] bg-[#1e1e1e] text-white/90 rounded-3xl rounded-bl-lg border border-white/[0.06] px-5 sm:px-6 py-4 sm:py-5 text-center'
                   }`}
                 >
                   {msg.content}
