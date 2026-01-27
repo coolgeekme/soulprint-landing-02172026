@@ -8,6 +8,7 @@ import {
   estimateTokenCount,
   GPTConversation,
 } from '@/lib/soulprint/import/gpt-parser';
+import { analyzeChatHistory } from '@/lib/soulprint/analyze';
 
 // Allow long running imports (up to 5 minutes - Vercel hobby limit)
 export const maxDuration = 300;
@@ -140,6 +141,17 @@ export async function POST(request: NextRequest) {
 
     const duration = (Date.now() - startTime) / 1000;
 
+    // Trigger SoulPrint analysis in background (don't await)
+    analyzeChatHistory(user.id).then(result => {
+      if (result.success) {
+        console.log(`[GPT Import] SoulPrint analysis completed for user ${user.id}`);
+      } else {
+        console.error(`[GPT Import] SoulPrint analysis failed: ${result.error}`);
+      }
+    }).catch(err => {
+      console.error('[GPT Import] SoulPrint analysis error:', err);
+    });
+
     return NextResponse.json({
       success: true,
       fastMode,
@@ -152,9 +164,7 @@ export async function POST(request: NextRequest) {
         durationSeconds: duration,
       },
       errors: progress.errors.slice(0, 10), // Return first 10 errors
-      nextStep: fastMode
-        ? 'Call POST /api/import/generate-embeddings to generate embeddings in background'
-        : null,
+      nextStep: 'SoulPrint analysis running in background',
     });
 
   } catch (error: unknown) {
