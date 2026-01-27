@@ -21,6 +21,7 @@ export default function ImportPage() {
   const [stats, setStats] = useState<{ conversations: number; messages: number } | null>(null);
   const [importMethod, setImportMethod] = useState<ImportMethod>("upload");
   const [emailSent, setEmailSent] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -260,15 +261,38 @@ export default function ImportPage() {
       {importMethod === "email" && status === "idle" && (
         <div className="flex-1 flex flex-col">
           <div className="bg-[#141414] rounded-2xl p-5 mb-6">
-            <h3 className="text-sm font-medium text-white mb-3">For large exports (over 50MB)</h3>
+            <h3 className="text-sm font-medium text-white mb-3">Waiting for your export?</h3>
             <p className="text-sm text-gray-400 mb-4">
-              Forward the export email from OpenAI directly to us. Make sure to forward from the same email you signed up with.
+              Once you receive the email from OpenAI with your data export, simply forward it to us. We&apos;ll handle the rest!
             </p>
             
-            <div className="bg-[#0a0a0a] rounded-xl p-4 border border-[#222]">
-              <p className="text-xs text-gray-500 mb-1">Forward to:</p>
-              <p className="text-lg font-mono text-[#EA580C] select-all">{IMPORT_EMAIL}</p>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="w-5 h-5 rounded-full bg-[#EA580C]/20 text-[#EA580C] text-xs font-medium flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                <span className="text-sm text-gray-400">Wait for email from OpenAI (usually 5-30 min)</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="w-5 h-5 rounded-full bg-[#EA580C]/20 text-[#EA580C] text-xs font-medium flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                <span className="text-sm text-gray-400">Forward the entire email to:</span>
+              </div>
             </div>
+
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(IMPORT_EMAIL);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              className="w-full mt-4 bg-[#0a0a0a] rounded-xl p-4 border border-[#222] hover:border-[#EA580C]/50 transition-all active:scale-[0.98] group"
+            >
+              <p className="text-xs text-gray-500 mb-1">Tap to copy</p>
+              <p className="text-lg font-mono text-[#EA580C] group-hover:text-[#ff6b1a] transition-colors">{IMPORT_EMAIL}</p>
+              {copied && <p className="text-xs text-green-400 mt-1">Copied!</p>}
+            </button>
+
+            <p className="text-xs text-gray-500 mt-4 text-center">
+              Make sure to forward from the same email you signed up with
+            </p>
           </div>
 
           <div className="space-y-3 mt-auto">
