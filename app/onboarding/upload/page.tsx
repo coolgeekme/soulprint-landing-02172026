@@ -93,7 +93,7 @@ export default function UploadPage() {
   };
 
   return (
-    <main className="min-h-[100dvh] bg-[#0a0a0a] flex flex-col px-6 py-8">
+    <main className="min-h-[100dvh] bg-[#0a0a0a] flex flex-col px-6 py-8 max-w-lg mx-auto">
       {/* Progress indicator */}
       <div className="flex items-center gap-2 mb-8">
         <div className="w-8 h-8 rounded-full bg-[#EA580C]/20 text-[#EA580C] text-sm font-bold flex items-center justify-center">✓</div>

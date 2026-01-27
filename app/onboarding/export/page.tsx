@@ -21,7 +21,7 @@ export default function ExportInstructionsPage() {
   }, [router]);
 
   return (
-    <main className="min-h-[100dvh] bg-[#0a0a0a] flex flex-col px-6 py-8">
+    <main className="min-h-[100dvh] bg-[#0a0a0a] flex flex-col px-6 py-8 max-w-lg mx-auto">
       {/* Progress indicator */}
       <div className="flex items-center gap-2 mb-8">
         <div className="w-8 h-8 rounded-full bg-[#EA580C] text-white text-sm font-bold flex items-center justify-center">1</div>
@@ -68,12 +68,12 @@ export default function ExportInstructionsPage() {
             </div>
           </div>
           {/* Screenshot showing where to click */}
-          <div className="mt-4 rounded-xl overflow-hidden border border-[#333]">
+          <div className="mt-4 rounded-xl overflow-hidden border border-[#333] max-w-[300px] mx-auto">
             <Image
               src="/images/chatgpt-export-guide.jpg"
               alt="ChatGPT Data Controls - Export data button"
-              width={400}
-              height={300}
+              width={300}
+              height={225}
               className="w-full h-auto"
             />
           </div>
@@ -88,12 +88,12 @@ export default function ExportInstructionsPage() {
             </div>
           </div>
           {/* Success notification screenshot */}
-          <div className="mt-4 rounded-xl overflow-hidden border border-[#333]">
+          <div className="mt-4 rounded-xl overflow-hidden border border-[#333] max-w-[300px] mx-auto">
             <Image
               src="/images/chatgpt-export-success.jpg"
               alt="ChatGPT export success notification"
-              width={400}
-              height={100}
+              width={300}
+              height={75}
               className="w-full h-auto"
             />
           </div>
