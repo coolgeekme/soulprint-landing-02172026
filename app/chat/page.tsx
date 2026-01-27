@@ -105,30 +105,63 @@ export default function ChatPage() {
     
     const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;
+    recognition.continuous = true; // Keep listening
     recognition.interimResults = true;
     recognition.lang = 'en-US';
     
+    let finalTranscript = input; // Start with existing text
+    
     recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false);
-    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => {
+      setIsListening(false);
+      // Auto-restart if we didn't manually stop (handles browser timeouts)
+      if (recognitionRef.current && !recognitionRef.current._manualStop) {
+        try {
+          recognition.start();
+        } catch {
+          // Already started or other error
+        }
+      }
+    };
+    recognition.onerror = (e: { error: string }) => {
+      if (e.error !== 'no-speech' && e.error !== 'aborted') {
+        setIsListening(false);
+      }
+    };
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (event: any) => {
-      const transcript = Array.from(event.results)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((result: any) => result[0].transcript)
-        .join('');
-      setInput(transcript);
+      let interimTranscript = '';
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += (finalTranscript ? ' ' : '') + transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      
+      // Show final + interim
+      setInput(finalTranscript + (interimTranscript ? ' ' + interimTranscript : ''));
     };
     
     recognitionRef.current = recognition;
+    recognitionRef.current._manualStop = false;
     recognition.start();
   };
 
   const stopListening = () => {
-    recognitionRef.current?.stop();
+    if (recognitionRef.current) {
+      recognitionRef.current._manualStop = true;
+      recognitionRef.current.stop();
+    }
     setIsListening(false);
+  };
+
+  const clearVoiceInput = () => {
+    stopListening();
+    setInput('');
   };
 
   useEffect(() => {
@@ -394,14 +427,27 @@ export default function ChatPage() {
           paddingBottom: keyboardHeight > 0 ? 12 : `calc(${safeAreaBottom} + 12px)`
         }}
       >
-        <form onSubmit={handleSubmit} className="flex items-center gap-3 max-w-2xl mx-auto">
-          <div className={`flex-1 flex items-center bg-[#2c2c2e] rounded-full px-5 ${isListening ? 'ring-2 ring-orange-500/50' : ''}`}>
+        <form onSubmit={handleSubmit} className="flex items-center gap-2 max-w-2xl mx-auto">
+          {/* Clear button - show when listening or has text */}
+          {(isListening || input.trim()) && (
+            <button 
+              type="button" 
+              onClick={clearVoiceInput}
+              className="w-10 h-10 rounded-full bg-[#2c2c2e] text-white/40 flex items-center justify-center active:scale-95 transition-transform"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+          
+          <div className={`flex-1 flex items-center bg-[#2c2c2e] rounded-full px-5 ${isListening ? 'ring-2 ring-red-500/50' : ''}`}>
             <input
               ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={isListening ? "Listening..." : "Message"}
+              placeholder={isListening ? "Listening... tap mic to stop" : "Message"}
               className="flex-1 h-11 bg-transparent text-[16px] outline-none placeholder:text-white/30"
               autoComplete="off"
               autoCorrect="off"
@@ -409,7 +455,13 @@ export default function ChatPage() {
               spellCheck="false"
               enterKeyHint="send"
             />
+            {isListening && (
+              <div className="flex items-center gap-1 ml-2">
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              </div>
+            )}
           </div>
+          
           {input.trim() ? (
             <button 
               type="submit" 
@@ -426,13 +478,19 @@ export default function ChatPage() {
               onClick={isListening ? stopListening : startListening}
               className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
                 isListening 
-                  ? 'bg-red-500 shadow-lg shadow-red-500/30 animate-pulse' 
+                  ? 'bg-red-500 shadow-lg shadow-red-500/30' 
                   : 'bg-[#2c2c2e] text-white/60'
               }`}
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.94-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.06 7.44-7 7.93V19h4v2H8v-2h4v-3.07z"/>
-              </svg>
+              {isListening ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.94-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.06 7.44-7 7.93V19h4v2H8v-2h4v-3.07z"/>
+                </svg>
+              )}
             </button>
           )}
         </form>
