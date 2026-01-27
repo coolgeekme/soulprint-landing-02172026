@@ -177,11 +177,7 @@ async function processEmail(
   }
   
   if (!zipBuffer) {
-    await gmail.users.messages.modify({
-      userId: 'me',
-      id: messageId,
-      requestBody: { removeLabelIds: ['UNREAD'] },
-    });
+    // DON'T mark as read - keep unread so we can retry after fixing patterns
     return { email: senderEmail, status: 'skipped', error: 'No ZIP attachment or download link found' };
   }
   
