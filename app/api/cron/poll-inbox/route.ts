@@ -317,6 +317,10 @@ function extractChatGPTDownloadLink(body: string): string | null {
   
   // Patterns for ChatGPT export download links (in priority order)
   const patterns = [
+    // ChatGPT estuary/content endpoint (current format as of Jan 2026)
+    /https:\/\/chatgpt\.com\/backend-api\/estuary\/content\?[^\s"'<>]+/i,
+    // ChatGPT backend-api with .zip in params
+    /https:\/\/chatgpt\.com\/backend-api\/[^\s"'<>]*\.zip[^\s"'<>]*/i,
     // Direct CDN download links (usually have token/hash)
     /https:\/\/cdn\.oaistatic\.com\/[^\s"'<>]+/i,
     // ChatGPT export download endpoints
@@ -326,7 +330,7 @@ function extractChatGPTDownloadLink(body: string): string | null {
     /https:\/\/[^\s"'<>]*\.openai\.com\/[^\s"'<>]*download[^\s"'<>]*/i,
     /https:\/\/[^\s"'<>]*\.openai\.com\/[^\s"'<>]*export[^\s"'<>]*/i,
     // Links from href attributes (for HTML emails)
-    /href=["']?(https:\/\/[^\s"'<>]*(?:download|export)[^\s"'<>]*)["']?/i,
+    /href=["']?(https:\/\/chatgpt\.com\/[^\s"'<>]+)["']?/i,
     // Generic .zip download link
     /https:\/\/[^\s"'<>]+\.zip[^\s"'<>]*/i,
     // Any link with "download" button text nearby (common in email templates)
