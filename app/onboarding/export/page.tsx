@@ -84,8 +84,18 @@ export default function ExportInstructionsPage() {
             <span className="w-8 h-8 rounded-full bg-[#EA580C]/20 text-[#EA580C] text-sm font-bold flex items-center justify-center flex-shrink-0">4</span>
             <div>
               <h3 className="text-white font-medium mb-1">Wait for email</h3>
-              <p className="text-sm text-gray-500">OpenAI will email you a download link (5-30 min)</p>
+              <p className="text-sm text-gray-500">You'll see this notification, then check your email (5-30 min)</p>
             </div>
+          </div>
+          {/* Success notification screenshot */}
+          <div className="mt-4 rounded-xl overflow-hidden border border-[#333]">
+            <Image
+              src="/images/chatgpt-export-success.jpg"
+              alt="ChatGPT export success notification"
+              width={400}
+              height={100}
+              className="w-full h-auto"
+            />
           </div>
         </div>
 
