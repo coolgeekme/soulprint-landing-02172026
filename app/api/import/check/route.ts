@@ -49,20 +49,32 @@ export async function POST() {
     const gmail = await getGmailClient();
     const adminSupabase = getSupabaseAdmin();
 
+    // First, let's see ALL unread emails for debugging
+    const allUnread = await gmail.users.messages.list({
+      userId: 'me',
+      q: 'is:unread',
+      maxResults: 10,
+    });
+    console.log(`[Import Check] Total unread emails: ${allUnread.data.messages?.length || 0}`);
+
     // Search for emails from this specific user
     const response = await gmail.users.messages.list({
       userId: 'me',
-      q: `from:${userEmail} is:unread`,
+      q: `from:${userEmail}`,
       maxResults: 5,
     });
 
     const messages = response.data.messages || [];
-    console.log(`[Import Check] Found ${messages.length} unread emails from ${userEmail}`);
+    console.log(`[Import Check] Found ${messages.length} emails from ${userEmail}`);
 
     if (messages.length === 0) {
       return NextResponse.json({ 
         status: 'not_found',
-        error: 'No email found. Make sure you forwarded from ' + userEmail
+        error: 'No email found. Make sure you forwarded from ' + userEmail,
+        debug: {
+          searchedFor: userEmail,
+          totalUnread: allUnread.data.messages?.length || 0,
+        }
       });
     }
 
