@@ -405,7 +405,7 @@ export default function ChatPage() {
       {/* Messages - scrollable area */}
       <main className="flex-1 overflow-y-auto overscroll-none px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col justify-end min-h-full">
-          <div className="space-y-8 lg:space-y-10 max-w-2xl mx-auto w-full pt-6 pb-8 lg:pt-10 lg:pb-12">
+          <div className="space-y-8 lg:space-y-10 max-w-2xl mx-auto w-full pt-6 pb-16 lg:pt-10 lg:pb-20">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div 
@@ -428,7 +428,7 @@ export default function ChatPage() {
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} className="h-4" />
+            <div ref={messagesEndRef} className="h-8" />
           </div>
         </div>
       </main>
