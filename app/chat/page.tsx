@@ -17,16 +17,6 @@ const initialMessages: Message[] = [
   },
 ];
 
-function TypingIndicator() {
-  return (
-    <div className="flex items-center gap-1 px-4 py-3">
-      <div className="typing-dot" />
-      <div className="typing-dot" />
-      <div className="typing-dot" />
-    </div>
-  );
-}
-
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
@@ -57,7 +47,6 @@ export default function ChatPage() {
     setIsLoading(true);
 
     // TODO: Implement actual AI chat
-    // Simulated response
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     const aiMessage: Message = {
@@ -78,27 +67,24 @@ export default function ChatPage() {
   };
 
   return (
-    <main className="h-screen bg-black flex flex-col page-transition">
+    <main className="h-screen bg-[#09090B] flex flex-col">
       {/* Header */}
-      <header className="flex-shrink-0 border-b border-white/5 bg-black/50 backdrop-blur-xl">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="text-lg font-semibold tracking-tight">
-            <span className="gradient-text">Soul</span>
-            <span className="text-white">Print</span>
+      <header className="flex-shrink-0 border-b border-white/[0.06] bg-[#09090B]/80 backdrop-blur-xl">
+        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Link href="/" className="logo">
+            <img src="/logo.svg" alt="SoulPrint" className="w-6 h-6" />
+            <span className="text-white text-base">SoulPrint</span>
           </Link>
           
-          <div className="flex items-center gap-3">
-            <Link
-              href="/import"
-              className="text-xs text-white/50 hover:text-white/70 flex items-center gap-1.5"
-            >
+          <div className="flex items-center gap-2">
+            <Link href="/import" className="btn btn-ghost btn-sm">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
               </svg>
-              Import Memory
+              <span className="hidden sm:inline">Import</span>
             </Link>
-            <button className="glass-button p-2 text-white/60 hover:text-white">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button className="btn btn-ghost btn-sm">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -109,42 +95,49 @@ export default function ChatPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-in`}
             >
-              <div
-                className={`max-w-[85%] md:max-w-[70%] px-5 py-3 ${
-                  message.role === 'user'
-                    ? 'chat-bubble-user'
-                    : 'chat-bubble-ai'
-                }`}
-              >
-                {message.role === 'assistant' && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <img src="/logo.svg" alt="SoulPrint" className="w-5 h-5" />
-                    <span className="text-xs text-orange-400/70 font-medium">SoulPrint</span>
+              {message.role === 'assistant' && (
+                <div className="flex items-start gap-3 max-w-[85%] md:max-w-[75%]">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0 mt-1">
+                    <img src="/logo.svg" alt="" className="w-5 h-5" />
                   </div>
-                )}
-                <p className={`text-sm leading-relaxed ${
-                  message.role === 'user' ? 'text-white/90' : 'text-white/80'
-                }`}>
-                  {message.content}
-                </p>
-              </div>
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1.5 font-medium">SoulPrint</div>
+                    <div className="chat-assistant">
+                      <p className="text-gray-200">{message.content}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {message.role === 'user' && (
+                <div className="chat-user max-w-[85%] md:max-w-[75%]">
+                  <p className="text-gray-200">{message.content}</p>
+                </div>
+              )}
             </div>
           ))}
           
           {isLoading && (
-            <div className="flex justify-start">
-              <div className="chat-bubble-ai glow-orange-sm">
-                <div className="flex items-center gap-2 mb-1">
-                  <img src="/logo.svg" alt="SoulPrint" className="w-5 h-5" />
-                  <span className="text-xs text-orange-400/70 font-medium">SoulPrint</span>
+            <div className="flex justify-start animate-in">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0 mt-1">
+                  <img src="/logo.svg" alt="" className="w-5 h-5" />
                 </div>
-                <TypingIndicator />
+                <div>
+                  <div className="text-xs text-gray-500 mb-1.5 font-medium">SoulPrint</div>
+                  <div className="chat-assistant">
+                    <div className="typing-indicator">
+                      <div className="typing-dot" />
+                      <div className="typing-dot" />
+                      <div className="typing-dot" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -154,9 +147,9 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 border-t border-white/5 bg-black/50 backdrop-blur-xl">
+      <div className="flex-shrink-0 border-t border-white/[0.06] bg-[#09090B]">
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 py-4">
-          <div className="glass-card p-2 flex items-end gap-2">
+          <div className="card p-2 flex items-end gap-2">
             <textarea
               ref={inputRef}
               value={input}
@@ -164,20 +157,20 @@ export default function ChatPage() {
               onKeyDown={handleKeyDown}
               placeholder="Message SoulPrint..."
               rows={1}
-              className="flex-1 bg-transparent text-white text-sm resize-none outline-none px-3 py-2 max-h-32 placeholder:text-white/30"
+              className="flex-1 bg-transparent text-white text-[15px] resize-none outline-none px-3 py-2.5 max-h-32 placeholder:text-gray-600"
               style={{ minHeight: '44px' }}
             />
             <button
               type="submit"
               disabled={!input.trim() || isLoading}
-              className="btn-orange p-3 disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+              className="btn btn-primary p-2.5 disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" />
               </svg>
             </button>
           </div>
-          <p className="text-center text-xs text-white/20 mt-2">
+          <p className="text-center text-xs text-gray-600 mt-3">
             SoulPrint can make mistakes. Consider checking important information.
           </p>
         </form>
