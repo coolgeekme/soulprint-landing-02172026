@@ -269,62 +269,91 @@ function findZipAttachment(parts: Array<{
 }
 
 /**
- * Extract email body text from message payload
+ * Extract ALL email body text from message payload (both plain and HTML)
+ * Concatenates all parts to ensure we don't miss any content
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getEmailBody(payload: any): string {
   if (!payload) return '';
   
+  const bodies: string[] = [];
+  
   // Direct body
   if (payload.body?.data) {
-    return Buffer.from(payload.body.data, 'base64').toString('utf-8');
+    bodies.push(Buffer.from(payload.body.data, 'base64').toString('utf-8'));
   }
   
-  // Check parts
+  // Check all parts (collect both plain and HTML)
   if (payload.parts) {
     for (const part of payload.parts) {
-      if (part.mimeType === 'text/plain' && part.body?.data) {
-        return Buffer.from(part.body.data, 'base64').toString('utf-8');
+      if ((part.mimeType === 'text/plain' || part.mimeType === 'text/html') && part.body?.data) {
+        bodies.push(Buffer.from(part.body.data, 'base64').toString('utf-8'));
       }
-      if (part.mimeType === 'text/html' && part.body?.data) {
-        return Buffer.from(part.body.data, 'base64').toString('utf-8');
-      }
-      // Recurse into nested parts
+      // Recurse into nested parts (for multipart/alternative, forwarded emails, etc.)
       if (part.parts) {
         const nested = getEmailBody(part);
-        if (nested) return nested;
+        if (nested) bodies.push(nested);
       }
     }
   }
   
-  return '';
+  const combined = bodies.join('\n\n');
+  console.log(`[Import] Email body length: ${combined.length} chars`);
+  return combined;
 }
 
 /**
  * Extract ChatGPT export download link from email body
- * ChatGPT sends emails with links like:
- * - https://chatgpt.com/backend-api/accounts/.../export/download
- * - https://chat.openai.com/backend-api/...
+ * ChatGPT sends emails with download links - could be various formats
  */
 function extractChatGPTDownloadLink(body: string): string | null {
-  // Common patterns for ChatGPT export download links
+  // Decode HTML entities first
+  const decoded = body
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  
+  // Patterns for ChatGPT export download links (in priority order)
   const patterns = [
-    /https:\/\/chatgpt\.com\/[^\s"'<>]+export[^\s"'<>]+download[^\s"'<>]*/i,
-    /https:\/\/chat\.openai\.com\/[^\s"'<>]+export[^\s"'<>]+download[^\s"'<>]*/i,
-    /https:\/\/[^\s"'<>]*openai[^\s"'<>]*\/[^\s"'<>]*export[^\s"'<>]*/i,
-    // Generic pattern for download links in ChatGPT emails
+    // Direct CDN download links (usually have token/hash)
+    /https:\/\/cdn\.oaistatic\.com\/[^\s"'<>]+/i,
+    // ChatGPT export download endpoints
+    /https:\/\/chatgpt\.com\/[^\s"'<>]*export[^\s"'<>]*/i,
+    /https:\/\/chat\.openai\.com\/[^\s"'<>]*export[^\s"'<>]*/i,
+    // Any OpenAI domain with download in path
+    /https:\/\/[^\s"'<>]*\.openai\.com\/[^\s"'<>]*download[^\s"'<>]*/i,
+    /https:\/\/[^\s"'<>]*\.openai\.com\/[^\s"'<>]*export[^\s"'<>]*/i,
+    // Links from href attributes (for HTML emails)
+    /href=["']?(https:\/\/[^\s"'<>]*(?:download|export)[^\s"'<>]*)["']?/i,
+    // Generic .zip download link
     /https:\/\/[^\s"'<>]+\.zip[^\s"'<>]*/i,
+    // Any link with "download" button text nearby (common in email templates)
+    /https:\/\/[^\s"'<>]+(?:cdn|storage|download|files)[^\s"'<>]*/i,
   ];
   
   for (const pattern of patterns) {
-    const match = body.match(pattern);
+    const match = decoded.match(pattern);
     if (match) {
-      // Clean up any trailing HTML entities or characters
-      let url = match[0].replace(/&amp;/g, '&');
-      url = url.replace(/['">\s].*$/, '');
-      return url;
+      // Extract URL if it's from href pattern
+      let url = match[1] || match[0];
+      // Clean up URL
+      url = url.replace(/^href=["']?/i, '');
+      url = url.replace(/["'>\s].*$/, '');
+      url = url.replace(/[<>].*$/, '');
+      
+      // Validate it looks like a URL
+      if (url.startsWith('https://')) {
+        console.log(`[Import] Found potential download link: ${url.substring(0, 100)}...`);
+        return url;
+      }
     }
   }
+  
+  // Last resort: find ANY https link in the email that might be the download
+  const allLinks = decoded.match(/https:\/\/[^\s"'<>]+/gi) || [];
+  console.log(`[Import] All links found in email (${allLinks.length}):`, allLinks.slice(0, 5));
   
   return null;
 }
