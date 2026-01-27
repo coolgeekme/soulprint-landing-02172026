@@ -195,8 +195,8 @@ export default function ChatPage() {
   return (
     <main 
       ref={containerRef}
-      className="bg-[#0A0A0B] flex overflow-hidden"
-      style={{ height: viewportHeight }}
+      className="bg-[#0A0A0B] flex overflow-hidden touch-none"
+      style={{ height: viewportHeight, maxHeight: viewportHeight }}
     >
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col w-[280px] xl:w-[320px] border-r border-white/[0.08] bg-[#0A0A0B]">
@@ -280,7 +280,7 @@ export default function ChatPage() {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="h-16 flex-shrink-0 border-b border-white/[0.08] bg-[#0A0A0B] flex items-center justify-between px-6">
+        <header className="h-14 lg:h-16 flex-shrink-0 border-b border-white/[0.08] bg-[#0A0A0B] flex items-center justify-between px-4 lg:px-6 sticky top-0 z-10">
           <div className="flex items-center gap-4">
             {/* Mobile Logo */}
             <Link href="/" className="flex items-center gap-2.5 lg:hidden">
@@ -349,8 +349,8 @@ export default function ChatPage() {
         )}
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+        <div className="flex-1 overflow-y-auto overscroll-none touch-pan-y">
+          <div className="max-w-3xl mx-auto px-4 lg:px-6 py-6 lg:py-8 space-y-4 lg:space-y-6">
             {messages.map((message) => (
               <div
                 key={message.id}
