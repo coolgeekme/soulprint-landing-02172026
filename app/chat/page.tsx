@@ -44,27 +44,44 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   };
 
-  // iOS keyboard detection using visualViewport
+  // iOS keyboard handling - prevent page scroll, keep footer at bottom
   useEffect(() => {
-    const handleResize = () => {
+    const handleViewport = () => {
       if (window.visualViewport) {
-        const keyboardH = window.innerHeight - window.visualViewport.height;
-        setKeyboardHeight(Math.max(0, keyboardH));
+        const vv = window.visualViewport;
+        // Calculate keyboard height
+        const keyboardH = Math.max(0, window.innerHeight - vv.height);
+        setKeyboardHeight(keyboardH);
+        
+        // Prevent iOS from scrolling the page
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
       }
     };
 
-    window.visualViewport?.addEventListener('resize', handleResize);
-    window.addEventListener('resize', handleResize);
+    // Prevent any scrolling on the body
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+
+    window.visualViewport?.addEventListener('resize', handleViewport);
+    window.visualViewport?.addEventListener('scroll', handleViewport);
     
     return () => {
-      window.visualViewport?.removeEventListener('resize', handleResize);
-      window.removeEventListener('resize', handleResize);
+      window.visualViewport?.removeEventListener('resize', handleViewport);
+      window.visualViewport?.removeEventListener('scroll', handleViewport);
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
     };
   }, []);
 
   // Scroll when keyboard height changes or messages change
   useEffect(() => {
-    scrollToBottom();
+    setTimeout(scrollToBottom, 100);
   }, [keyboardHeight, messages]);
 
   const startListening = () => {
