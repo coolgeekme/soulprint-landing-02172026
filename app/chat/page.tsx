@@ -20,6 +20,7 @@ export default function ChatPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
@@ -77,6 +78,8 @@ export default function ChatPage() {
     const userContent = input.trim();
     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: userContent }]);
     setInput('');
+    // Keep keyboard open by refocusing input
+    setTimeout(() => inputRef.current?.focus(), 0);
     setIsLoading(true);
     saveMessage('user', userContent);
     scrollToBottom();
@@ -187,6 +190,7 @@ export default function ChatPage() {
       <footer className="fixed bottom-0 left-0 right-0 z-50 bg-[#1a1a1a] border-t border-white/10 px-3 py-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}>
         <form onSubmit={handleSubmit} className="flex items-center gap-2 max-w-xl mx-auto">
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
