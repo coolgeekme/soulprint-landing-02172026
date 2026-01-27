@@ -17,64 +17,47 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const messagesRef = useRef<HTMLDivElement>(null);
-  const footerRef = useRef<HTMLDivElement>(null);
-
   const scrollToBottom = () => {
-    if (messagesRef.current) {
-      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   };
 
-  // Handle iOS keyboard - lock footer position
+  // iOS keyboard detection using visualViewport
   useEffect(() => {
-    const handleViewport = () => {
-      if (!window.visualViewport) return;
-      
-      const viewport = window.visualViewport;
-      
-      // Resize container to visual viewport
-      if (containerRef.current) {
-        containerRef.current.style.height = `${viewport.height}px`;
+    const handleResize = () => {
+      if (window.visualViewport) {
+        const keyboardH = window.innerHeight - window.visualViewport.height;
+        setKeyboardHeight(Math.max(0, keyboardH));
       }
-      
-      // Lock footer to bottom of visual viewport
-      if (footerRef.current) {
-        const bottomOffset = window.innerHeight - viewport.height - viewport.offsetTop;
-        footerRef.current.style.transform = `translateY(-${bottomOffset}px)`;
-      }
-      
-      setTimeout(scrollToBottom, 50);
     };
 
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewport);
-      window.visualViewport.addEventListener('scroll', handleViewport);
-      handleViewport();
-    }
-
+    window.visualViewport?.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize);
+    
     return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleViewport);
-        window.visualViewport.removeEventListener('scroll', handleViewport);
-      }
+      window.visualViewport?.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // Scroll when keyboard height changes or messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [keyboardHeight, messages]);
 
   const startListening = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const win = window as any;
     if (!win.webkitSpeechRecognition && !win.SpeechRecognition) {
-      alert('Speech recognition not supported in this browser');
+      alert('Speech recognition not supported');
       return;
     }
     
@@ -127,13 +110,8 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email || null));
-  }, []);
-
-  useEffect(() => {
     if (!loadingHistory) scrollToBottom();
-  }, [messages, loadingHistory]);
+  }, [loadingHistory]);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -158,11 +136,9 @@ export default function ChatPage() {
     const userContent = input.trim();
     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: userContent }]);
     setInput('');
-    // Keep keyboard open by refocusing input
     setTimeout(() => inputRef.current?.focus(), 0);
     setIsLoading(true);
     saveMessage('user', userContent);
-    scrollToBottom();
 
     try {
       const history = messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
@@ -190,7 +166,6 @@ export default function ChatPage() {
             if (data.type === 'text') {
               content += data.text;
               setMessages(prev => prev.map(m => m.id === aiId ? { ...m, content } : m));
-              scrollToBottom();
             }
           } catch {}
         }
@@ -203,13 +178,22 @@ export default function ChatPage() {
   };
 
   if (loadingHistory) {
-    return <div className="min-h-screen bg-black flex items-center justify-center text-white/50">Loading...</div>;
+    return <div className="min-h-screen bg-[#0e0e0e] flex items-center justify-center text-white/50">Loading...</div>;
   }
 
+  // Calculate heights
+  const headerHeight = 64;
+  const footerHeight = 70;
+  const safeAreaTop = 'env(safe-area-inset-top, 0px)';
+  const safeAreaBottom = 'env(safe-area-inset-bottom, 0px)';
+
   return (
-    <div ref={containerRef} className="bg-[#0e0e0e] text-white h-[100dvh] flex flex-col overflow-hidden">
-      {/* Fixed Header - Telegram style */}
-      <header className="flex-shrink-0 bg-[#1c1c1d]" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <div className="bg-[#0e0e0e] text-white fixed inset-0 flex flex-col">
+      {/* Header */}
+      <header 
+        className="bg-[#1c1c1d] flex-shrink-0 z-10"
+        style={{ paddingTop: safeAreaTop }}
+      >
         <div className="flex items-center px-4 h-16">
           <div className="flex-1 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-lg shadow-lg">
@@ -237,53 +221,61 @@ export default function ChatPage() {
         )}
       </header>
 
-      {/* Scrollable messages area */}
-      <main ref={messagesRef} className="flex-1 overflow-y-auto px-4 flex flex-col">
-        <div className="flex-1" />
-        <div className="space-y-3 max-w-2xl mx-auto w-full py-4">
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div 
-                className={`max-w-[80%] px-4 py-2.5 text-[15px] leading-relaxed shadow-sm ${
-                  msg.role === 'user' 
-                    ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-[20px] rounded-br-[4px]' 
-                    : 'bg-[#262628] text-white/90 rounded-[20px] rounded-bl-[4px]'
-                }`}
-              >
-                {msg.content}
+      {/* Messages - scrollable area */}
+      <main 
+        className="flex-1 overflow-y-auto overscroll-none px-4"
+        style={{ paddingBottom: keyboardHeight > 0 ? 0 : undefined }}
+      >
+        <div className="flex flex-col justify-end min-h-full">
+          <div className="space-y-3 max-w-2xl mx-auto w-full py-4">
+            {messages.map((msg) => (
+              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div 
+                  className={`max-w-[80%] px-4 py-2.5 text-[15px] leading-relaxed shadow-sm ${
+                    msg.role === 'user' 
+                      ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-[20px] rounded-br-[4px]' 
+                      : 'bg-[#262628] text-white/90 rounded-[20px] rounded-bl-[4px]'
+                  }`}
+                >
+                  {msg.content}
+                </div>
               </div>
-            </div>
-          ))}
-          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-            <div className="flex justify-start">
-              <div className="bg-[#262628] rounded-[20px] rounded-bl-[4px] px-4 py-3 flex gap-1.5">
-                <span className="w-2 h-2 bg-orange-500/60 rounded-full animate-bounce" />
-                <span className="w-2 h-2 bg-orange-500/60 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
-                <span className="w-2 h-2 bg-orange-500/60 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
+            ))}
+            {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+              <div className="flex justify-start">
+                <div className="bg-[#262628] rounded-[20px] rounded-bl-[4px] px-4 py-3 flex gap-1.5">
+                  <span className="w-2 h-2 bg-orange-500/60 rounded-full animate-bounce" />
+                  <span className="w-2 h-2 bg-orange-500/60 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
+                  <span className="w-2 h-2 bg-orange-500/60 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
+                </div>
               </div>
-            </div>
-          )}
-          <div ref={bottomRef} className="h-1" />
+            )}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
       </main>
 
-      {/* Input - stays at bottom */}
+      {/* Footer - input bar */}
       <footer 
-        ref={footerRef}
-        className="flex-shrink-0 bg-[#1c1c1d] border-t border-white/5 px-4 py-3" 
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
+        className="bg-[#1c1c1d] border-t border-white/5 px-4 py-3 flex-shrink-0"
+        style={{ 
+          paddingBottom: `calc(${safeAreaBottom} + 12px)`,
+          marginBottom: keyboardHeight > 0 ? keyboardHeight : 0 
+        }}
       >
         <form onSubmit={handleSubmit} className="flex items-center gap-3 max-w-2xl mx-auto">
-          <div className={`flex-1 flex items-center bg-[#2c2c2e] rounded-full px-4 transition-all ${isListening ? 'ring-2 ring-orange-500/50' : ''}`}>
+          <div className={`flex-1 flex items-center bg-[#2c2c2e] rounded-full px-4 ${isListening ? 'ring-2 ring-orange-500/50' : ''}`}>
             <input
               ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onFocus={() => setTimeout(scrollToBottom, 100)}
               placeholder={isListening ? "Listening..." : "Message"}
               className="flex-1 h-11 bg-transparent text-[16px] outline-none placeholder:text-white/30"
               autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
               enterKeyHint="send"
             />
           </div>
