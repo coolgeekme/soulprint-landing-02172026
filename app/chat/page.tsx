@@ -169,7 +169,7 @@ export default function ChatPage() {
     <div className="bg-[#0e0e0e] text-white min-h-screen">
       {/* Fixed Header - Telegram style */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#1c1c1d]" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="flex items-center px-4 h-14">
+        <div className="flex items-center px-4 h-16">
           <Link href="/" className="p-2 -ml-2 text-orange-500">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -202,18 +202,18 @@ export default function ChatPage() {
 
       {/* Scrollable content - messages anchored to bottom */}
       <main 
-        className="flex flex-col min-h-screen px-2" 
+        className="flex flex-col min-h-screen px-4" 
         style={{ 
-          paddingTop: 'calc(env(safe-area-inset-top) + 60px)', 
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 60px)' 
+          paddingTop: 'calc(env(safe-area-inset-top) + 70px)', 
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 70px)' 
         }}
       >
         <div className="flex-1" />
-        <div className="space-y-1 max-w-2xl mx-auto w-full py-2">
+        <div className="space-y-3 max-w-2xl mx-auto w-full py-4">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div 
-                className={`max-w-[85%] px-3.5 py-2 text-[15px] leading-relaxed shadow-sm ${
+                className={`max-w-[80%] px-4 py-2.5 text-[15px] leading-relaxed shadow-sm ${
                   msg.role === 'user' 
                     ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-[20px] rounded-br-[4px]' 
                     : 'bg-[#262628] text-white/90 rounded-[20px] rounded-bl-[4px]'
@@ -238,10 +238,10 @@ export default function ChatPage() {
 
       {/* Fixed Input - Telegram style */}
       <footer 
-        className="fixed bottom-0 left-0 right-0 z-50 bg-[#1c1c1d] border-t border-white/5 px-2 py-2" 
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
+        className="fixed bottom-0 left-0 right-0 z-50 bg-[#1c1c1d] border-t border-white/5 px-4 py-3" 
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
       >
-        <form onSubmit={handleSubmit} className="flex items-center gap-2 max-w-2xl mx-auto">
+        <form onSubmit={handleSubmit} className="flex items-center gap-3 max-w-2xl mx-auto">
           <div className={`flex-1 flex items-center bg-[#2c2c2e] rounded-full px-4 transition-all ${isListening ? 'ring-2 ring-orange-500/50' : ''}`}>
             <input
               ref={inputRef}
