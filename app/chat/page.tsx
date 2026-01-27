@@ -26,31 +26,34 @@ export default function ChatPage() {
   const recognitionRef = useRef<any>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+    // Scroll the messages container, not the whole page
+    if (messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+    }
   };
 
-  // Handle iOS keyboard - keep input visible
+  // Handle iOS keyboard - resize container to visual viewport
   useEffect(() => {
     const handleResize = () => {
       if (window.visualViewport && containerRef.current) {
         const viewport = window.visualViewport;
         containerRef.current.style.height = `${viewport.height}px`;
-        scrollToBottom();
+        // Small delay to let layout settle, then scroll
+        setTimeout(scrollToBottom, 50);
       }
     };
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleResize);
-      window.visualViewport.addEventListener('scroll', handleResize);
       handleResize();
     }
 
     return () => {
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleResize);
-        window.visualViewport.removeEventListener('scroll', handleResize);
       }
     };
   }, []);
@@ -223,7 +226,7 @@ export default function ChatPage() {
       </header>
 
       {/* Scrollable messages area */}
-      <main className="flex-1 overflow-y-auto px-4 flex flex-col">
+      <main ref={messagesRef} className="flex-1 overflow-y-auto px-4 flex flex-col">
         <div className="flex-1" />
         <div className="space-y-3 max-w-2xl mx-auto w-full py-4">
           {messages.map((msg) => (
@@ -264,7 +267,7 @@ export default function ChatPage() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onFocus={() => setTimeout(scrollToBottom, 300)}
+              onFocus={() => setTimeout(scrollToBottom, 100)}
               placeholder={isListening ? "Listening..." : "Message"}
               className="flex-1 h-11 bg-transparent text-[16px] outline-none placeholder:text-white/30"
               autoComplete="off"
