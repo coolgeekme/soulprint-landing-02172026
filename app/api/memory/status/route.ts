@@ -9,46 +9,49 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      return NextResponse.json({ status: 'none' });
+      return NextResponse.json({ 
+        status: 'none',
+        totalChunks: 0,
+        importJobs: [],
+      });
     }
 
-    // Check if user has any memories
-    const { count, error: memoryError } = await supabase
+    // Count total memory chunks
+    const { count: totalChunks, error: memoryError } = await supabase
       .from('memories')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
     if (memoryError) {
       console.error('Error checking memories:', memoryError);
-      return NextResponse.json({ status: 'none' });
     }
 
-    // Check if user has requested import (sent instructions)
-    const { data: importRequest } = await supabase
-      .from('import_requests')
-      .select('status')
+    // Get recent import jobs
+    const { data: importJobs, error: jobsError } = await supabase
+      .from('import_jobs')
+      .select('id, status, created_at, total_chunks, processed_chunks, error')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(5);
 
-    if (count && count > 0) {
-      return NextResponse.json({ 
-        status: 'ready',
-        memoryCount: count 
-      });
+    if (jobsError) {
+      console.error('Error fetching import jobs:', jobsError);
     }
 
-    if (importRequest) {
-      return NextResponse.json({ 
-        status: 'pending',
-        importStatus: importRequest.status 
-      });
-    }
+    const status = (totalChunks && totalChunks > 0) ? 'ready' : 
+                   (importJobs?.some(j => j.status === 'processing') ? 'processing' : 'none');
 
-    return NextResponse.json({ status: 'none' });
+    return NextResponse.json({ 
+      status,
+      totalChunks: totalChunks || 0,
+      importJobs: importJobs || [],
+    });
   } catch (error) {
     console.error('Memory status error:', error);
-    return NextResponse.json({ status: 'none' });
+    return NextResponse.json({ 
+      status: 'error',
+      totalChunks: 0,
+      importJobs: [],
+    });
   }
 }
