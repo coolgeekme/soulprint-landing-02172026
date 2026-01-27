@@ -17,15 +17,19 @@
 /* ===== CONTAINER ===== */
 .chat-container {
   height: 100dvh;
+  height: var(--vh, 100vh); /* Use JS-calculated viewport when available */
   width: 100vw;
   background: linear-gradient(180deg, var(--sp-black) 0%, #0d0d10 50%, #111114 100%);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .thread-root {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0; /* Allow flex shrinking */
 }
 
 /* ===== HEADER ===== */
@@ -124,13 +128,33 @@
 .thread-viewport {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Critical for flex overflow */
+  -webkit-overflow-scrolling: touch;
 }
 
 .thread-viewport::-webkit-scrollbar {
   width: 0;
+}
+
+/* When keyboard is open, ensure viewport shrinks */
+@media screen and (max-height: 500px) {
+  .thread-viewport {
+    padding: 8px 16px;
+  }
+  .welcome-container {
+    padding: 12px;
+  }
+  .welcome-avatar {
+    width: 60px;
+    height: 60px;
+  }
+  .welcome-title {
+    font-size: 20px;
+  }
 }
 
 /* ===== WELCOME ===== */
@@ -345,6 +369,9 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
   backdrop-filter: blur(20px);
   border-top: 1px solid var(--sp-glass-border);
+  flex-shrink: 0; /* Don't shrink composer */
+  position: relative;
+  z-index: 10;
 }
 
 .composer-input {

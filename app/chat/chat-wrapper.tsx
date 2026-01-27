@@ -5,6 +5,7 @@ import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { Thread } from "./components/thread";
 import { LogOut, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import "./liquid-glass.css";
 
 interface ChatWrapperProps {
@@ -15,6 +16,28 @@ interface ChatWrapperProps {
 export function ChatWrapper({ userName, hasImportedData }: ChatWrapperProps) {
     const runtime = useChatRuntime();
     const router = useRouter();
+
+    // Handle iOS keyboard viewport resize
+    useEffect(() => {
+        const handleResize = () => {
+            // Force layout recalculation when visual viewport changes (keyboard open/close)
+            if (window.visualViewport) {
+                const vh = window.visualViewport.height;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+            }
+        };
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', handleResize);
+            handleResize(); // Initial call
+        }
+
+        return () => {
+            if (window.visualViewport) {
+                window.visualViewport.removeEventListener('resize', handleResize);
+            }
+        };
+    }, []);
 
     const handleSignOut = async () => {
         const { signOut } = await import("@/app/actions/auth");
