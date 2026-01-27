@@ -218,6 +218,31 @@ Focus on actionable product/business ideas.`
 
       console.log(`🔍 [Blueprint Extract] Saved ${data.length} blueprints`);
 
+      // Post summary back to Slack
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://soulprint.vercel.app';
+      const summaryMessage = `🔍 *Extracted ${data.length} ideas* from this channel!\n\nView & rank them: ${siteUrl}/blueprints\n\nTop ideas:\n${data.slice(0, 3).map((b: any, i: number) => `${i + 1}. *${b.title}* (score: ${b.impact_score * b.feasibility_score})`).join('\n')}`;
+      
+      // Post to first accessible channel
+      const firstChannel = channelResults.find(c => !c.error)?.channel;
+      if (firstChannel) {
+        try {
+          await fetch('https://slack.com/api/chat.postMessage', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${SLACK_BOT_TOKEN}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              channel: firstChannel,
+              text: summaryMessage,
+            }),
+          });
+          console.log(`🔍 [Blueprint Extract] Posted summary to ${firstChannel}`);
+        } catch (err) {
+          console.error('Failed to post to Slack:', err);
+        }
+      }
+
       return NextResponse.json({
         success: true,
         extracted: data.length,
