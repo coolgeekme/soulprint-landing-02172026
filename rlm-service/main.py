@@ -102,7 +102,10 @@ async def query_with_rlm(
         
         rlm = RLM(
             backend="anthropic",
-            backend_kwargs={"model_name": "claude-sonnet-4-20250514"},
+            backend_kwargs={
+                "model_name": "claude-sonnet-4-20250514",
+                "api_key": ANTHROPIC_API_KEY,
+            },
             verbose=False,
         )
         
