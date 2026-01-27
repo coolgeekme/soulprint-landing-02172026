@@ -1,5 +1,6 @@
 /**
  * Direct ZIP upload endpoint for ChatGPT exports
+ * Uses FormData for streaming large files
  */
 
 import { NextResponse } from 'next/server';
@@ -27,14 +28,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { zipBase64 } = body;
+    // Parse multipart form data
+    const formData = await request.formData();
+    const file = formData.get('file') as File | null;
 
-    if (!zipBase64) {
+    if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    console.log(`[Import Upload] Processing upload for user ${user.id}`);
+    if (!file.name.endsWith('.zip')) {
+      return NextResponse.json({ error: 'Please upload a ZIP file' }, { status: 400 });
+    }
+
+    console.log(`[Import Upload] Processing ${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB) for user ${user.id}`);
     
     const adminSupabase = getSupabaseAdmin();
 
@@ -58,6 +64,10 @@ export async function POST(request: Request) {
     }
 
     console.log(`[Import Upload] Created job ${importJob.id}`);
+
+    // Read file as buffer and convert to base64 for processing
+    const arrayBuffer = await file.arrayBuffer();
+    const zipBase64 = Buffer.from(arrayBuffer).toString('base64');
 
     // Trigger processing (fire and forget for faster response)
     const processUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/import/process`;

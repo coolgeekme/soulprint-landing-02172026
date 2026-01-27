@@ -27,7 +27,7 @@ const steps = [
   {
     step: '03',
     title: 'Upload it here',
-    description: 'Drop your ZIP file below and we\'ll build your memory in seconds.',
+    description: 'Upload your ZIP below and we\'ll build your memory in seconds.',
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -56,50 +56,42 @@ export default function ImportPage() {
     setProgress(10);
 
     try {
-      // Read file as base64
-      const reader = new FileReader();
+      // Use FormData for streaming upload (doesn't crash on large files)
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const xhr = new XMLHttpRequest();
       
-      reader.onprogress = (e) => {
+      xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
-          setProgress(10 + (e.loaded / e.total) * 40);
+          setProgress(10 + (e.loaded / e.total) * 70);
         }
       };
 
-      reader.onload = async () => {
-        setProgress(50);
-        setStatus('processing');
-
-        try {
-          // Send to API
-          const base64 = (reader.result as string).split(',')[1];
-          
-          const res = await fetch('/api/import/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ zipBase64: base64 }),
-          });
-
-          setProgress(80);
-          const data = await res.json();
-
-          if (!res.ok) {
-            throw new Error(data.error || 'Upload failed');
-          }
-
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
           setProgress(100);
           setStatus('success');
-        } catch (err) {
-          setErrorMessage(err instanceof Error ? err.message : 'Processing failed');
+        } else {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            setErrorMessage(data.error || 'Upload failed');
+          } catch {
+            setErrorMessage('Upload failed');
+          }
           setStatus('error');
         }
       };
 
-      reader.onerror = () => {
-        setErrorMessage('Failed to read file');
+      xhr.onerror = () => {
+        setErrorMessage('Network error - please try again');
         setStatus('error');
       };
 
-      reader.readAsDataURL(file);
+      xhr.open('POST', '/api/import/upload');
+      xhr.send(formData);
+      
+      setStatus('processing');
     } catch (err) {
       setErrorMessage('Failed to upload file');
       setStatus('error');
@@ -206,9 +198,9 @@ export default function ImportPage() {
                 </svg>
               </div>
               
-              <h2 className="text-title text-white mb-2">Drop your ZIP file here</h2>
+              <h2 className="text-title text-white mb-2">Tap to upload your ZIP</h2>
               <p className="text-caption mb-4">
-                or click to browse
+                Select your ChatGPT export file
               </p>
               
               <p className="text-xs text-gray-600">
