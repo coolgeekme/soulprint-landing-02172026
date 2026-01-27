@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ChevronRight, ExternalLink } from "lucide-react";
+import Image from "next/image";
 
 export default function ExportInstructionsPage() {
   const router = useRouter();
@@ -65,6 +66,16 @@ export default function ExportInstructionsPage() {
               <h3 className="text-white font-medium mb-1">Click "Export data"</h3>
               <p className="text-sm text-gray-500">Scroll down and click the Export data button</p>
             </div>
+          </div>
+          {/* Screenshot showing where to click */}
+          <div className="mt-4 rounded-xl overflow-hidden border border-[#333]">
+            <Image
+              src="/images/chatgpt-export-guide.jpg"
+              alt="ChatGPT Data Controls - Export data button"
+              width={400}
+              height={300}
+              className="w-full h-auto"
+            />
           </div>
         </div>
 
