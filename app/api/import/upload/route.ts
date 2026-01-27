@@ -62,10 +62,10 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
-    // Trigger processing with just the path (fire and forget)
+    // Trigger processing and wait for result
     const processUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/import/process`;
     
-    fetch(processUrl, {
+    const processRes = await fetch(processUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -74,14 +74,24 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         importJobId: importJob.id,
         userId: user.id,
-        storagePath, // Just the path, not the file contents
+        storagePath,
       }),
-    }).catch(e => console.error('[Import] Process trigger error:', e));
+    });
 
+    if (!processRes.ok) {
+      const errorData = await processRes.json().catch(() => ({}));
+      return NextResponse.json({ 
+        error: `Processing failed: ${errorData.error || processRes.status}` 
+      }, { status: 500 });
+    }
+
+    const result = await processRes.json();
     return NextResponse.json({ 
       success: true,
       jobId: importJob.id,
-      message: 'Import started! Your memory is being built.'
+      conversations: result.conversations,
+      chunks: result.chunks,
+      message: 'Import complete! Your memory is ready.'
     });
 
   } catch (error) {
