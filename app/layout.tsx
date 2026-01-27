@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { InstallPrompt } from "@/components/global/install-prompt";
 import { ToastProvider } from "@/components/ui/toast";
 import { ErrorProvider, ErrorBoundary } from "@/contexts/error-context";
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const koulen = Koulen({
@@ -121,6 +122,7 @@ export default function RootLayout({
         cinzel.variable,
         jetbrainsMono.variable
       )}>
+        <GoogleAnalytics />
         <ErrorBoundary>
           <ToastProvider>
             <ThemeProvider
