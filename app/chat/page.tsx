@@ -332,29 +332,36 @@ export default function ChatPage() {
     <div className="bg-[#0e0e0e] text-white fixed inset-0 overflow-hidden">
       {/* Header - fixed */}
       <header 
-        className="fixed top-0 left-0 right-0 bg-[#1c1c1d] z-20"
+        className="fixed top-0 left-0 right-0 bg-[#1c1c1d] z-20 border-b border-white/5"
         style={{ paddingTop: safeAreaTop }}
       >
-        <div className="flex items-center px-5 h-16">
+        <div className="flex items-center px-5 lg:px-8 h-16 max-w-5xl mx-auto">
           <div className="flex-1 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-lg shadow-lg">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-lg lg:text-xl shadow-lg">
               🧠
             </div>
             <div className="flex flex-col">
-              <span className="font-semibold text-[17px] leading-tight">{aiName || 'SoulPrint'}</span>
-              <span className="text-[13px] text-orange-500/80 leading-tight">
+              <span className="font-semibold text-[17px] lg:text-xl leading-tight">{aiName || 'SoulPrint'}</span>
+              <span className="text-[13px] lg:text-sm text-orange-500/80 leading-tight">
                 {isLoading ? 'typing...' : (aiName ? 'your AI' : 'your memory')}
               </span>
             </div>
           </div>
-          <button onClick={() => setShowSettings(!showSettings)} className="p-2 -mr-2 text-orange-500">
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center gap-4">
+            <Link href="/" className="text-sm text-white/60 hover:text-white transition-colors">Home</Link>
+            <Link href="/import" className="text-sm text-white/60 hover:text-white transition-colors">Re-import</Link>
+            <button onClick={handleSignOut} className="text-sm text-red-400 hover:text-red-300 transition-colors">Sign Out</button>
+          </div>
+          {/* Mobile menu button */}
+          <button onClick={() => setShowSettings(!showSettings)} className="md:hidden p-2 -mr-2 text-orange-500">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" />
             </svg>
           </button>
         </div>
         {showSettings && (
-          <div className="px-5 pb-3 flex gap-3 border-t border-white/5 pt-3">
+          <div className="md:hidden px-5 pb-3 flex gap-3 border-t border-white/5 pt-3">
             <Link href="/" className="flex-1 h-10 bg-white/10 rounded-lg text-sm flex items-center justify-center font-medium">Home</Link>
             <Link href="/import" className="flex-1 h-10 bg-white/10 rounded-lg text-sm flex items-center justify-center font-medium">Re-import</Link>
             <button onClick={handleSignOut} className="flex-1 h-10 bg-white/10 rounded-lg text-red-500 text-sm font-medium">Sign Out</button>
@@ -384,18 +391,18 @@ export default function ChatPage() {
 
       {/* Messages - scrollable area between fixed header and footer */}
       <main 
-        className="fixed left-0 right-0 overflow-y-auto overscroll-none px-5"
+        className="fixed left-0 right-0 overflow-y-auto overscroll-none px-5 lg:px-8"
         style={{ 
           top: `calc(${safeAreaTop} + ${headerHeight}px + ${showSettings ? 48 : 0}px)`,
           bottom: `calc(${safeAreaBottom} + ${footerHeight}px + ${keyboardHeight}px)`
         }}
       >
         <div className="flex flex-col justify-end min-h-full">
-          <div className="space-y-4 max-w-2xl mx-auto w-full py-5">
+          <div className="space-y-4 lg:space-y-6 max-w-3xl mx-auto w-full py-5 lg:py-8">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div 
-                  className={`max-w-[85%] px-5 py-3.5 text-[15px] leading-[1.7] tracking-[0.01em] shadow-sm ${
+                  className={`max-w-[85%] lg:max-w-[70%] px-5 py-3.5 lg:px-6 lg:py-4 text-[15px] lg:text-base leading-[1.7] tracking-[0.01em] shadow-sm whitespace-pre-wrap ${
                     msg.role === 'user' 
                       ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-[20px] rounded-br-[4px]' 
                       : 'bg-[#262628] text-white/95 rounded-[20px] rounded-bl-[4px]'
@@ -421,19 +428,19 @@ export default function ChatPage() {
 
       {/* Footer - input bar - FIXED, never moves */}
       <footer 
-        className="fixed left-0 right-0 bg-[#1c1c1d] border-t border-white/5 px-5 py-3 z-20"
+        className="fixed left-0 right-0 bg-[#1c1c1d] border-t border-white/5 px-5 lg:px-8 py-3 lg:py-4 z-20"
         style={{ 
           bottom: keyboardHeight,
           paddingBottom: keyboardHeight > 0 ? 12 : `calc(${safeAreaBottom} + 12px)`
         }}
       >
-        <form onSubmit={handleSubmit} className="flex items-center gap-2 max-w-2xl mx-auto">
+        <form onSubmit={handleSubmit} className="flex items-center gap-2 lg:gap-3 max-w-3xl mx-auto">
           {/* Clear button - show when listening or has text */}
           {(isListening || input.trim()) && (
             <button 
               type="button" 
               onClick={clearVoiceInput}
-              className="w-10 h-10 rounded-full bg-[#2c2c2e] text-white/40 flex items-center justify-center active:scale-95 transition-transform"
+              className="w-10 h-10 lg:w-11 lg:h-11 rounded-full bg-[#2c2c2e] text-white/40 hover:text-white/60 flex items-center justify-center active:scale-95 transition-all"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -441,14 +448,14 @@ export default function ChatPage() {
             </button>
           )}
           
-          <div className={`flex-1 flex items-center bg-[#2c2c2e] rounded-full px-5 ${isListening ? 'ring-2 ring-red-500/50' : ''}`}>
+          <div className={`flex-1 flex items-center bg-[#2c2c2e] rounded-full px-5 lg:px-6 ${isListening ? 'ring-2 ring-red-500/50' : 'focus-within:ring-2 focus-within:ring-orange-500/30'} transition-all`}>
             <input
               ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={isListening ? "Listening... tap mic to stop" : "Message"}
-              className="flex-1 h-11 bg-transparent text-[16px] outline-none placeholder:text-white/30"
+              className="flex-1 h-11 lg:h-12 bg-transparent text-[16px] outline-none placeholder:text-white/30"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
@@ -466,9 +473,9 @@ export default function ChatPage() {
             <button 
               type="submit" 
               disabled={isLoading} 
-              className="w-11 h-11 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 disabled:opacity-40 flex items-center justify-center shadow-lg shadow-orange-500/20 active:scale-95 transition-transform"
+              className="w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 disabled:opacity-40 flex items-center justify-center shadow-lg shadow-orange-500/20 active:scale-95 hover:shadow-orange-500/40 transition-all"
             >
-              <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 lg:w-6 lg:h-6 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
               </svg>
             </button>
@@ -476,18 +483,18 @@ export default function ChatPage() {
             <button 
               type="button" 
               onClick={isListening ? stopListening : startListening}
-              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+              className={`w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-all active:scale-95 ${
                 isListening 
                   ? 'bg-red-500 shadow-lg shadow-red-500/30' 
-                  : 'bg-[#2c2c2e] text-white/60'
+                  : 'bg-[#2c2c2e] text-white/60 hover:text-white/80'
               }`}
             >
               {isListening ? (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="currentColor" viewBox="0 0 24 24">
                   <rect x="6" y="6" width="12" height="12" rx="2" />
                 </svg>
               ) : (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.94-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.06 7.44-7 7.93V19h4v2H8v-2h4v-3.07z"/>
                 </svg>
               )}
