@@ -340,17 +340,17 @@ export default function ChatPage() {
     >
       {/* Header */}
       <header 
-        className="flex-shrink-0 bg-[#1c1c1d] z-20 border-b border-white/5"
+        className="flex-shrink-0 bg-[#0e0e0e]/95 backdrop-blur-lg z-20 border-b border-white/[0.06]"
         style={{ paddingTop: safeAreaTop }}
       >
-        <div className="flex items-center px-5 lg:px-8 h-16 max-w-5xl mx-auto">
-          <div className="flex-1 flex items-center gap-3">
-            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-lg lg:text-xl shadow-lg">
+        <div className="flex items-center px-4 sm:px-6 lg:px-8 h-[72px] max-w-5xl mx-auto">
+          <div className="flex-1 flex items-center gap-4">
+            <div className="w-11 h-11 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-xl lg:text-2xl shadow-lg shadow-orange-500/20">
               🧠
             </div>
-            <div className="flex flex-col">
-              <span className="font-semibold text-[17px] lg:text-xl leading-tight">{aiName || 'SoulPrint'}</span>
-              <span className="text-[13px] lg:text-sm text-orange-500/80 leading-tight">
+            <div className="flex flex-col gap-0.5">
+              <span className="font-semibold text-[18px] lg:text-xl tracking-[-0.02em]">{aiName || 'SoulPrint'}</span>
+              <span className="text-[13px] lg:text-sm text-white/40 tracking-[-0.01em]">
                 {isLoading ? 'typing...' : (aiName ? 'your AI' : 'your memory')}
               </span>
             </div>
@@ -403,16 +403,16 @@ export default function ChatPage() {
       )}
 
       {/* Messages - scrollable area */}
-      <main className="flex-1 overflow-y-auto overscroll-none px-5 lg:px-8">
+      <main className="flex-1 overflow-y-auto overscroll-none px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col justify-end min-h-full">
-          <div className="space-y-4 lg:space-y-6 max-w-3xl mx-auto w-full py-5 lg:py-8">
+          <div className="space-y-6 lg:space-y-8 max-w-2xl mx-auto w-full py-6 lg:py-10">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div 
-                  className={`max-w-[85%] lg:max-w-[70%] px-5 py-3.5 lg:px-6 lg:py-4 text-[15px] lg:text-base leading-[1.7] tracking-[0.01em] shadow-sm whitespace-pre-wrap ${
+                  className={`max-w-[88%] sm:max-w-[80%] lg:max-w-[75%] px-4 sm:px-5 py-3 sm:py-4 text-[15px] sm:text-[16px] leading-relaxed tracking-[-0.01em] whitespace-pre-wrap ${
                     msg.role === 'user' 
-                      ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-[20px] rounded-br-[4px]' 
-                      : 'bg-[#262628] text-white/95 rounded-[20px] rounded-bl-[4px]'
+                      ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-2xl rounded-br-md' 
+                      : 'bg-[#1e1e1e] text-white/90 rounded-2xl rounded-bl-md border border-white/[0.06]'
                   }`}
                 >
                   {msg.content}
@@ -421,7 +421,7 @@ export default function ChatPage() {
             ))}
             {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
               <div className="flex justify-start">
-                <div className="bg-[#262628] rounded-[20px] rounded-bl-[4px] px-4 py-3 flex gap-1.5">
+                <div className="bg-[#1e1e1e] border border-white/[0.06] rounded-2xl rounded-bl-md px-5 py-4 flex gap-1.5">
                   <span className="w-2 h-2 bg-orange-500/60 rounded-full animate-bounce" />
                   <span className="w-2 h-2 bg-orange-500/60 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
                   <span className="w-2 h-2 bg-orange-500/60 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
@@ -435,16 +435,16 @@ export default function ChatPage() {
 
       {/* Footer - input bar */}
       <footer 
-        className="flex-shrink-0 bg-[#1c1c1d] border-t border-white/5 px-5 lg:px-8 py-3 lg:py-4"
-        style={{ paddingBottom: `calc(${safeAreaBottom} + 12px)` }}
+        className="flex-shrink-0 bg-[#0e0e0e]/95 backdrop-blur-lg border-t border-white/[0.06] px-4 sm:px-6 lg:px-8 py-4"
+        style={{ paddingBottom: `calc(${safeAreaBottom} + 16px)` }}
       >
-        <form onSubmit={handleSubmit} className="flex items-center gap-2 lg:gap-3 max-w-3xl mx-auto">
+        <form onSubmit={handleSubmit} className="flex items-center gap-3 max-w-2xl mx-auto">
           {/* Clear button - show when listening or has text */}
           {(isListening || input.trim()) && (
             <button 
               type="button" 
               onClick={clearVoiceInput}
-              className="w-10 h-10 lg:w-11 lg:h-11 rounded-full bg-[#2c2c2e] text-white/40 hover:text-white/60 flex items-center justify-center active:scale-95 transition-all"
+              className="w-11 h-11 rounded-full bg-white/[0.06] text-white/40 hover:text-white/60 hover:bg-white/[0.1] flex items-center justify-center active:scale-95 transition-all"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -452,14 +452,14 @@ export default function ChatPage() {
             </button>
           )}
           
-          <div className={`flex-1 flex items-center bg-[#2c2c2e] rounded-full px-5 lg:px-6 ${isListening ? 'ring-2 ring-red-500/50' : 'focus-within:ring-2 focus-within:ring-orange-500/30'} transition-all`}>
+          <div className={`flex-1 flex items-center bg-white/[0.06] rounded-2xl px-5 ${isListening ? 'ring-2 ring-red-500/50' : 'focus-within:ring-2 focus-within:ring-orange-500/30'} transition-all`}>
             <input
               ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={isListening ? "Listening... tap mic to stop" : "Message"}
-              className="flex-1 h-11 lg:h-12 bg-transparent text-[16px] outline-none placeholder:text-white/30"
+              placeholder={isListening ? "Listening..." : "Message"}
+              className="flex-1 h-12 bg-transparent text-[16px] tracking-[-0.01em] outline-none placeholder:text-white/30"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
