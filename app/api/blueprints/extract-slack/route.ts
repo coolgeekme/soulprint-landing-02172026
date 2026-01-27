@@ -49,33 +49,65 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const channelId = body.channelId || 'C0A69GZEZC4'; // Default to #future-ideas
-  const limit = body.limit || 100;
+  
+  // All relevant idea channels
+  const ALL_CHANNELS = [
+    { id: 'C0A69GZEZC4', name: 'future-ideas' },
+    { id: 'C09SSD56JAE', name: 'soulprint-creation' },
+    { id: 'C0A9YC6TGQL', name: 'ai-alter-ego-chats' },
+    { id: 'C0A76QJM5RV', name: 'comic-book' },
+    { id: 'C0A1QLWV080', name: 'offline-soulprint' },
+    { id: 'C09SKBA5WCB', name: 'all-archeforge' },
+    { id: 'C0A800RV0GY', name: 'vestaboard' },
+    { id: 'C0AB5G7FSVA', name: 'soulprint-critique2' },
+  ];
+  
+  const channelIds = body.channelId ? [body.channelId] : ALL_CHANNELS.map(c => c.id);
+  const limit = body.limit || 50;
 
   if (!SLACK_BOT_TOKEN) {
     return NextResponse.json({ error: 'Slack bot token not configured' }, { status: 500 });
   }
 
   try {
-    // Fetch messages from Slack
-    console.log(`🔍 [Blueprint Extract] Fetching messages from channel ${channelId}...`);
-    const slackResponse = await fetch(
-      `https://slack.com/api/conversations.history?channel=${channelId}&limit=${limit}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${SLACK_BOT_TOKEN}`,
-        },
-      }
-    );
+    // Fetch messages from ALL channels
+    let allMessages: (SlackMessage & { channel: string })[] = [];
+    const channelResults: { channel: string; count: number; error?: string }[] = [];
 
-    const slackData = await slackResponse.json();
-    
-    if (!slackData.ok) {
-      return NextResponse.json({ error: `Slack API error: ${slackData.error}` }, { status: 500 });
+    for (const channelId of channelIds) {
+      console.log(`🔍 [Blueprint Extract] Fetching messages from channel ${channelId}...`);
+      try {
+        const slackResponse = await fetch(
+          `https://slack.com/api/conversations.history?channel=${channelId}&limit=${limit}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${SLACK_BOT_TOKEN}`,
+            },
+          }
+        );
+
+        const slackData = await slackResponse.json();
+        
+        if (!slackData.ok) {
+          console.log(`⚠️ [Blueprint Extract] Channel ${channelId} error: ${slackData.error}`);
+          channelResults.push({ channel: channelId, count: 0, error: slackData.error });
+          continue;
+        }
+
+        const channelMessages = (slackData.messages || []).map((m: SlackMessage) => ({
+          ...m,
+          channel: channelId,
+        }));
+        allMessages = allMessages.concat(channelMessages);
+        channelResults.push({ channel: channelId, count: channelMessages.length });
+      } catch (err) {
+        console.error(`Error fetching channel ${channelId}:`, err);
+        channelResults.push({ channel: channelId, count: 0, error: 'fetch_error' });
+      }
     }
 
-    const messages: SlackMessage[] = slackData.messages || [];
-    console.log(`🔍 [Blueprint Extract] Found ${messages.length} messages`);
+    const messages = allMessages;
+    console.log(`🔍 [Blueprint Extract] Found ${messages.length} total messages from ${channelIds.length} channels`);
 
     // Filter out bot messages and very short messages
     const ideaMessages = messages.filter(
@@ -170,7 +202,7 @@ Focus on actionable product/business ideas.`
       tags: idea.tags,
       status: 'idea',
       source_type: 'slack',
-      source_url: `https://slack.com/archives/${channelId}`,
+      source_url: `https://archeforgeworkspace.slack.com/`,
     }));
 
     if (blueprints.length > 0) {
@@ -190,6 +222,7 @@ Focus on actionable product/business ideas.`
         success: true,
         extracted: data.length,
         blueprints: data,
+        channelsScanned: channelResults,
       });
     }
 
@@ -197,6 +230,7 @@ Focus on actionable product/business ideas.`
       success: true,
       extracted: 0,
       message: 'No valid ideas extracted',
+      channelsScanned: channelResults,
     });
 
   } catch (error) {
