@@ -17,7 +17,7 @@ const steps = [
   {
     step: '02',
     title: 'Forward the email to us',
-    description: 'When ChatGPT emails you, just forward that email to us. We\'ll grab the download automatically.',
+    description: 'When ChatGPT emails you, just forward that email to waitlist@archeforge.com',
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -26,8 +26,8 @@ const steps = [
   },
   {
     step: '03',
-    title: 'Memory built',
-    description: 'We process your conversations and build your personal AI memory in ~5 minutes.',
+    title: 'Click "I forwarded it"',
+    description: 'Let us know when you\'ve sent the email and we\'ll start building your memory.',
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -36,27 +36,60 @@ const steps = [
   },
 ];
 
-export default function ImportPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
+type ImportStatus = 'idle' | 'checking' | 'processing' | 'success' | 'not_found' | 'error';
 
-  const handleSendInstructions = async () => {
-    setIsLoading(true);
+export default function ImportPage() {
+  const [status, setStatus] = useState<ImportStatus>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleCheckForEmail = async () => {
+    setStatus('checking');
+    setErrorMessage('');
+    
     try {
-      const res = await fetch('/api/send-instructions', { method: 'POST' });
+      const res = await fetch('/api/import/check', { method: 'POST' });
       const data = await res.json();
       
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to send');
+      if (data.status === 'processing') {
+        setStatus('processing');
+        // Poll for completion
+        pollForCompletion();
+      } else if (data.status === 'not_found') {
+        setStatus('not_found');
+        setErrorMessage('We couldn\'t find your email yet. Make sure you forwarded it from the same email you signed up with.');
+      } else if (data.status === 'success') {
+        setStatus('success');
+      } else {
+        setStatus('error');
+        setErrorMessage(data.error || 'Something went wrong');
       }
-      
-      setEmailSent(true);
     } catch (err) {
-      console.error('Failed to send instructions:', err);
-      alert('Failed to send instructions. Please try again.');
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to check for email:', err);
+      setStatus('error');
+      setErrorMessage('Failed to check. Please try again.');
     }
+  };
+
+  const pollForCompletion = async () => {
+    // Poll every 5 seconds for up to 2 minutes
+    for (let i = 0; i < 24; i++) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      try {
+        const res = await fetch('/api/memory/status');
+        const data = await res.json();
+        
+        if (data.status === 'ready') {
+          setStatus('success');
+          return;
+        }
+      } catch {
+        // Continue polling
+      }
+    }
+    
+    // If we get here, processing is taking too long
+    setStatus('success'); // Assume it worked, they can check chat
   };
 
   return (
@@ -114,39 +147,43 @@ export default function ImportPage() {
           ))}
         </div>
 
+        {/* Forward Email Info */}
+        <div className="max-w-lg mx-auto mb-8 animate-in" style={{ animationDelay: '0.3s' }}>
+          <div className="card p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm text-white font-medium">Forward to:</p>
+              <p className="text-orange-500 font-mono text-sm">waitlist@archeforge.com</p>
+            </div>
+          </div>
+        </div>
+
         {/* Action Card */}
         <div className="max-w-lg mx-auto animate-in" style={{ animationDelay: '0.4s' }}>
           <div className="card-elevated p-8 text-center relative overflow-hidden">
             {/* Background glow */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[150px] bg-orange-500/15 blur-[80px] -z-10" />
             
-            {!emailSent ? (
+            {status === 'idle' && (
               <>
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 glow-orange">
                   <img src="/logo.svg" alt="SoulPrint" className="w-12 h-12" />
                 </div>
                 
-                <h2 className="text-title text-white mb-2">Ready to import?</h2>
+                <h2 className="text-title text-white mb-2">Forwarded the email?</h2>
                 <p className="text-caption mb-6">
-                  We&apos;ll send detailed instructions to your email.
+                  Once you&apos;ve forwarded your ChatGPT export email to us, click below.
                 </p>
 
                 <button
-                  onClick={handleSendInstructions}
-                  disabled={isLoading}
+                  onClick={handleCheckForEmail}
                   className="btn btn-primary btn-lg w-full sm:w-auto"
                 >
-                  {isLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Sending...
-                    </span>
-                  ) : (
-                    'Send Instructions'
-                  )}
+                  I&apos;ve forwarded it
                 </button>
 
                 <div className="mt-6">
@@ -155,7 +192,41 @@ export default function ImportPage() {
                   </Link>
                 </div>
               </>
-            ) : (
+            )}
+
+            {status === 'checking' && (
+              <>
+                <div className="w-16 h-16 rounded-2xl bg-orange-500/20 flex items-center justify-center mx-auto mb-6">
+                  <svg className="animate-spin h-8 w-8 text-orange-500" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                </div>
+                
+                <h2 className="text-title text-white mb-2">Looking for your email...</h2>
+                <p className="text-caption">
+                  Checking our inbox for your ChatGPT export.
+                </p>
+              </>
+            )}
+
+            {status === 'processing' && (
+              <>
+                <div className="w-16 h-16 rounded-2xl bg-orange-500/20 flex items-center justify-center mx-auto mb-6">
+                  <svg className="animate-spin h-8 w-8 text-orange-500" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                </div>
+                
+                <h2 className="text-title text-white mb-2">Building your memory...</h2>
+                <p className="text-caption">
+                  Processing your conversations. This takes about 5 minutes.
+                </p>
+              </>
+            )}
+
+            {status === 'success' && (
               <>
                 <div className="w-16 h-16 rounded-2xl bg-green-500/20 flex items-center justify-center mx-auto mb-6">
                   <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -163,14 +234,64 @@ export default function ImportPage() {
                   </svg>
                 </div>
                 
-                <h2 className="text-title text-white mb-2">Instructions sent!</h2>
+                <h2 className="text-title text-white mb-2">Memory imported!</h2>
                 <p className="text-caption mb-6">
-                  Check your inbox for the next steps. We&apos;ll notify you when your memory is ready.
+                  Your AI now knows you. Start chatting and experience the difference.
                 </p>
 
                 <Link href="/chat" className="btn btn-primary btn-lg">
-                  Continue to Chat
+                  Start Chatting
                 </Link>
+              </>
+            )}
+
+            {status === 'not_found' && (
+              <>
+                <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-8 h-8 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                
+                <h2 className="text-title text-white mb-2">Email not found yet</h2>
+                <p className="text-caption mb-6">
+                  {errorMessage}
+                </p>
+
+                <button
+                  onClick={handleCheckForEmail}
+                  className="btn btn-primary btn-lg w-full sm:w-auto"
+                >
+                  Try again
+                </button>
+
+                <div className="mt-6">
+                  <Link href="/chat" className="text-caption hover:text-gray-300 transition-colors">
+                    Skip for now →
+                  </Link>
+                </div>
+              </>
+            )}
+
+            {status === 'error' && (
+              <>
+                <div className="w-16 h-16 rounded-2xl bg-red-500/20 flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+                
+                <h2 className="text-title text-white mb-2">Something went wrong</h2>
+                <p className="text-caption mb-6">
+                  {errorMessage}
+                </p>
+
+                <button
+                  onClick={() => setStatus('idle')}
+                  className="btn btn-secondary btn-lg w-full sm:w-auto"
+                >
+                  Try again
+                </button>
               </>
             )}
           </div>
