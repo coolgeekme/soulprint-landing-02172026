@@ -42,8 +42,8 @@ export default function ExportInstructionsPage() {
           <div className="flex items-start gap-4">
             <span className="w-8 h-8 rounded-full bg-[#EA580C]/20 text-[#EA580C] text-sm font-bold flex items-center justify-center flex-shrink-0">1</span>
             <div>
-              <h3 className="text-white font-medium mb-1">Open ChatGPT</h3>
-              <p className="text-sm text-gray-500">Go to chat.openai.com and sign in</p>
+              <h3 className="text-white font-medium mb-1">Open ChatGPT Settings</h3>
+              <p className="text-sm text-gray-500">Go to chat.openai.com → click your profile → Settings</p>
             </div>
           </div>
         </div>
@@ -52,8 +52,8 @@ export default function ExportInstructionsPage() {
           <div className="flex items-start gap-4">
             <span className="w-8 h-8 rounded-full bg-[#EA580C]/20 text-[#EA580C] text-sm font-bold flex items-center justify-center flex-shrink-0">2</span>
             <div>
-              <h3 className="text-white font-medium mb-1">Go to Settings</h3>
-              <p className="text-sm text-gray-500">Click your profile icon → Settings</p>
+              <h3 className="text-white font-medium mb-1">Go to Data Controls</h3>
+              <p className="text-sm text-gray-500">Click the "Data controls" tab in Settings</p>
             </div>
           </div>
         </div>
@@ -62,8 +62,8 @@ export default function ExportInstructionsPage() {
           <div className="flex items-start gap-4">
             <span className="w-8 h-8 rounded-full bg-[#EA580C]/20 text-[#EA580C] text-sm font-bold flex items-center justify-center flex-shrink-0">3</span>
             <div>
-              <h3 className="text-white font-medium mb-1">Data Controls</h3>
-              <p className="text-sm text-gray-500">Select "Data Controls" then click "Export Data"</p>
+              <h3 className="text-white font-medium mb-1">Click "Export data"</h3>
+              <p className="text-sm text-gray-500">Scroll down and click the Export data button</p>
             </div>
           </div>
         </div>
@@ -73,7 +73,7 @@ export default function ExportInstructionsPage() {
             <span className="w-8 h-8 rounded-full bg-[#EA580C]/20 text-[#EA580C] text-sm font-bold flex items-center justify-center flex-shrink-0">4</span>
             <div>
               <h3 className="text-white font-medium mb-1">Wait for email</h3>
-              <p className="text-sm text-gray-500">You'll receive an email with download link (5-30 min)</p>
+              <p className="text-sm text-gray-500">OpenAI will email you a download link (5-30 min)</p>
             </div>
           </div>
         </div>
@@ -82,8 +82,8 @@ export default function ExportInstructionsPage() {
           <div className="flex items-start gap-4">
             <span className="w-8 h-8 rounded-full bg-[#EA580C]/20 text-[#EA580C] text-sm font-bold flex items-center justify-center flex-shrink-0">5</span>
             <div>
-              <h3 className="text-white font-medium mb-1">Download the ZIP</h3>
-              <p className="text-sm text-gray-500">Click the link in the email to download your data</p>
+              <h3 className="text-white font-medium mb-1">Download your ZIP</h3>
+              <p className="text-sm text-gray-500">Click the link in the email to get your data file</p>
             </div>
           </div>
         </div>
