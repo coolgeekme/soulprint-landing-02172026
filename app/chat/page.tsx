@@ -124,11 +124,7 @@ export default function ChatPage() {
               >
                 {message.role === 'assistant' && (
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                      </svg>
-                    </div>
+                    <img src="/logo.svg" alt="SoulPrint" className="w-5 h-5" />
                     <span className="text-xs text-orange-400/70 font-medium">SoulPrint</span>
                   </div>
                 )}
@@ -145,11 +141,7 @@ export default function ChatPage() {
             <div className="flex justify-start">
               <div className="chat-bubble-ai glow-orange-sm">
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                    <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                    </svg>
-                  </div>
+                  <img src="/logo.svg" alt="SoulPrint" className="w-5 h-5" />
                   <span className="text-xs text-orange-400/70 font-medium">SoulPrint</span>
                 </div>
                 <TypingIndicator />

@@ -42,10 +42,21 @@ export default function ImportPage() {
 
   const handleSendInstructions = async () => {
     setIsLoading(true);
-    // TODO: Implement actual email sending
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setEmailSent(true);
-    setIsLoading(false);
+    try {
+      const res = await fetch('/api/send-instructions', { method: 'POST' });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send');
+      }
+      
+      setEmailSent(true);
+    } catch (err) {
+      console.error('Failed to send instructions:', err);
+      alert('Failed to send instructions. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -102,10 +113,8 @@ export default function ImportPage() {
         <div className="glass-card p-8 max-w-xl mx-auto glow-orange-sm text-center">
           {!emailSent ? (
             <>
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center mx-auto mb-6 glow-orange">
-                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 glow-orange">
+                <img src="/logo.svg" alt="SoulPrint" className="w-14 h-14" />
               </div>
               
               <h2 className="text-xl font-semibold text-white mb-2">Ready to import?</h2>
