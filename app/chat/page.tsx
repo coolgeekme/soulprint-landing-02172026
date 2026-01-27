@@ -259,7 +259,8 @@ export default function ChatPage() {
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push('/');
+    // Hard reload to clear all state
+    window.location.href = '/login';
   };
 
   const saveMessage = async (role: string, content: string) => {
