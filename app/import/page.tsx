@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2, Upload, CheckCircle, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2, Upload, CheckCircle, AlertCircle, ChevronRight } from "lucide-react";
 import JSZip from "jszip";
 
 type ImportStatus = "idle" | "extracting" | "uploading" | "processing" | "complete" | "error";
@@ -16,18 +15,14 @@ export default function ImportPage() {
   const [status, setStatus] = useState<ImportStatus>("idle");
   const [statusMessage, setStatusMessage] = useState("");
   const [error, setError] = useState("");
-  const [stats, setStats] = useState<{
-    conversations: number;
-    messages: number;
-  } | null>(null);
+  const [stats, setStats] = useState<{ conversations: number; messages: number } | null>(null);
 
-  // Check auth on mount
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        router.replace("/login");
+        router.replace("/");
       }
     };
     checkAuth();
@@ -48,12 +43,10 @@ export default function ImportPage() {
   const extractConversationsFromZip = async (file: File): Promise<string> => {
     const zip = new JSZip();
     const contents = await zip.loadAsync(file);
-    
     const conversationsFile = contents.file("conversations.json");
     if (!conversationsFile) {
-      throw new Error("conversations.json not found in ZIP file");
+      throw new Error("conversations.json not found in ZIP");
     }
-    
     return await conversationsFile.async("text");
   };
 
@@ -62,30 +55,20 @@ export default function ImportPage() {
 
     setError("");
     setStatus("extracting");
-    setStatusMessage("Extracting conversations from ZIP...");
+    setStatusMessage("Extracting...");
 
     try {
-      // Extract conversations.json from ZIP
       const conversationsJson = await extractConversationsFromZip(selectedFile);
-      
-      // Quick parse to get count
       const parsed = JSON.parse(conversationsJson);
       const conversationCount = Array.isArray(parsed) ? parsed.length : 0;
       
-      setStatus("uploading");
-      setStatusMessage(`Found ${conversationCount} conversations. Uploading...`);
-
-      // Send to API
       setStatus("processing");
-      setStatusMessage("Processing your ChatGPT history...");
+      setStatusMessage(`Processing ${conversationCount} conversations...`);
 
       const response = await fetch("/api/import/gpt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          conversations: conversationsJson,
-          fastMode: true 
-        }),
+        body: JSON.stringify({ conversations: conversationsJson, fastMode: true }),
       });
 
       const result = await response.json();
@@ -100,12 +83,9 @@ export default function ImportPage() {
       });
 
       setStatus("complete");
-      setStatusMessage("Import complete! Redirecting to chat...");
+      setStatusMessage("Done!");
 
-      // Redirect to chat after a moment
-      setTimeout(() => {
-        router.push("/chat");
-      }, 2000);
+      setTimeout(() => router.push("/chat"), 1500);
 
     } catch (err) {
       console.error("Import error:", err);
@@ -114,141 +94,123 @@ export default function ImportPage() {
     }
   };
 
-  const getStatusIcon = () => {
-    switch (status) {
-      case "extracting":
-      case "uploading":
-      case "processing":
-        return <Loader2 className="w-8 h-8 text-[#EA580C] animate-spin" />;
-      case "complete":
-        return <CheckCircle className="w-8 h-8 text-green-500" />;
-      case "error":
-        return <AlertCircle className="w-8 h-8 text-red-500" />;
-      default:
-        return <Upload className="w-8 h-8 text-[#EA580C]" />;
-    }
-  };
-
   return (
-    <main className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md flex flex-col gap-8">
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="font-koulen text-4xl text-white mb-2">
-            IMPORT YOUR DATA
-          </h1>
-          <p className="text-gray-400">
-            Upload your ChatGPT export to create your SoulPrint
-          </p>
-        </div>
+    <main className="min-h-[100dvh] bg-[#0a0a0a] flex flex-col px-6 py-8 safe-area-inset">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-white mb-2">Import your data</h1>
+        <p className="text-sm text-gray-500">Upload your ChatGPT export to personalize your experience</p>
+      </div>
 
-        {/* Instructions */}
-        <div className="bg-[#111] border border-[#222] rounded-xl p-5">
-          <h2 className="font-semibold text-white mb-3">How to export from ChatGPT:</h2>
-          <ol className="space-y-2 text-sm text-gray-400">
-            <li className="flex gap-3">
-              <span className="text-[#EA580C] font-bold">1.</span>
-              Go to chat.openai.com → Settings
-            </li>
-            <li className="flex gap-3">
-              <span className="text-[#EA580C] font-bold">2.</span>
-              Click Data Controls → Export Data
-            </li>
-            <li className="flex gap-3">
-              <span className="text-[#EA580C] font-bold">3.</span>
-              Download the ZIP from your email
-            </li>
-            <li className="flex gap-3">
-              <span className="text-[#EA580C] font-bold">4.</span>
-              Upload it here
-            </li>
-          </ol>
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="p-4 text-sm text-red-400 bg-red-900/20 border border-red-900/30 rounded-xl">
-            {error}
-          </div>
-        )}
-
-        {/* Status */}
-        {status !== "idle" && status !== "error" && (
-          <div className="flex items-center gap-4 p-4 bg-[#111] border border-[#222] rounded-xl">
-            {getStatusIcon()}
-            <div>
-              <p className="text-white font-medium">{statusMessage}</p>
-              {stats && (
-                <p className="text-sm text-gray-400">
-                  {stats.conversations} conversations, {stats.messages} messages
-                </p>
-              )}
+      {/* Instructions */}
+      <div className="bg-[#141414] rounded-2xl p-5 mb-6">
+        <h2 className="text-sm font-medium text-white mb-4">How to export from ChatGPT</h2>
+        <div className="space-y-3">
+          {[
+            "Open chat.openai.com",
+            "Go to Settings → Data Controls",
+            "Click Export Data",
+            "Download ZIP from email"
+          ].map((step, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <span className="w-5 h-5 rounded-full bg-[#EA580C]/20 text-[#EA580C] text-xs font-medium flex items-center justify-center flex-shrink-0 mt-0.5">
+                {i + 1}
+              </span>
+              <span className="text-sm text-gray-400">{step}</span>
             </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl mb-6">
+          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+          <span className="text-sm text-red-400">{error}</span>
+        </div>
+      )}
+
+      {/* Processing state */}
+      {status !== "idle" && status !== "error" && (
+        <div className="flex items-center gap-4 p-5 bg-[#141414] rounded-2xl mb-6">
+          {status === "complete" ? (
+            <CheckCircle className="w-6 h-6 text-green-500" />
+          ) : (
+            <Loader2 className="w-6 h-6 text-[#EA580C] animate-spin" />
+          )}
+          <div className="flex-1">
+            <p className="text-sm font-medium text-white">{statusMessage}</p>
+            {stats && (
+              <p className="text-xs text-gray-500 mt-1">
+                {stats.conversations} conversations • {stats.messages} messages
+              </p>
+            )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* File Upload */}
-        {status === "idle" || status === "error" ? (
-          <div className="flex flex-col gap-4">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".zip"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
+      {/* File picker */}
+      {(status === "idle" || status === "error") && (
+        <div className="flex-1 flex flex-col">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".zip"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
 
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-1 min-h-[200px] border-2 border-dashed border-[#222] rounded-2xl flex flex-col items-center justify-center gap-4 active:border-[#EA580C]/50 active:bg-[#EA580C]/5 transition-all"
+          >
+            {selectedFile ? (
+              <>
+                <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-green-500" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-white">{selectedFile.name}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {(selectedFile.size / 1024 / 1024).toFixed(1)} MB
+                  </p>
+                </div>
+                <span className="text-xs text-[#EA580C]">Tap to change</span>
+              </>
+            ) : (
+              <>
+                <div className="w-12 h-12 rounded-full bg-[#EA580C]/20 flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-[#EA580C]" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-white">Select ZIP file</p>
+                  <p className="text-xs text-gray-500 mt-1">Tap to browse</p>
+                </div>
+              </>
+            )}
+          </button>
+
+          {/* Actions */}
+          <div className="mt-6 space-y-3">
             <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="min-h-[180px] border-2 border-dashed border-[#333] rounded-xl flex flex-col items-center justify-center gap-4 hover:border-[#EA580C]/50 hover:bg-[#EA580C]/5 transition-all"
-            >
-              {selectedFile ? (
-                <>
-                  <div className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <CheckCircle className="w-7 h-7 text-green-500" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-white font-medium">{selectedFile.name}</p>
-                    <p className="text-gray-500 text-sm">
-                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                  <p className="text-[#EA580C] text-sm">Tap to change</p>
-                </>
-              ) : (
-                <>
-                  <div className="w-14 h-14 rounded-full bg-[#EA580C]/20 flex items-center justify-center">
-                    <Upload className="w-7 h-7 text-[#EA580C]" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-white font-medium">Select ZIP File</p>
-                    <p className="text-gray-500 text-sm">
-                      Click to browse
-                    </p>
-                  </div>
-                </>
-              )}
-            </button>
-
-            <Button
               onClick={handleUpload}
               disabled={!selectedFile}
-              className="w-full h-14 bg-[#EA580C] hover:bg-[#EA580C]/90 text-white font-bold rounded-xl shadow-lg shadow-[#EA580C]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 bg-[#EA580C] hover:bg-[#d14d0a] disabled:bg-[#EA580C]/40 text-white font-medium rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:active:scale-100"
             >
-              Generate My SoulPrint
-            </Button>
-
+              Import & Continue
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            
             <button
-              type="button"
               onClick={() => router.push("/chat")}
-              className="text-gray-500 text-sm hover:text-gray-400 transition-colors"
+              className="w-full h-12 text-gray-500 text-sm"
             >
-              Skip for now →
+              Skip for now
             </button>
           </div>
-        ) : null}
-      </div>
+        </div>
+      )}
     </main>
   );
 }
