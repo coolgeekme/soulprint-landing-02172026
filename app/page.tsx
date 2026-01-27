@@ -1,256 +1,135 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { signIn, signUp, signInWithGoogle } from "@/app/actions/auth";
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import Link from 'next/link';
 
-export default function Home() {
-    const router = useRouter();
-    const [isLogin, setIsLogin] = useState(true);
-    const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [success, setSuccess] = useState(false);
-    const [checkingAuth, setCheckingAuth] = useState(true);
+function AnimatedOrb() {
+  return (
+    <div className="relative w-[300px] h-[400px] md:w-[400px] md:h-[500px]">
+      {/* Glow background */}
+      <div className="absolute inset-0 bg-gradient-radial from-orange-500/30 via-orange-600/10 to-transparent blur-3xl scale-150" />
+      
+      {/* Sliced sphere layers - inspired by moodboard/sphere.jpg */}
+      <div className="relative w-full h-full flex flex-col items-center justify-center gap-1">
+        {[...Array(9)].map((_, i) => {
+          const sizes = [60, 75, 88, 95, 100, 95, 85, 70, 50];
+          const opacities = [0.6, 0.7, 0.85, 0.95, 1, 0.95, 0.85, 0.7, 0.5];
+          return (
+            <div
+              key={i}
+              className="rounded-full transition-all duration-1000"
+              style={{
+                width: `${sizes[i]}%`,
+                height: '9%',
+                background: `linear-gradient(180deg, 
+                  rgba(251, 191, 140, ${0.9 * opacities[i]}) 0%,
+                  rgba(249, 115, 22, ${0.95 * opacities[i]}) 30%,
+                  rgba(234, 88, 12, ${0.9 * opacities[i]}) 70%,
+                  rgba(194, 65, 12, ${0.8 * opacities[i]}) 100%
+                )`,
+                boxShadow: i === 4 ? '0 0 40px rgba(234, 88, 12, 0.4)' : 'none',
+                animation: `float ${3 + i * 0.2}s ease-in-out infinite`,
+                animationDelay: `${i * 0.1}s`,
+              }}
+            />
+          );
+        })}
+      </div>
+      
+      {/* Reflection/shine overlay */}
+      <div className="absolute top-[15%] left-[20%] w-[30%] h-[20%] bg-gradient-to-br from-white/20 to-transparent rounded-full blur-xl" />
+    </div>
+  );
+}
 
-    useEffect(() => {
-        const checkAuth = async () => {
-            try {
-                const supabase = createClient();
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    router.replace("/chat");
-                    return;
-                }
-            } catch (err) {
-                console.error("Auth check error:", err);
-            }
-            setCheckingAuth(false);
-        };
-        checkAuth();
-    }, [router]);
-
-    if (checkingAuth) {
-        return (
-            <div className="flex items-center justify-center min-h-[100dvh] bg-[#0a0a0a]">
-                <Loader2 className="h-6 w-6 animate-spin text-[#EA580C]" />
-            </div>
-        );
-    }
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError("");
-        setLoading(true);
-
-        const formData = new FormData();
-        formData.append("email", email);
-        formData.append("password", password);
-
-        try {
-            if (isLogin) {
-                const result = await signIn(formData);
-                if (result?.error) {
-                    setError(result.error);
-                    setLoading(false);
-                }
-            } else {
-                formData.append("name", name);
-                const result = await signUp(formData);
-                if (result?.error) {
-                    setError(result.error);
-                    setLoading(false);
-                } else if (result?.success) {
-                    setSuccess(true);
-                    setLoading(false);
-                }
-            }
-        } catch {
-            // Server action may have redirected
-        }
-    };
-
-    const handleGoogleSignIn = async () => {
-        setLoading(true);
-        const result = await signInWithGoogle();
-        if (result?.error) {
-            setError(result.error);
-            setLoading(false);
-        }
-    };
-
-    // Email confirmation success
-    if (success) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-[#0a0a0a] px-6 safe-area-inset">
-                <div className="w-full max-w-sm flex flex-col items-center gap-5 text-center">
-                    <div className="w-14 h-14 rounded-full bg-[#EA580C]/20 flex items-center justify-center">
-                        <svg className="w-7 h-7 text-[#EA580C]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                    </div>
-                    <h2 className="text-xl font-semibold text-white">Check your email</h2>
-                    <p className="text-sm text-gray-400 leading-relaxed">
-                        We sent a link to <span className="text-white">{email}</span>
-                    </p>
-                    <button 
-                        onClick={() => { setSuccess(false); setIsLogin(true); }}
-                        className="mt-2 text-sm text-[#EA580C]"
-                    >
-                        Back to login
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="flex flex-col min-h-[100dvh] bg-[#0a0a0a] text-white safe-area-inset">
-            {/* Main content - centered */}
-            <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
-                {/* Logo + Brand */}
-                <div className="flex flex-col items-center gap-3 mb-8">
-                    <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg shadow-[#EA580C]/20 border border-white/10">
-                        <Image
-                            src="/images/Soulprintengine-logo.png"
-                            alt="SoulPrint"
-                            width={64}
-                            height={64}
-                            className="w-full h-full object-cover"
-                            priority
-                        />
-                    </div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        SoulPrint
-                    </h1>
-                    <p className="text-sm text-gray-500">
-                        Your AI, personalized
-                    </p>
-                </div>
-
-                {/* Auth Card */}
-                <div className="w-full max-w-sm">
-                    {/* Tabs */}
-                    <div className="flex mb-5 bg-[#141414] rounded-xl p-1">
-                        <button
-                            type="button"
-                            onClick={() => { setIsLogin(true); setError(""); }}
-                            className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                                isLogin 
-                                    ? "bg-[#1f1f1f] text-white shadow-sm" 
-                                    : "text-gray-500"
-                            }`}
-                        >
-                            Log in
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => { setIsLogin(false); setError(""); }}
-                            className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                                !isLogin 
-                                    ? "bg-[#1f1f1f] text-white shadow-sm" 
-                                    : "text-gray-500"
-                            }`}
-                        >
-                            Sign up
-                        </button>
-                    </div>
-
-                    {/* Error */}
-                    {error && (
-                        <div className="mb-4 p-3 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl">
-                            {error}
-                        </div>
-                    )}
-
-                    {/* Form */}
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-                        {!isLogin && (
-                            <input
-                                type="text"
-                                placeholder="Name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                required={!isLogin}
-                                autoComplete="name"
-                                className="w-full h-12 px-4 bg-[#141414] border border-white/5 rounded-xl text-[15px] text-white placeholder:text-gray-600 focus:outline-none focus:border-[#EA580C]/50 transition-colors"
-                            />
-                        )}
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            autoComplete="email"
-                            className="w-full h-12 px-4 bg-[#141414] border border-white/5 rounded-xl text-[15px] text-white placeholder:text-gray-600 focus:outline-none focus:border-[#EA580C]/50 transition-colors"
-                        />
-                        <input
-                            type="password"
-                            placeholder="Password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            autoComplete={isLogin ? "current-password" : "new-password"}
-                            minLength={isLogin ? undefined : 6}
-                            className="w-full h-12 px-4 bg-[#141414] border border-white/5 rounded-xl text-[15px] text-white placeholder:text-gray-600 focus:outline-none focus:border-[#EA580C]/50 transition-colors"
-                        />
-
-                        <Button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full h-12 bg-[#EA580C] hover:bg-[#d14d0a] text-white font-medium text-[15px] rounded-xl disabled:opacity-60 transition-all active:scale-[0.98]"
-                        >
-                            {loading ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : (
-                                isLogin ? "Log in" : "Create account"
-                            )}
-                        </Button>
-                    </form>
-
-                    {/* Divider */}
-                    <div className="relative flex items-center my-5">
-                        <div className="flex-1 border-t border-white/5" />
-                        <span className="px-3 text-xs text-gray-600">or</span>
-                        <div className="flex-1 border-t border-white/5" />
-                    </div>
-
-                    {/* Google */}
-                    <button
-                        type="button"
-                        onClick={handleGoogleSignIn}
-                        disabled={loading}
-                        className="w-full h-12 bg-white hover:bg-gray-100 text-[#1f1f1f] font-medium text-[15px] rounded-xl flex items-center justify-center gap-3 disabled:opacity-60 transition-all active:scale-[0.98]"
-                    >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                        </svg>
-                        Continue with Google
-                    </button>
-                </div>
-            </div>
-
-            {/* Footer */}
-            <div className="py-6 text-center">
-                <a 
-                    href="https://shoulprint-hero.vercel.app" 
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-gray-600"
-                >
-                    Learn more →
-                </a>
-            </div>
+export default function LandingPage() {
+  return (
+    <main className="min-h-screen bg-black overflow-hidden page-transition">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <Link href="/" className="text-xl font-semibold tracking-tight">
+            <span className="gradient-text">Soul</span>
+            <span className="text-white">Print</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="glass-button px-5 py-2.5 text-sm font-medium text-white/90 hover:text-white"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/signup"
+              className="btn-orange px-5 py-2.5 text-sm font-medium"
+            >
+              Get Started
+            </Link>
+          </div>
         </div>
-    );
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-6">
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-orange-900/5 via-transparent to-transparent" />
+        
+        {/* Animated Orb */}
+        <div className="relative mb-12 pulse-glow rounded-full">
+          <AnimatedOrb />
+        </div>
+
+        {/* Text Content */}
+        <div className="relative text-center max-w-3xl mx-auto">
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
+            <span className="text-white">AI that </span>
+            <span className="gradient-text">remembers</span>
+            <span className="text-white"> you</span>
+          </h1>
+          
+          <p className="text-lg md:text-xl text-white/60 mb-10 max-w-xl mx-auto leading-relaxed">
+            Import your ChatGPT history. Never repeat yourself again.
+            <br />
+            <span className="text-white/40">Your conversations, your context, always.</span>
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/signup"
+              className="btn-orange px-8 py-4 text-lg font-semibold w-full sm:w-auto"
+            >
+              Get Started Free
+            </Link>
+            <Link
+              href="/login"
+              className="glass-button px-8 py-4 text-lg font-medium text-white/80 hover:text-white w-full sm:w-auto"
+            >
+              Sign In
+            </Link>
+          </div>
+        </div>
+
+        {/* Features preview */}
+        <div className="absolute bottom-12 left-0 right-0 px-6">
+          <div className="max-w-4xl mx-auto grid grid-cols-3 gap-4">
+            {[
+              { label: 'Import', desc: 'ChatGPT exports' },
+              { label: 'Remember', desc: 'Your context' },
+              { label: 'Chat', desc: 'Like you never left' },
+            ].map((feature, i) => (
+              <div
+                key={i}
+                className="glass-card-subtle p-4 text-center"
+              >
+                <div className="text-sm font-medium gradient-text mb-1">
+                  {feature.label}
+                </div>
+                <div className="text-xs text-white/40">{feature.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
 }
