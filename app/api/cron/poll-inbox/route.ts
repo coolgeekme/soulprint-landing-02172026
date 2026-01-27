@@ -43,12 +43,15 @@ export async function GET(request: Request) {
     const gmail = await getGmailClient();
     const supabase = getSupabaseAdmin();
     
-    // Search for unread emails - both with attachments AND potential forwarded ChatGPT emails
+    // Search for ALL unread emails (relaxed query for testing)
+    // Will filter more specifically in processEmail
     const response = await gmail.users.messages.list({
       userId: 'me',
-      q: 'is:unread (has:attachment filename:zip OR subject:chatgpt OR subject:export OR from:openai)',
+      q: 'is:unread',
       maxResults: 10,
     });
+    
+    console.log(`[Inbox Poll] Found ${response.data.messages?.length || 0} unread emails`);
     
     const messages = response.data.messages || [];
     const results: Array<{ email: string; status: string; error?: string }> = [];
@@ -66,11 +69,18 @@ export async function GET(request: Request) {
       }
     }
     
-    return NextResponse.json({ processed: results.length, results });
+    return NextResponse.json({ 
+      processed: results.length, 
+      results,
+      foundEmails: messages.length,
+    });
   } catch (error) {
     console.error('Inbox poll error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to poll inbox' },
+      { 
+        error: error instanceof Error ? error.message : 'Failed to poll inbox',
+        stack: error instanceof Error ? error.stack : undefined,
+      },
       { status: 500 }
     );
   }
@@ -81,7 +91,7 @@ async function processEmail(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   messageId: string
-): Promise<{ email: string; status: string; error?: string }> {
+): Promise<{ email: string; status: string; error?: string; debug?: object }> {
   const message = await gmail.users.messages.get({
     userId: 'me',
     id: messageId,
@@ -90,10 +100,18 @@ async function processEmail(
   
   const headers = message.data.payload?.headers || [];
   const fromHeader = headers.find(h => h.name?.toLowerCase() === 'from');
+  const subjectHeader = headers.find(h => h.name?.toLowerCase() === 'subject');
   const senderEmail = extractEmail(fromHeader?.value || '');
   
+  console.log(`[Inbox Poll] Processing email from: ${fromHeader?.value}, subject: ${subjectHeader?.value}`);
+  
   if (!senderEmail) {
-    return { email: 'unknown', status: 'skipped', error: 'Could not extract sender email' };
+    return { 
+      email: 'unknown', 
+      status: 'skipped', 
+      error: 'Could not extract sender email',
+      debug: { from: fromHeader?.value, subject: subjectHeader?.value }
+    };
   }
   
   // Look up user
