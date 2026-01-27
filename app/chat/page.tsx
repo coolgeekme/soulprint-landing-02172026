@@ -19,11 +19,50 @@ export default function ChatPage() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
 
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+  };
+
+  const startListening = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const win = window as any;
+    if (!win.webkitSpeechRecognition && !win.SpeechRecognition) {
+      alert('Speech recognition not supported in this browser');
+      return;
+    }
+    
+    const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((result: any) => result[0].transcript)
+        .join('');
+      setInput(transcript);
+    };
+    
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    setIsListening(false);
   };
 
   useEffect(() => {
@@ -195,15 +234,27 @@ export default function ChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onFocus={scrollToBottom}
-            placeholder="Message"
-            className="flex-1 h-9 bg-zinc-800 rounded-full px-3 text-sm outline-none placeholder:text-zinc-500"
+            placeholder={isListening ? "Listening..." : "Message"}
+            className={`flex-1 h-9 bg-zinc-800 rounded-full px-3 text-sm outline-none placeholder:text-zinc-500 ${isListening ? 'ring-2 ring-orange-500' : ''}`}
             style={{ fontSize: '16px' }}
             autoComplete="off"
             enterKeyHint="send"
           />
-          <button type="submit" disabled={!input.trim() || isLoading} className="w-9 h-9 rounded-full bg-orange-500 disabled:opacity-40 flex items-center justify-center">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-          </button>
+          {input.trim() ? (
+            <button type="submit" disabled={isLoading} className="w-9 h-9 rounded-full bg-orange-500 disabled:opacity-40 flex items-center justify-center">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+          ) : (
+            <button 
+              type="button" 
+              onClick={isListening ? stopListening : startListening}
+              className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${isListening ? 'bg-red-500 animate-pulse' : 'bg-zinc-700'}`}
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.94-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.06 7.44-7 7.93V19h4v2H8v-2h4v-3.07z"/>
+              </svg>
+            </button>
+          )}
         </form>
       </footer>
     </div>
