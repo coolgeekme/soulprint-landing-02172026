@@ -4,6 +4,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "SoulPrint — AI that remembers you",
   description: "Import your ChatGPT history. Get an AI that actually knows you.",
+  icons: {
+    icon: '/logo.svg',
+    apple: '/logo.svg',
+  },
 };
 
 export default function RootLayout({
