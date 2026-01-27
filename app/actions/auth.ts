@@ -34,10 +34,10 @@ export async function signUp(formData: FormData) {
         await recordReferral(referralCode, signUpData.user.id, email)
     }
 
-    // If user is auto-confirmed (email confirmation is off), redirect to onboarding
+    // If user is auto-confirmed (email confirmation is off), redirect to import
     if (signUpData?.user?.email_confirmed_at || signUpData?.session) {
         revalidatePath('/', 'layout')
-        redirect('/onboarding/export')
+        redirect('/import')
     }
 
     // Otherwise return success (email confirmation required)
