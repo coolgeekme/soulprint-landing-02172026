@@ -63,18 +63,25 @@ const ThreadWelcome: FC = () => {
       <div className="welcome-avatar">
         <img src="/logo.svg" alt="SoulPrint" className="w-12 h-12" />
       </div>
-      <h1 className="welcome-title">Hello!</h1>
-      <p className="welcome-subtitle">How can I help you today?</p>
+      <h1 className="welcome-title">Hey there! 👋</h1>
+      <p className="welcome-subtitle">
+        I've been looking through your conversations and I feel like I'm getting to know you already.
+        <br /><br />
+        Before we dive in — what would you like to call me?
+      </p>
       
       <div className="welcome-suggestions">
-        <ThreadPrimitive.Suggestion prompt="Tell me about yourself" autoSend>
-          <span className="suggestion-btn">Tell me about yourself</span>
+        <ThreadPrimitive.Suggestion prompt="I'll call you Nova" autoSend>
+          <span className="suggestion-btn">Nova</span>
         </ThreadPrimitive.Suggestion>
-        <ThreadPrimitive.Suggestion prompt="What can you help me with?" autoSend>
-          <span className="suggestion-btn">What can you help me with?</span>
+        <ThreadPrimitive.Suggestion prompt="I'll call you Atlas" autoSend>
+          <span className="suggestion-btn">Atlas</span>
         </ThreadPrimitive.Suggestion>
-        <ThreadPrimitive.Suggestion prompt="Let's brainstorm ideas" autoSend>
-          <span className="suggestion-btn">Let's brainstorm ideas</span>
+        <ThreadPrimitive.Suggestion prompt="I'll call you Echo" autoSend>
+          <span className="suggestion-btn">Echo</span>
+        </ThreadPrimitive.Suggestion>
+        <ThreadPrimitive.Suggestion prompt="I'll call you Sage" autoSend>
+          <span className="suggestion-btn">Sage</span>
         </ThreadPrimitive.Suggestion>
       </div>
     </div>
