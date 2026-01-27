@@ -60,12 +60,12 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // Protected routes check
-    const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/questionnaire')
+    const isProtectedRoute = request.nextUrl.pathname.startsWith('/chat') || request.nextUrl.pathname.startsWith('/import')
 
     // Protected routes logic - keep it simple
     if (isProtectedRoute) {
         if (!user) {
-            return NextResponse.redirect(new URL('/', request.url))
+            return NextResponse.redirect(new URL('/login', request.url))
         }
 
         // Layer 1 Safety: Ensure profile exists
@@ -89,9 +89,9 @@ export async function updateSession(request: NextRequest) {
         }
     }
 
-    // Redirect authenticated users from landing page to dashboard chat
+    // Redirect authenticated users from landing page to chat
     if (request.nextUrl.pathname === '/' && user) {
-        return NextResponse.redirect(new URL('/dashboard/chat', request.url))
+        return NextResponse.redirect(new URL('/chat', request.url))
     }
 
     return supabaseResponse

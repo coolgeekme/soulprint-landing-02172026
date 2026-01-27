@@ -80,19 +80,24 @@ export async function GET(request: NextRequest) {
             // Get user info to check for existing soulprint
             const { data: { user } } = await supabase.auth.getUser()
 
-            let redirectUrl = '/onboarding' // New users go to PWA gate
+            let redirectUrl = '/import' // New users go to import
             let isNewUser = true
 
-            // Check for existing soulprint
+            // Check for existing soulprint or imported chats
             if (user) {
-                const { count } = await supabase
+                const { count: soulprintCount } = await supabase
                     .from('soulprints')
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', user.id)
 
-                if (count && count > 0) {
-                    // Existing user with soulprint - go directly to chat
-                    redirectUrl = '/dashboard/chat'
+                const { count: importCount } = await supabase
+                    .from('imported_chats')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id)
+
+                if ((soulprintCount && soulprintCount > 0) || (importCount && importCount > 0)) {
+                    // Existing user with data - go directly to chat
+                    redirectUrl = '/chat'
                     isNewUser = false
                 }
 

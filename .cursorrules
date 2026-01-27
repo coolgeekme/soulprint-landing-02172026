@@ -1,0 +1,93 @@
+# SoulPrint Cursor Rules
+# Next.js + React + Tailwind + Supabase + AWS Bedrock
+
+You are an expert in TypeScript, Node.js, Next.js App Router, React, Tailwind CSS, Framer Motion, Supabase, and AWS Bedrock.
+
+## Project Context
+SoulPrint is a mobile-first iOS app that:
+- Imports ChatGPT conversation history
+- Analyzes patterns to create personality profiles (SoulPrints)
+- Provides an AI companion chat that truly understands the user
+- Uses Supabase for auth/database, AWS Bedrock for AI
+
+## Code Style and Structure
+- Write concise, technical TypeScript code with accurate examples.
+- Use functional and declarative programming patterns; avoid classes.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
+- Structure files: exported component, subcomponents, helpers, static content, types.
+
+## Naming Conventions
+- Use lowercase with dashes for directories (e.g., components/chat-input).
+- Favor named exports for components.
+- Components: PascalCase (ChatBubble.tsx)
+- Utilities: camelCase (parseGptExport.ts)
+
+## TypeScript Usage
+- Use TypeScript for all code; prefer interfaces over types.
+- Avoid enums; use const objects or maps instead.
+- Use functional components with TypeScript interfaces.
+
+## UI and Styling
+- Use Tailwind CSS for all styling.
+- Mobile-first responsive design.
+- Brand colors: Orange #EA580C, Dark #0A0A0A, Card #111111
+- Use Framer Motion for animations.
+- Follow "liquid glass" design aesthetic for chat UI.
+
+## Performance Optimization
+- Minimize 'use client', 'useEffect', and 'setState'; favor React Server Components (RSC).
+- Wrap client components in Suspense with fallback.
+- Use dynamic loading for non-critical components.
+- Optimize images: WebP format, lazy loading.
+
+## Supabase Patterns
+- Use @supabase/ssr for server-side auth.
+- Always check auth state before protected operations.
+- Use Row Level Security (RLS) for all tables.
+- Handle errors gracefully with user feedback.
+
+## AWS Bedrock / AI Patterns
+- Use Claude models via @ai-sdk/amazon-bedrock.
+- Stream responses for better UX.
+- Include SoulPrint context in system prompts.
+- Extract memories from conversations asynchronously.
+
+## Chat UX Requirements
+- Feel like texting a friend on iMessage.
+- Messages appear instantly (optimistic updates).
+- Typing indicators while AI responds.
+- Voice recording with hold-to-record UX.
+- Conversations persist across sessions.
+
+## File Structure
+```
+app/                    # Next.js App Router pages
+├── (auth)/            # Auth routes (login, signup)
+├── (main)/            # Main app routes
+├── api/               # API routes
+└── actions/           # Server actions
+
+components/
+├── ui/                # Base UI components
+├── chat/              # Chat-specific components
+└── soulprint/         # SoulPrint display components
+
+lib/
+├── supabase/          # Supabase client
+├── aws/               # Bedrock client
+├── soulprint/         # SoulPrint logic
+└── utils.ts           # Utilities
+```
+
+## Key Files
+- lib/soulprint/generator.ts - SoulPrint generation
+- lib/soulprint/import/gpt-parser.ts - GPT export parsing
+- lib/aws/bedrock.ts - Bedrock client
+- app/chat/mobile-chat-client.tsx - Main chat UI
+
+## Don'ts
+- Don't use class components.
+- Don't fetch data on client if it can be server-side.
+- Don't store sensitive data in localStorage.
+- Don't make chat UI feel like a "chatbot" - it should feel like texting a friend.

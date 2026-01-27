@@ -34,10 +34,10 @@ export async function signUp(formData: FormData) {
         await recordReferral(referralCode, signUpData.user.id, email)
     }
 
-    // If user is auto-confirmed (email confirmation is off), redirect to welcome
+    // If user is auto-confirmed (email confirmation is off), redirect to import
     if (signUpData?.user?.email_confirmed_at || signUpData?.session) {
         revalidatePath('/', 'layout')
-        redirect('/dashboard/welcome')
+        redirect('/import')
     }
 
     // Otherwise return success (email confirmation required)
@@ -60,7 +60,7 @@ export async function signIn(formData: FormData) {
     }
 
     revalidatePath('/', 'layout')
-    redirect('/dashboard/welcome')
+    redirect('/chat')
 }
 
 export async function signOut() {

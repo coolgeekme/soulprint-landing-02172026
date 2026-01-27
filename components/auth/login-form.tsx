@@ -25,7 +25,7 @@ export function LoginForm() {
                 const { data: { user } } = await supabase.auth.getUser();
 
                 if (user) {
-                    router.replace("/dashboard/chat");
+                    router.replace("/chat");
                     return;
                 }
             } catch (err) {
