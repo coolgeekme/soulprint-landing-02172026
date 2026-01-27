@@ -20,8 +20,22 @@ export default function ChatPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [showPwaPrompt, setShowPwaPrompt] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Check if should show PWA install prompt (iOS Safari, not standalone)
+  useEffect(() => {
+    const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window.navigator as any).standalone === true;
+    const dismissed = localStorage.getItem('pwa-prompt-dismissed');
+    
+    if (isIos && !isStandalone && !dismissed) {
+      setTimeout(() => setShowPwaPrompt(true), 2000);
+    }
+  }, []);
   const inputRef = useRef<HTMLInputElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
@@ -194,7 +208,7 @@ export default function ChatPage() {
         className="fixed top-0 left-0 right-0 bg-[#1c1c1d] z-20"
         style={{ paddingTop: safeAreaTop }}
       >
-        <div className="flex items-center px-4 h-16">
+        <div className="flex items-center px-5 h-16">
           <div className="flex-1 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-lg shadow-lg">
               🧠
@@ -221,20 +235,46 @@ export default function ChatPage() {
         )}
       </header>
 
+      {/* PWA Install Prompt */}
+      {showPwaPrompt && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-orange-600 to-orange-500 px-4 py-3" style={{ paddingTop: `calc(${safeAreaTop} + 12px)` }}>
+          <div className="flex items-center justify-between max-w-2xl mx-auto">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📲</span>
+              <div>
+                <p className="font-medium text-white text-sm">Install SoulPrint</p>
+                <p className="text-white/80 text-xs">Tap Share → Add to Home Screen</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => {
+                setShowPwaPrompt(false);
+                localStorage.setItem('pwa-prompt-dismissed', 'true');
+              }}
+              className="text-white/80 p-1"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Messages - scrollable area between fixed header and footer */}
       <main 
-        className="fixed left-0 right-0 overflow-y-auto overscroll-none px-4"
+        className="fixed left-0 right-0 overflow-y-auto overscroll-none px-5"
         style={{ 
-          top: `calc(${safeAreaTop} + ${headerHeight}px + ${showSettings ? 48 : 0}px)`,
+          top: `calc(${safeAreaTop} + ${headerHeight}px + ${showSettings ? 48 : 0}px + ${showPwaPrompt ? 60 : 0}px)`,
           bottom: `calc(${safeAreaBottom} + ${footerHeight}px + ${keyboardHeight}px)`
         }}
       >
         <div className="flex flex-col justify-end min-h-full">
-          <div className="space-y-3 max-w-2xl mx-auto w-full py-4">
+          <div className="space-y-4 max-w-2xl mx-auto w-full py-5">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div 
-                  className={`max-w-[80%] px-4 py-2.5 text-[15px] leading-relaxed shadow-sm ${
+                  className={`max-w-[80%] px-4 py-3 text-[15px] leading-relaxed shadow-sm ${
                     msg.role === 'user' 
                       ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-[20px] rounded-br-[4px]' 
                       : 'bg-[#262628] text-white/90 rounded-[20px] rounded-bl-[4px]'
@@ -260,7 +300,7 @@ export default function ChatPage() {
 
       {/* Footer - input bar - FIXED, never moves */}
       <footer 
-        className="fixed left-0 right-0 bg-[#1c1c1d] border-t border-white/5 px-4 py-3 z-20"
+        className="fixed left-0 right-0 bg-[#1c1c1d] border-t border-white/5 px-5 py-3 z-20"
         style={{ 
           bottom: keyboardHeight,
           paddingBottom: keyboardHeight > 0 ? 12 : `calc(${safeAreaBottom} + 12px)`
