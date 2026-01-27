@@ -9,6 +9,7 @@ interface Step {
   step: string;
   title: string;
   description: string;
+  substeps?: string[];
   icon: React.ReactNode;
   tip?: string;
 }
@@ -17,33 +18,54 @@ const steps: Step[] = [
   {
     step: '01',
     title: 'Request your ChatGPT export',
-    description: 'Go to ChatGPT Settings → Data Controls → Export. ChatGPT will email you when it\'s ready.',
+    description: 'Open ChatGPT and request your data export:',
+    substeps: [
+      'Open ChatGPT (app or chatgpt.com)',
+      'Tap your profile icon (bottom left on mobile, top right on desktop)',
+      'Go to Settings → Data Controls',
+      'Tap "Export data"',
+      'Confirm with "Export"',
+    ],
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
       </svg>
     ),
+    tip: 'You\'ll get an email within a few minutes with your download link.',
   },
   {
     step: '02',
     title: 'Download the ZIP file',
-    description: 'Open the download link in ChatGPT app. Keep your phone on while downloading.',
+    description: 'When you get the email from OpenAI:',
+    substeps: [
+      'Open the email from "OpenAI"',
+      'Click "Download data export"',
+      'You\'ll be redirected to ChatGPT — click "Download"',
+      'Wait for the ZIP file to finish downloading',
+    ],
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
       </svg>
     ),
-    tip: 'Large exports can take a few minutes.',
+    tip: 'Large exports (1GB+) may take a few minutes. Keep your screen on.',
   },
   {
     step: '03',
     title: 'Upload it here',
-    description: 'We analyze it locally in your browser — nothing uploaded to servers.',
+    description: 'Drag the ZIP file here or tap to select it:',
+    substeps: [
+      'Find the downloaded ZIP file',
+      'Drag it onto the upload area below (or tap to browse)',
+      'Wait while we analyze your conversations',
+      'Your data stays on your device — nothing is uploaded',
+    ],
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
       </svg>
     ),
+    tip: 'Processing happens in your browser. Works with any file size!',
   },
 ];
 
@@ -177,11 +199,21 @@ export default function ImportPage() {
           {steps.map((step, i) => (
             <div key={i} className="card card-hover p-6 animate-in relative group" style={{ animationDelay: `${0.1 + i * 0.1}s` }}>
               <span className="absolute top-6 right-6 text-4xl font-bold text-white/[0.04]">{step.step}</span>
-              <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center mb-5 group-hover:bg-orange-500/15 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center mb-4 group-hover:bg-orange-500/15 transition-colors">
                 {step.icon}
               </div>
               <h3 className="text-title text-white mb-2">{step.title}</h3>
-              <p className="text-body text-sm">{step.description}</p>
+              <p className="text-body text-sm mb-3">{step.description}</p>
+              {step.substeps && (
+                <ol className="space-y-1.5 mb-3">
+                  {step.substeps.map((substep, j) => (
+                    <li key={j} className="text-xs text-white/60 flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-white/10 text-white/40 flex items-center justify-center flex-shrink-0 text-[10px] mt-0.5">{j + 1}</span>
+                      {substep}
+                    </li>
+                  ))}
+                </ol>
+              )}
               {step.tip && (
                 <p className="text-xs text-orange-500/70 mt-3 flex items-start gap-1.5">
                   <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
