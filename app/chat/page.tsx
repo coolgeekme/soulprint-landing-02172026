@@ -188,10 +188,10 @@ export default function ChatPage() {
   const safeAreaBottom = 'env(safe-area-inset-bottom, 0px)';
 
   return (
-    <div className="bg-[#0e0e0e] text-white fixed inset-0 flex flex-col">
-      {/* Header */}
+    <div className="bg-[#0e0e0e] text-white fixed inset-0 overflow-hidden">
+      {/* Header - fixed */}
       <header 
-        className="bg-[#1c1c1d] flex-shrink-0 z-10"
+        className="fixed top-0 left-0 right-0 bg-[#1c1c1d] z-20"
         style={{ paddingTop: safeAreaTop }}
       >
         <div className="flex items-center px-4 h-16">
@@ -221,10 +221,13 @@ export default function ChatPage() {
         )}
       </header>
 
-      {/* Messages - scrollable area */}
+      {/* Messages - scrollable area between fixed header and footer */}
       <main 
-        className="flex-1 overflow-y-auto overscroll-none px-4"
-        style={{ paddingBottom: keyboardHeight > 0 ? 0 : undefined }}
+        className="fixed left-0 right-0 overflow-y-auto overscroll-none px-4"
+        style={{ 
+          top: `calc(${safeAreaTop} + ${headerHeight}px + ${showSettings ? 48 : 0}px)`,
+          bottom: `calc(${safeAreaBottom} + ${footerHeight}px + ${keyboardHeight}px)`
+        }}
       >
         <div className="flex flex-col justify-end min-h-full">
           <div className="space-y-3 max-w-2xl mx-auto w-full py-4">
@@ -255,12 +258,12 @@ export default function ChatPage() {
         </div>
       </main>
 
-      {/* Footer - input bar */}
+      {/* Footer - input bar - FIXED, never moves */}
       <footer 
-        className="bg-[#1c1c1d] border-t border-white/5 px-4 py-3 flex-shrink-0"
+        className="fixed left-0 right-0 bg-[#1c1c1d] border-t border-white/5 px-4 py-3 z-20"
         style={{ 
-          paddingBottom: `calc(${safeAreaBottom} + 12px)`,
-          marginBottom: keyboardHeight > 0 ? keyboardHeight : 0 
+          bottom: keyboardHeight,
+          paddingBottom: keyboardHeight > 0 ? 12 : `calc(${safeAreaBottom} + 12px)`
         }}
       >
         <form onSubmit={handleSubmit} className="flex items-center gap-3 max-w-2xl mx-auto">
