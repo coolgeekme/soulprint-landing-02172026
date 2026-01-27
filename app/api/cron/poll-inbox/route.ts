@@ -144,7 +144,8 @@ async function processEmail(
   }
   
   // Find ZIP attachment
-  const parts = message.data.payload?.parts || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const parts = (message.data.payload?.parts || []) as any[];
   const zipPart = findZipAttachment(parts);
   
   if (!zipPart || !zipPart.body?.attachmentId) {
