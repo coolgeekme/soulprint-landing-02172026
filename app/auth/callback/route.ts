@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
             // Get user info to check for existing soulprint
             const { data: { user } } = await supabase.auth.getUser()
 
-            let redirectUrl = '/import' // New users go to import
+            let redirectUrl = '/onboarding/export' // New users go to onboarding
             let isNewUser = true
 
             // Check for existing soulprint or imported chats
