@@ -190,7 +190,7 @@ export default function ImportPage() {
               <p className="text-xs text-gray-600">Supports any size export</p>
 
               <div className="mt-6">
-                <Link href="/chat" className="text-caption hover:text-gray-300 transition-colors">Skip for now →</Link>
+                
               </div>
             </div>
           )}
