@@ -2,341 +2,149 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SoulPrint → App Store</title>
+  <title>SoulPrint Product Roadmap</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
-      background: #000;
-      color: #fff;
-      min-height: 100vh;
-      padding: 60px 24px;
+      font-family: Georgia, 'Times New Roman', serif;
+      max-width: 750px;
+      margin: 0 auto;
+      padding: 50px 40px;
+      line-height: 1.8;
+      color: #111;
+      background: #fff;
     }
-    .container { max-width: 700px; margin: 0 auto; }
-    
-    h1 {
-      font-size: 48px;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      margin-bottom: 8px;
-    }
-    .subtitle {
-      font-size: 20px;
-      color: #888;
-      margin-bottom: 60px;
-    }
-    .goal {
-      background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
-      border: 1px solid #333;
-      border-radius: 16px;
-      padding: 32px;
-      margin-bottom: 48px;
-    }
-    .goal-label {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      color: #666;
-      margin-bottom: 12px;
-    }
-    .goal-text {
-      font-size: 28px;
-      font-weight: 600;
-      color: #fff;
-    }
-    .goal-text span { color: #f97415; }
-    
-    h2 {
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      color: #666;
-      margin: 48px 0 24px;
-    }
-    
-    .section {
-      margin-bottom: 40px;
-    }
-    .section-title {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .section-title .icon {
-      width: 32px;
-      height: 32px;
-      background: #1a1a1a;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .items {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .item {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px 20px;
-      background: #0a0a0a;
-      border: 1px solid #1a1a1a;
-      border-radius: 12px;
-      transition: border-color 0.2s;
-    }
-    .item:hover { border-color: #333; }
-    
-    .check {
-      width: 24px;
-      height: 24px;
-      border: 2px solid #333;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      font-size: 14px;
-      color: transparent;
-    }
-    .item.done .check {
-      background: #22c55e;
-      border-color: #22c55e;
-      color: #fff;
-    }
-    .item.done { border-color: #1a3d1a; }
-    
-    .item-content { flex: 1; }
-    .item-title {
-      font-size: 15px;
-      font-weight: 500;
-      color: #fff;
-    }
-    .item.done .item-title { color: #888; }
-    .item-desc {
-      font-size: 13px;
-      color: #555;
-      margin-top: 2px;
-    }
-    
-    .item-tag {
-      font-size: 11px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      background: #1a1a1a;
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .item-tag.required { background: #2a1a0a; color: #f97415; }
-    .item-tag.done { background: #1a2a1a; color: #22c55e; }
-    
-    .footer {
-      margin-top: 80px;
-      padding-top: 32px;
-      border-top: 1px solid #1a1a1a;
-      text-align: center;
-      color: #444;
-      font-size: 14px;
-    }
-    .footer a { color: #666; text-decoration: none; }
-    .footer a:hover { color: #888; }
-    
-    @media print {
-      body { background: #fff; color: #000; }
-      .item, .goal { border-color: #ddd; background: #f9f9f9; }
-      .item-title, .goal-text { color: #000; }
-    }
+    h1 { font-size: 32px; text-align: center; margin-bottom: 5px; }
+    h2 { font-size: 20px; margin-top: 40px; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
+    h3 { font-size: 16px; margin-top: 25px; }
+    p { margin: 15px 0; text-align: justify; }
+    .center { text-align: center; }
+    .subtitle { color: #666; font-size: 16px; margin-bottom: 30px; }
+    ul { margin: 15px 0; padding-left: 25px; }
+    li { margin: 8px 0; }
+    .highlight { background: #fffde7; border-left: 4px solid #f9a825; padding: 15px; margin: 20px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f5f5f5; }
+    .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 14px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>SoulPrint</h1>
-    <p class="subtitle">Path to App Store</p>
-    
-    <div class="goal">
-      <div class="goal-label">Objective</div>
-      <div class="goal-text">Get <span>SoulPrint</span> on the iOS App Store</div>
-    </div>
-    
-    <h2>What's Built</h2>
-    
-    <div class="section">
-      <div class="items">
-        <div class="item done">
-          <div class="check">✓</div>
-          <div class="item-content">
-            <div class="item-title">User authentication</div>
-            <div class="item-desc">Email/password + Google OAuth via Supabase</div>
-          </div>
-          <div class="item-tag done">Done</div>
-        </div>
-        <div class="item done">
-          <div class="check">✓</div>
-          <div class="item-content">
-            <div class="item-title">ChatGPT data import</div>
-            <div class="item-desc">Client-side ZIP processing, privacy-first</div>
-          </div>
-          <div class="item-tag done">Done</div>
-        </div>
-        <div class="item done">
-          <div class="check">✓</div>
-          <div class="item-content">
-            <div class="item-title">Memory system</div>
-            <div class="item-desc">Vector embeddings, semantic search, retrieval</div>
-          </div>
-          <div class="item-tag done">Done</div>
-        </div>
-        <div class="item done">
-          <div class="check">✓</div>
-          <div class="item-content">
-            <div class="item-title">Chat interface</div>
-            <div class="item-desc">Streaming responses, AI naming, basic mobile support</div>
-          </div>
-          <div class="item-tag done">Done</div>
-        </div>
-        <div class="item done">
-          <div class="check">✓</div>
-          <div class="item-content">
-            <div class="item-title">Production deployment</div>
-            <div class="item-desc">Live on Vercel, database on Supabase</div>
-          </div>
-          <div class="item-tag done">Done</div>
-        </div>
-      </div>
-    </div>
-    
-    <h2>Required for App Store</h2>
-    
-    <div class="section">
-      <div class="section-title"><div class="icon">📱</div> Native App</div>
-      <div class="items">
-        <div class="item">
-          <div class="check"></div>
-          <div class="item-content">
-            <div class="item-title">Expo / React Native wrapper</div>
-            <div class="item-desc">Wrap web app for native distribution</div>
-          </div>
-          <div class="item-tag required">Required</div>
-        </div>
-        <div class="item">
-          <div class="check"></div>
-          <div class="item-content">
-            <div class="item-title">iOS build configuration</div>
-            <div class="item-desc">Xcode project, signing, provisioning profiles</div>
-          </div>
-          <div class="item-tag required">Required</div>
-        </div>
-        <div class="item">
-          <div class="check"></div>
-          <div class="item-content">
-            <div class="item-title">TestFlight build</div>
-            <div class="item-desc">Internal testing before submission</div>
-          </div>
-          <div class="item-tag required">Required</div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="section">
-      <div class="section-title"><div class="icon">🎨</div> App Store Assets</div>
-      <div class="items">
-        <div class="item">
-          <div class="check"></div>
-          <div class="item-content">
-            <div class="item-title">App icon</div>
-            <div class="item-desc">1024x1024 + all required sizes</div>
-          </div>
-          <div class="item-tag required">Required</div>
-        </div>
-        <div class="item">
-          <div class="check"></div>
-          <div class="item-content">
-            <div class="item-title">Screenshots</div>
-            <div class="item-desc">6.7" and 5.5" displays minimum</div>
-          </div>
-          <div class="item-tag required">Required</div>
-        </div>
-        <div class="item">
-          <div class="check"></div>
-          <div class="item-content">
-            <div class="item-title">App description & keywords</div>
-            <div class="item-desc">Compelling copy for App Store listing</div>
-          </div>
-          <div class="item-tag required">Required</div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="section">
-      <div class="section-title"><div class="icon">⚖️</div> Legal</div>
-      <div class="items">
-        <div class="item">
-          <div class="check"></div>
-          <div class="item-content">
-            <div class="item-title">Privacy Policy</div>
-            <div class="item-desc">Hosted page explaining data collection & use</div>
-          </div>
-          <div class="item-tag required">Required</div>
-        </div>
-        <div class="item">
-          <div class="check"></div>
-          <div class="item-content">
-            <div class="item-title">Terms of Service</div>
-            <div class="item-desc">User agreement for the app</div>
-          </div>
-          <div class="item-tag required">Required</div>
-        </div>
-        <div class="item">
-          <div class="check"></div>
-          <div class="item-content">
-            <div class="item-title">Account deletion</div>
-            <div class="item-desc">Users must be able to delete their account</div>
-          </div>
-          <div class="item-tag required">Required</div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="section">
-      <div class="section-title"><div class="icon">🍎</div> Apple Developer</div>
-      <div class="items">
-        <div class="item">
-          <div class="check"></div>
-          <div class="item-content">
-            <div class="item-title">Apple Developer account</div>
-            <div class="item-desc">$99/year enrollment</div>
-          </div>
-          <div class="item-tag required">Required</div>
-        </div>
-        <div class="item">
-          <div class="check"></div>
-          <div class="item-content">
-            <div class="item-title">App Store Connect setup</div>
-            <div class="item-desc">Create app listing, configure metadata</div>
-          </div>
-          <div class="item-tag required">Required</div>
-        </div>
-        <div class="item">
-          <div class="check"></div>
-          <div class="item-content">
-            <div class="item-title">Submit for review</div>
-            <div class="item-desc">Apple reviews 90% of apps within 24 hours</div>
-          </div>
-          <div class="item-tag required">Required</div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="footer">
-      <p>© 2026 ArcheForge · <a href="/whitepaper.html">White Paper</a> · SoulprintEngine.ai</p>
-    </div>
-  </div>
+
+<h1>SoulPrint</h1>
+<p class="center subtitle">Product Roadmap — Path to App Store</p>
+<p class="center" style="color: #999; font-size: 14px;">January 2026</p>
+
+<h2>1. Objective</h2>
+<p>The primary objective is to get SoulPrint approved and listed on the Apple App Store. This document outlines what has been built, what remains to be completed, and the specific requirements for App Store submission.</p>
+
+<h2>2. Current Status</h2>
+<p>SoulPrint's core functionality is complete and deployed. The web application is live and operational with the following capabilities:</p>
+
+<h3>2.1 Authentication</h3>
+<p>User authentication is fully implemented using Supabase Auth. Users can sign up and log in via email/password or Google OAuth. Session management and secure token handling are in place.</p>
+
+<h3>2.2 Data Import</h3>
+<p>The ChatGPT data import system is operational. Users can upload their ChatGPT export ZIP file, which is processed entirely client-side in the browser. This privacy-first approach ensures that raw conversation data never leaves the user's device. Only the extracted profile data (interests, communication style, embeddings) is transmitted to our servers.</p>
+
+<h3>2.3 Memory System</h3>
+<p>The infinite memory architecture is implemented and functional. Conversation chunks are embedded as vectors and stored in PostgreSQL using the pgvector extension. When users send messages, the system performs semantic search to retrieve relevant memories, which are then injected into the AI's context for personalized responses.</p>
+
+<h3>2.4 Chat Interface</h3>
+<p>The chat interface supports streaming responses, AI naming/personalization, and message history persistence. Basic mobile support exists—the interface functions on mobile devices but is not yet optimized for the native mobile experience required by Apple.</p>
+
+<h3>2.5 Deployment</h3>
+<p>The application is deployed on Vercel with the database hosted on Supabase. The system is production-ready and serving users.</p>
+
+<h2>3. Requirements for App Store Submission</h2>
+
+<p>To submit SoulPrint to the Apple App Store, the following items must be completed:</p>
+
+<h3>3.1 Native Application Wrapper</h3>
+<p>Apple requires native iOS applications for App Store distribution. The web application must be wrapped using a framework such as Expo or React Native to create a native iOS build. This wrapper will enable distribution through the App Store while maintaining the existing web-based functionality.</p>
+
+<p>Specific deliverables:</p>
+<ul>
+  <li>Expo or React Native project configuration</li>
+  <li>iOS build configuration with proper signing certificates</li>
+  <li>Provisioning profiles for development and distribution</li>
+  <li>TestFlight build for internal testing before submission</li>
+</ul>
+
+<h3>3.2 App Store Assets</h3>
+<p>Apple has specific requirements for visual assets that must accompany every App Store listing:</p>
+
+<table>
+  <tr><th>Asset</th><th>Specification</th></tr>
+  <tr><td>App Icon</td><td>1024×1024 pixels, PNG format, no transparency</td></tr>
+  <tr><td>Screenshots (6.7" display)</td><td>1290×2796 pixels, minimum 3 images</td></tr>
+  <tr><td>Screenshots (5.5" display)</td><td>1242×2208 pixels, minimum 3 images</td></tr>
+  <tr><td>App Preview (optional)</td><td>Video showcasing app functionality</td></tr>
+</table>
+
+<p>Additionally, compelling marketing copy is required:</p>
+<ul>
+  <li>App name (30 characters max)</li>
+  <li>Subtitle (30 characters max)</li>
+  <li>Description (4000 characters max)</li>
+  <li>Keywords (100 characters max)</li>
+  <li>What's New text for updates</li>
+</ul>
+
+<h3>3.3 Legal Requirements</h3>
+<p>Apple mandates specific legal documentation and functionality:</p>
+
+<p><strong>Privacy Policy:</strong> A publicly accessible privacy policy page that clearly discloses what data is collected, how it is used, and how users can request deletion. This is especially critical given SoulPrint's handling of conversation data.</p>
+
+<p><strong>Terms of Service:</strong> A user agreement outlining the terms of using the application.</p>
+
+<p><strong>Account Deletion:</strong> Per Apple's guidelines, users must have the ability to delete their account and associated data from within the app. This functionality must be easily discoverable.</p>
+
+<h3>3.4 Apple Developer Program</h3>
+<p>Submission requires enrollment in the Apple Developer Program:</p>
+<ul>
+  <li>Apple Developer account ($99/year)</li>
+  <li>App Store Connect access for managing the listing</li>
+  <li>Completed app information and pricing configuration</li>
+  <li>Age rating questionnaire</li>
+  <li>Export compliance information</li>
+</ul>
+
+<h2>4. Submission Process</h2>
+
+<p>Once all requirements are met, the submission process follows these steps:</p>
+
+<ol>
+  <li><strong>Build Upload:</strong> Upload the iOS build to App Store Connect via Xcode or Transporter</li>
+  <li><strong>Metadata Entry:</strong> Complete all required fields in App Store Connect</li>
+  <li><strong>Review Notes:</strong> Provide demo account credentials and any special instructions for Apple reviewers</li>
+  <li><strong>Submit for Review:</strong> Submit the app for Apple's review process</li>
+  <li><strong>Review Period:</strong> Apple reviews approximately 90% of submissions within 24 hours</li>
+  <li><strong>Approval or Feedback:</strong> Address any rejection reasons if applicable and resubmit</li>
+</ol>
+
+<h2>5. Timeline Estimate</h2>
+
+<div class="highlight">
+<p><strong>Development work remaining:</strong> 3-5 days</p>
+<p><strong>Apple review process:</strong> 1-7 days (first submissions may take longer)</p>
+<p><strong>Total estimated time to App Store:</strong> 1-2 weeks</p>
+</div>
+
+<h2>6. Post-Launch Considerations</h2>
+
+<p>After initial App Store approval, future development priorities include:</p>
+<ul>
+  <li>Android app (Google Play Store)</li>
+  <li>Push notifications for engagement</li>
+  <li>Additional import sources (WhatsApp, Telegram)</li>
+  <li>UI/UX improvements based on user feedback</li>
+  <li>Performance optimization</li>
+</ul>
+
+<div class="footer">
+  <p>© 2026 ArcheForge. All rights reserved.</p>
+  <p>SoulprintEngine.ai</p>
+</div>
+
 </body>
 </html>
