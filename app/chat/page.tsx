@@ -207,9 +207,11 @@ export default function ChatPage() {
           fetch('/api/profile/ai-avatar'),
         ]);
         
+        let loadedAiName: string | null = null;
         if (nameRes.ok) {
           const nameData = await nameRes.json();
           if (nameData.aiName) {
+            loadedAiName = nameData.aiName;
             setAiName(nameData.aiName);
           } else {
             // No name yet - start naming flow
@@ -242,7 +244,7 @@ export default function ChatPage() {
             setMessages(data.messages);
             
             // Existing user without avatar - prompt them (one-time)
-            if (!hasAvatar && nameData?.aiName) {
+            if (!hasAvatar && loadedAiName) {
               setIsAvatarPromptMode(true);
               setMessages(prev => [...prev, { 
                 id: 'avatar-prompt', 
@@ -251,7 +253,7 @@ export default function ChatPage() {
               }]);
             }
           } else {
-            const name = aiName || 'your AI';
+            const name = loadedAiName || 'your AI';
             setMessages([{ id: 'welcome', role: 'assistant', content: `Hey! I'm ${name}. I've got your memories loaded. What's on your mind?` }]);
           }
         }
