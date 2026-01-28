@@ -153,19 +153,6 @@ export default function DashboardPage() {
           </Link>
 
           <Link 
-            href="/achievements"
-            className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/[0.06] rounded-xl hover:bg-white/[0.05] transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🏆</span>
-              <span className="font-medium">Achievements & XP</span>
-            </div>
-            <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-
-          <Link 
             href="/import"
             className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/[0.06] rounded-xl hover:bg-white/[0.05] transition-colors"
           >

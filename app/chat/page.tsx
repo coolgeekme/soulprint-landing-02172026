@@ -4,9 +4,6 @@ import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { showAchievementToasts } from '@/components/AchievementToast';
-import type { Achievement } from '@/lib/gamification/xp';
-
 type Message = {
   id: string;
   role: 'user' | 'assistant';
@@ -276,24 +273,6 @@ export default function ChatPage() {
     } catch {}
   };
 
-  // Award XP for user actions
-  const awardXP = async (action: 'message' | 'memory' | 'daily') => {
-    try {
-      const res = await fetch('/api/gamification/xp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        // Show achievement toasts if any were unlocked
-        if (data.newAchievements?.length > 0) {
-          showAchievementToasts(data.newAchievements as Achievement[]);
-        }
-      }
-    } catch {}
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -402,7 +381,6 @@ export default function ChatPage() {
 
     // Regular chat flow
     saveMessage('user', userContent);
-    awardXP('message'); // Award XP for sending a message
 
     try {
       const history = messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
@@ -478,7 +456,6 @@ export default function ChatPage() {
           </div>
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/achievements" className="text-sm text-orange-400 hover:text-orange-300 transition-colors flex items-center gap-1">🏆 XP</Link>
             <button onClick={() => { setRenameInput(aiName || ''); setShowRenameModal(true); }} className="text-sm text-white/60 hover:text-white transition-colors">Rename AI</button>
             <Link href="/memory" className="text-sm text-white/60 hover:text-white transition-colors">Memory</Link>
             <Link href="/" className="text-sm text-white/60 hover:text-white transition-colors">Home</Link>
@@ -494,7 +471,6 @@ export default function ChatPage() {
         </div>
         {showSettings && (
           <div className="md:hidden px-5 pb-3 border-t border-white/5 pt-3 space-y-2">
-            <Link href="/achievements" className="w-full h-10 bg-gradient-to-r from-orange-500/20 to-orange-600/10 border border-orange-500/30 rounded-lg text-sm flex items-center justify-center font-medium text-orange-300 gap-2">🏆 Achievements & XP</Link>
             <div className="flex gap-2">
               <button onClick={() => { setRenameInput(aiName || ''); setShowRenameModal(true); setShowSettings(false); }} className="flex-1 h-10 bg-white/10 rounded-lg text-sm flex items-center justify-center font-medium">Rename AI</button>
               <Link href="/memory" className="flex-1 h-10 bg-white/10 rounded-lg text-sm flex items-center justify-center font-medium">Memory</Link>
