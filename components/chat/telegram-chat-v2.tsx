@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, TouchEvent } from 'react';
-import { ArrowLeft, Paperclip, Mic, Send, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, Paperclip, Mic, Send, Moon, Sun, LogOut } from 'lucide-react';
 import { MessageContent } from './message-content';
 
 type Message = {
@@ -58,13 +58,11 @@ function SwipeableMessage({
   isUser,
   showTail,
   theme,
-  isDark,
 }: {
   message: Message;
   isUser: boolean;
   showTail: boolean;
   theme: typeof themes.dark;
-  isDark: boolean;
 }) {
   const [offsetX, setOffsetX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -180,8 +178,22 @@ export function TelegramChatV2({
   const [isDark, setIsDark] = useState(defaultDarkMode);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(52);
+  const [inputHeight, setInputHeight] = useState(70);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const inputAreaRef = useRef<HTMLDivElement>(null);
 
   const theme = isDark ? themes.dark : themes.light;
+
+  // Measure actual header and input heights
+  useEffect(() => {
+    if (headerRef.current) {
+      setHeaderHeight(headerRef.current.offsetHeight);
+    }
+    if (inputAreaRef.current) {
+      setInputHeight(inputAreaRef.current.offsetHeight);
+    }
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -208,24 +220,28 @@ export function TelegramChatV2({
   };
 
   return (
-    <div
-      className="relative h-full w-full transition-colors duration-300"
-      style={{ backgroundColor: theme.background }}
-    >
-      {/* Fixed Top Navigation */}
+    <>
+      {/* Background - covers full screen */}
       <div
-        className="fixed top-0 left-0 right-0 z-50 safe-area-top transition-colors duration-300"
+        className="fixed inset-0 transition-colors duration-300"
+        style={{ backgroundColor: theme.background }}
+      />
+
+      {/* FIXED Header - ALWAYS visible at top */}
+      <header
+        ref={headerRef}
+        className="fixed top-0 left-0 right-0 z-50 transition-colors duration-300"
         style={{
           backgroundColor: theme.navBg,
           borderBottom: `1px solid ${theme.navBorder}`,
+          paddingTop: 'env(safe-area-inset-top, 0px)',
         }}
       >
-        {/* Navigation Bar - 44px is the standard iOS nav height */}
         <div className="flex items-center justify-between px-3 h-[52px]">
-          {/* Left - Back Button - touch target 44px */}
+          {/* Left - Back Button */}
           <button
             onClick={onBack}
-            className="flex items-center gap-1 px-2 py-2 -ml-2 min-h-[44px] transition-colors active:opacity-70"
+            className="flex items-center gap-1 px-2 py-2 -ml-2 min-h-[44px] min-w-[44px] transition-colors active:opacity-70"
             style={{ color: theme.accent }}
           >
             <ArrowLeft className="w-6 h-6" />
@@ -248,24 +264,35 @@ export function TelegramChatV2({
             </span>
           </div>
 
-          {/* Right - Theme Toggle & Avatar */}
-          <div className="flex items-center gap-1">
+          {/* Right - Menu & Theme Toggle */}
+          <div className="flex items-center">
             <button
               onClick={() => setIsDark(!isDark)}
               className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors active:opacity-70"
               style={{ color: theme.accent }}
+              aria-label="Toggle dark mode"
             >
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
+            {onSettings && (
+              <button
+                onClick={onSettings}
+                className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors active:opacity-70"
+                style={{ color: theme.accent }}
+                aria-label="Settings"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            )}
             {aiAvatar ? (
               <img
                 src={aiAvatar}
                 alt={aiName}
-                className="w-[34px] h-[34px] rounded-full object-cover"
+                className="w-[34px] h-[34px] rounded-full object-cover ml-1"
               />
             ) : (
               <div
-                className="w-[34px] h-[34px] rounded-full flex items-center justify-center"
+                className="w-[34px] h-[34px] rounded-full flex items-center justify-center ml-1"
                 style={{
                   background: isDark
                     ? 'linear-gradient(135deg, #7542C1 44%, #5733A5 95%)'
@@ -279,14 +306,14 @@ export function TelegramChatV2({
             )}
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Scrollable Messages Area - with padding for fixed header and input */}
-      <div
-        className="absolute inset-0 overflow-y-auto overscroll-contain"
+      {/* Scrollable Messages Area */}
+      <main
+        className="fixed left-0 right-0 overflow-y-auto overscroll-contain"
         style={{
-          paddingTop: 'calc(52px + env(safe-area-inset-top, 0px))',
-          paddingBottom: 'calc(70px + env(safe-area-inset-bottom, 0px))',
+          top: `calc(52px + env(safe-area-inset-top, 0px))`,
+          bottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px))`,
         }}
       >
         <div className="flex flex-col gap-2 px-3 py-4">
@@ -302,7 +329,6 @@ export function TelegramChatV2({
                 isUser={isUser}
                 showTail={showTail}
                 theme={theme}
-                isDark={isDark}
               />
             );
           })}
@@ -334,18 +360,20 @@ export function TelegramChatV2({
 
           <div ref={messagesEndRef} />
         </div>
-      </div>
+      </main>
 
-      {/* Fixed Bottom Navigation - Input Area */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom transition-colors duration-300"
+      {/* FIXED Input Area - ALWAYS visible at bottom */}
+      <footer
+        ref={inputAreaRef}
+        className="fixed bottom-0 left-0 right-0 z-50 transition-colors duration-300"
         style={{
           backgroundColor: theme.navBg,
           borderTop: `1px solid ${theme.navBorder}`,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
         <form onSubmit={handleSubmit} className="flex items-center gap-2 px-3 py-2">
-          {/* Attach Button - 44px touch target */}
+          {/* Attach Button */}
           <button
             type="button"
             className="flex-shrink-0 w-11 h-11 flex items-center justify-center transition-colors active:opacity-70"
@@ -377,7 +405,7 @@ export function TelegramChatV2({
             />
           </div>
 
-          {/* Voice/Send Button - 44px touch target */}
+          {/* Send/Mic Button */}
           {input.trim() ? (
             <button
               type="submit"
@@ -398,14 +426,14 @@ export function TelegramChatV2({
           )}
         </form>
 
-        {/* Home Indicator - only show if no safe area */}
-        <div className="flex justify-center pb-1" style={{ paddingBottom: 'max(4px, env(safe-area-inset-bottom, 4px))' }}>
+        {/* Home Indicator */}
+        <div className="flex justify-center pb-1">
           <div
             className="w-[134px] h-[5px] rounded-full transition-colors"
             style={{ backgroundColor: theme.homeIndicator }}
           />
         </div>
-      </div>
-    </div>
+      </footer>
+    </>
   );
 }
