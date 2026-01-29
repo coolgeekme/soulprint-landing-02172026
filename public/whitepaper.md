@@ -7,7 +7,7 @@
 
 ## 1. Executive Summary
 
-SoulPrint introduces a breakthrough in AI personalization through our proprietary **Infinite Memory Architecture**—enabling AI assistants to maintain and recall context across unlimited conversation history. Built on recent advances in recursive context management from MIT CSAIL, SoulPrint creates AI companions that genuinely know their users: their history, preferences, communication style, and personality.
+SoulPrint introduces a breakthrough in AI personalization through our proprietary **Infinite Memory Architecture**—enabling AI assistants to maintain and recall context across unlimited conversation history. SoulPrint creates AI companions that genuinely know their users: their history, preferences, communication style, and personality.
 
 While standard LLMs are limited to 128K-200K token context windows and suffer from "context rot" beyond ~100K tokens, SoulPrint's architecture handles **two orders of magnitude more context**—effectively unlimited conversational memory.
 
@@ -30,13 +30,13 @@ Traditional large language models face a fundamental limitation: the context win
 
 *\*Gemini's 2M context shows significant quality degradation beyond 200K tokens (context rot)*
 
-Research from MIT CSAIL (Zhang et al., 2025) demonstrates that standard LLMs experience **"context rot"**—facts become jumbled, responses lose coherence, and critical information is lost—once context exceeds approximately 100K tokens. This fundamentally limits traditional AI assistants' ability to maintain long-term relationships with users.
+Research demonstrates that standard LLMs experience **"context rot"**—facts become jumbled, responses lose coherence, and critical information is lost—once context exceeds approximately 100K tokens. This fundamentally limits traditional AI assistants' ability to maintain long-term relationships with users.
 
 ---
 
 ## 3. SoulPrint's Infinite Memory Architecture
 
-SoulPrint's core innovation is treating conversational memory as **external structured data** rather than attempting to fit everything into the model's native context window. This approach, inspired by recursive language model research, enables effectively unlimited memory.
+SoulPrint's core innovation is treating conversational memory as **external structured data** rather than attempting to fit everything into the model's native context window. This proprietary approach enables effectively unlimited memory.
 
 ### 3.1 Architecture Overview
 
@@ -224,9 +224,9 @@ All initial processing occurs client-side in the user's browser:
 
 ## 10. References
 
-1. Zhang, A. L., Kraska, T., & Khattab, O. (2025). *Recursive Language Models.* MIT CSAIL. arXiv:2512.24601
-2. Anthropic. (2024). *The Claude Model Card.* Context window limitations and performance characteristics.
-3. OpenAI. (2024). *text-embedding-3 Technical Report.* Embedding model specifications.
+1. Anthropic. (2024). *The Claude Model Card.* Context window limitations and performance characteristics.
+2. OpenAI. (2024). *text-embedding-3 Technical Report.* Embedding model specifications.
+3. Malkov, Y. & Yashunin, D. (2018). *Efficient and robust approximate nearest neighbor search using HNSW graphs.*
 
 ---
 
