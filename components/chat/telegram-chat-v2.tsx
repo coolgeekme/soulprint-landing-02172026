@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Paperclip, Mic, Send, MoreVertical, Moon, Sun } from 'lucide-react';
+import { useState, useRef, useEffect, TouchEvent } from 'react';
+import { ArrowLeft, Paperclip, Mic, Send, Moon, Sun } from 'lucide-react';
 import { MessageContent } from './message-content';
 
 type Message = {
@@ -52,6 +52,120 @@ const themes = {
   },
 };
 
+// Swipeable message component
+function SwipeableMessage({
+  message,
+  isUser,
+  showTail,
+  theme,
+  isDark,
+}: {
+  message: Message;
+  isUser: boolean;
+  showTail: boolean;
+  theme: typeof themes.dark;
+  isDark: boolean;
+}) {
+  const [offsetX, setOffsetX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const isHorizontalSwipe = useRef<boolean | null>(null);
+
+  const formatTime = (date?: Date) => {
+    if (!date) return '';
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(date);
+  };
+
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isHorizontalSwipe.current = null;
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!isSwiping) return;
+
+    const deltaX = e.touches[0].clientX - touchStartX.current;
+    const deltaY = e.touches[0].clientY - touchStartY.current;
+
+    // Determine swipe direction on first significant movement
+    if (isHorizontalSwipe.current === null) {
+      if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+        isHorizontalSwipe.current = Math.abs(deltaX) > Math.abs(deltaY);
+      }
+    }
+
+    // Only handle horizontal swipes (to the left)
+    if (isHorizontalSwipe.current && deltaX < 0) {
+      // Max swipe distance of 80px
+      const newOffset = Math.max(deltaX, -80);
+      setOffsetX(newOffset);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsSwiping(false);
+    isHorizontalSwipe.current = null;
+    // Animate back to original position
+    setOffsetX(0);
+  };
+
+  // Calculate timestamp visibility based on swipe offset
+  const timestampOpacity = Math.min(1, Math.abs(offsetX) / 40);
+  const timestampTranslate = Math.max(0, 60 + offsetX * 0.75);
+
+  return (
+    <div
+      className={`flex ${isUser ? 'justify-end' : 'justify-start'} relative`}
+    >
+      {/* Timestamp that reveals on swipe */}
+      <div
+        className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center pr-2 pointer-events-none"
+        style={{
+          opacity: timestampOpacity,
+          transform: `translateX(${timestampTranslate}px) translateY(-50%)`,
+          transition: isSwiping ? 'none' : 'all 0.3s ease-out',
+        }}
+      >
+        <span
+          className="text-[11px] whitespace-nowrap"
+          style={{ color: theme.textSecondary }}
+        >
+          {formatTime(message.timestamp || new Date())}
+        </span>
+      </div>
+
+      {/* Message bubble */}
+      <div
+        className="max-w-[75%] px-4 py-3 relative shadow-sm transition-colors duration-300 touch-pan-y"
+        style={{
+          backgroundColor: isUser ? theme.senderBubble : theme.recipientBubble,
+          borderRadius: isUser
+            ? (showTail ? '18px 18px 4px 18px' : '18px')
+            : (showTail ? '18px 18px 18px 4px' : '18px'),
+          transform: `translateX(${offsetX}px)`,
+          transition: isSwiping ? 'none' : 'transform 0.3s ease-out',
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Message Content */}
+        <MessageContent
+          content={message.content}
+          textColor={theme.textPrimary}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function TelegramChatV2({
   messages,
   onSendMessage,
@@ -93,23 +207,14 @@ export function TelegramChatV2({
     inputRef.current?.focus();
   };
 
-  const formatTime = (date?: Date) => {
-    if (!date) return '';
-    return new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    }).format(date);
-  };
-
   return (
     <div
-      className="flex flex-col h-full transition-colors duration-300"
+      className="relative h-full w-full transition-colors duration-300"
       style={{ backgroundColor: theme.background }}
     >
-      {/* Top Navigation */}
+      {/* Fixed Top Navigation */}
       <div
-        className="flex-shrink-0 safe-area-top transition-colors duration-300"
+        className="fixed top-0 left-0 right-0 z-50 safe-area-top transition-colors duration-300"
         style={{
           backgroundColor: theme.navBg,
           borderBottom: `1px solid ${theme.navBorder}`,
@@ -176,55 +281,29 @@ export function TelegramChatV2({
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 overscroll-contain">
-        <div className="flex flex-col gap-2">
+      {/* Scrollable Messages Area - with padding for fixed header and input */}
+      <div
+        className="absolute inset-0 overflow-y-auto overscroll-contain"
+        style={{
+          paddingTop: 'calc(52px + env(safe-area-inset-top, 0px))',
+          paddingBottom: 'calc(70px + env(safe-area-inset-bottom, 0px))',
+        }}
+      >
+        <div className="flex flex-col gap-2 px-3 py-4">
           {messages.map((message, index) => {
             const isUser = message.role === 'user';
             const showTail = index === messages.length - 1 ||
               messages[index + 1]?.role !== message.role;
 
             return (
-              <div
+              <SwipeableMessage
                 key={message.id}
-                className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className="max-w-[75%] px-4 py-3 relative shadow-sm transition-colors duration-300"
-                  style={{
-                    backgroundColor: isUser ? theme.senderBubble : theme.recipientBubble,
-                    borderRadius: isUser
-                      ? (showTail ? '18px 18px 4px 18px' : '18px')
-                      : (showTail ? '18px 18px 18px 4px' : '18px'),
-                  }}
-                >
-                  {/* Message Content */}
-                  <MessageContent
-                    content={message.content}
-                    textColor={theme.textPrimary}
-                  />
-
-                  {/* Timestamp */}
-                  <div className={`flex items-center gap-1 mt-1 ${isUser ? 'justify-end' : 'justify-start'}`}>
-                    <span
-                      className="text-[11px] transition-colors"
-                      style={{ color: theme.textSecondary }}
-                    >
-                      {formatTime(message.timestamp || new Date())}
-                    </span>
-                    {isUser && (
-                      <svg
-                        className="w-4 h-3"
-                        viewBox="0 0 16 11"
-                        fill={isDark ? '#34C759' : '#4FC3F7'}
-                      >
-                        <path d="M11.071 0L5.5 5.571 3.429 3.5 2 4.929l3.5 3.5 7-7L11.071 0z" />
-                        <path d="M14.071 0L8.5 5.571 7.786 4.857 6.357 6.286l2.143 2.143 7-7L14.071 0z" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
-              </div>
+                message={message}
+                isUser={isUser}
+                showTail={showTail}
+                theme={theme}
+                isDark={isDark}
+              />
             );
           })}
 
@@ -257,9 +336,9 @@ export function TelegramChatV2({
         </div>
       </div>
 
-      {/* Bottom Navigation - Input Area */}
+      {/* Fixed Bottom Navigation - Input Area */}
       <div
-        className="flex-shrink-0 safe-area-bottom transition-colors duration-300"
+        className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom transition-colors duration-300"
         style={{
           backgroundColor: theme.navBg,
           borderTop: `1px solid ${theme.navBorder}`,
