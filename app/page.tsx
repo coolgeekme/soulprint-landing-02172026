@@ -29,29 +29,29 @@ export default function LandingPage() {
 
   if (checking) {
     return (
-      <main className="min-h-screen bg-[#09090B] flex items-center justify-center">
+      <main className="min-h-screen-safe bg-[#09090B] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#09090B] overflow-hidden">
+    <main className="min-h-screen-safe bg-[#09090B] overflow-hidden">
       {/* Ambient glow */}
       <div className="glow-ambient top-[-200px] left-1/2 -translate-x-1/2" />
       
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.06] bg-[#09090B]/80 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.06] bg-[#09090B]/80 backdrop-blur-xl safe-area-top safe-area-left safe-area-right">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 lg:h-20 flex items-center justify-between">
           <Link href="/" className="logo">
             <img src="/logo.svg" alt="SoulPrint" className="logo-icon w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
             <span className="text-white text-base sm:text-lg lg:text-xl">SoulPrint</span>
           </Link>
           <div className="flex items-center gap-2 lg:gap-4">
-            <Link href="/login" className="btn btn-ghost btn-sm lg:px-6">
+            <Link href="/login" className="btn btn-ghost px-4 py-2.5 min-h-[44px] lg:px-6">
               Sign in
             </Link>
-            <Link href="/signup" className="btn btn-primary btn-sm lg:btn-lg">
+            <Link href="/signup" className="btn btn-primary px-4 py-2.5 min-h-[44px] lg:btn-lg">
               Get Started
             </Link>
           </div>
@@ -59,7 +59,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-28 sm:pt-32 lg:pt-44 pb-20 sm:pb-24 lg:pb-32 px-4 sm:px-6 lg:px-8" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 7rem)' }}>
+      <section className="relative pt-28 sm:pt-32 lg:pt-44 pb-20 sm:pb-24 lg:pb-32 px-4 sm:px-6 lg:px-8 safe-area-left safe-area-right">
         <div className="max-w-5xl lg:max-w-6xl mx-auto text-center">
           {/* Badge */}
           <div className="animate-in inline-flex items-center gap-2 px-3 lg:px-4 py-1.5 lg:py-2 rounded-full bg-white/[0.03] border border-white/[0.06] mb-6 sm:mb-8 lg:mb-10">
@@ -277,7 +277,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 lg:py-12 px-6 lg:px-8 border-t border-white/[0.06]">
+      <footer className="py-8 lg:py-12 px-6 lg:px-8 border-t border-white/[0.06] safe-area-bottom safe-area-left safe-area-right">
         <div className="max-w-6xl lg:max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="logo">
             <img src="/logo.svg" alt="SoulPrint" className="w-5 h-5 lg:w-6 lg:h-6" />

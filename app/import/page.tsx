@@ -132,7 +132,7 @@ export default function ImportPage() {
   // Show loading while checking
   if (checkingExisting) {
     return (
-      <main className="min-h-screen bg-[#09090B] flex items-center justify-center">
+      <main className="min-h-screen-safe bg-[#09090B] flex items-center justify-center safe-area-inset">
         <div className="text-gray-400">Loading...</div>
       </main>
     );
@@ -202,7 +202,7 @@ export default function ImportPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#09090B] px-5 sm:px-8 py-12 sm:py-16">
+    <main className="min-h-screen-safe bg-[#09090B] px-5 sm:px-8 py-12 sm:py-16 safe-area-inset">
       <div className="glow-ambient top-[-100px] left-1/2 -translate-x-1/2" />
 
       <nav className="max-w-5xl mx-auto mb-12 sm:mb-16 flex items-center justify-between">
