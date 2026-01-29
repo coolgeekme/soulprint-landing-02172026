@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { TelegramChatV2 } from '@/components/chat/telegram-chat-v2';
+import { AddToHomeScreen } from '@/components/ui/AddToHomeScreen';
 
 type Message = {
   id: string;
@@ -21,6 +22,7 @@ export default function ChatPage() {
   const [aiAvatar, setAiAvatar] = useState<string | null>(null);
   const [isNamingMode, setIsNamingMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [hasReceivedAIResponse, setHasReceivedAIResponse] = useState(false);
 
   // Load initial state
   useEffect(() => {
@@ -72,6 +74,8 @@ export default function ChatPage() {
               ...m,
               timestamp: new Date(),
             })));
+            // User has conversation history, enable A2HS prompt
+            setHasReceivedAIResponse(true);
           } else {
             setMessages([{
               id: 'welcome',
@@ -79,6 +83,8 @@ export default function ChatPage() {
               content: `Hey! I'm ${aiName}. I've got your memories loaded. What's on your mind?`,
               timestamp: new Date(),
             }]);
+            // First welcome message counts as AI response
+            setHasReceivedAIResponse(true);
           }
         }
       } catch (error) {
@@ -134,6 +140,7 @@ export default function ChatPage() {
           const data = await res.json();
           setAiName(data.aiName);
           setIsNamingMode(false);
+          setHasReceivedAIResponse(true);
 
           const responseMessage: Message = {
             id: (Date.now() + 1).toString(),
@@ -257,6 +264,9 @@ export default function ChatPage() {
           defaultDarkMode={true}
         />
       </div>
+
+      {/* iOS Add to Home Screen Prompt */}
+      <AddToHomeScreen canShow={hasReceivedAIResponse} />
 
       {/* Settings Modal - Dark Mode */}
       {showSettings && (
