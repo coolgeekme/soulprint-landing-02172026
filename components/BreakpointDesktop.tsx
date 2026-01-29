@@ -22,7 +22,7 @@ export default function BreakpointDesktop() {
             </h2>
 
             <Link href="/enter">
-              <Button className="inline-flex h-auto items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 text-neutral-900 transition-colors hover:bg-neutral-100">
+              <Button className="inline-flex h-auto items-center justify-center gap-2 rounded-lg bg-[#EA580C] px-6 py-3 text-white transition-colors hover:bg-[#EA580C]/90">
                 <span className="font-geist text-sm font-semibold">
                   Enter SoulPrint
                 </span>
