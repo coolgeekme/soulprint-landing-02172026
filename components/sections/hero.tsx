@@ -11,8 +11,8 @@ export function Hero() {
 
     return (
         <>
-            {/* Mobile Hero */}
-            <section className="lg:hidden relative flex flex-col min-h-[100dvh] w-full overflow-hidden bg-black">
+            {/* Mobile Hero - FULL viewport, no bleed */}
+            <section className="lg:hidden relative flex flex-col h-[100dvh] w-full overflow-hidden bg-black">
                 {/* Background Image */}
                 <div
                     className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-80"
