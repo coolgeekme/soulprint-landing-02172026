@@ -121,6 +121,7 @@ async function processUserChunks(userId: string, limit: number): Promise<{ proce
         embedding_progress: 100,
         import_status: 'complete',
         soulprint_locked: true, // Marks initial import as done (can't re-import)
+        locked_at: new Date().toISOString(),
       })
       .eq('user_id', userId);
     
@@ -179,6 +180,7 @@ async function processUserChunks(userId: string, limit: number): Promise<{ proce
       processed_chunks: embedded,
       import_status: isComplete ? 'complete' : 'processing',
       soulprint_locked: isComplete, // Marks initial import as done (can't re-import)
+      ...(isComplete && { locked_at: new Date().toISOString() }),
     })
     .eq('user_id', userId);
 
@@ -211,10 +213,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Process all users with pending embeddings
+    // Skip 'importing' status - that means save-soulprint is still writing chunks
     const { data: pendingUsers } = await supabase
       .from('user_profiles')
       .select('user_id')
-      .or('embedding_status.is.null,embedding_status.eq.pending,embedding_status.eq.processing')
+      .or('embedding_status.eq.pending,embedding_status.eq.processing')
       .limit(10);
 
     if (!pendingUsers || pendingUsers.length === 0) {

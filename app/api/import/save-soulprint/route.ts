@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     const soulprintText = generateSoulprintText(soulprint);
 
     // Upsert user profile with soulprint
-    // Set import_status to 'processing' - will be marked 'locked' only after ALL embeddings are complete
+    // Set embedding_status to 'importing' while we write chunks (prevents race with cron)
     const { error: profileError } = await adminSupabase
       .from('user_profiles')
       .upsert({
@@ -79,8 +79,8 @@ export async function POST(request: Request) {
         total_conversations: soulprint.stats.totalConversations,
         total_messages: soulprint.stats.totalMessages,
         soulprint_generated_at: new Date().toISOString(),
-        // Queue for background embedding - will be processed fully before marking complete
-        embedding_status: 'pending',
+        // 'importing' prevents embedding cron from running while we write chunks
+        embedding_status: 'importing',
         embedding_progress: 0,
         total_chunks: conversationChunks?.length || 0,
         processed_chunks: 0,
@@ -137,6 +137,12 @@ export async function POST(request: Request) {
       
       console.log(`[SaveSoulprint] Chunks saved!`);
     }
+
+    // Now mark as 'pending' so embedding cron can process
+    await adminSupabase
+      .from('user_profiles')
+      .update({ embedding_status: 'pending' })
+      .eq('user_id', user.id);
 
     console.log(`[SaveSoulprint] Success!`);
 
