@@ -209,7 +209,82 @@ export function TelegramChatV2({
   const headerRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
 
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
   const theme = isDark ? themes.dark : themes.light;
+
+  // Voice recording functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await transcribeAudio(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      alert('Could not access microphone. Please allow microphone access.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'audio.webm');
+
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.text) {
+          setInput(prev => prev + (prev ? ' ' : '') + data.text);
+          inputRef.current?.focus();
+        }
+      } else {
+        console.error('Transcription failed');
+      }
+    } catch (error) {
+      console.error('Transcription error:', error);
+    }
+    setIsTranscribing(false);
+  };
+
+  const handleMicClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
 
   // Measure actual header and input heights
   useEffect(() => {
@@ -449,10 +524,21 @@ export function TelegramChatV2({
           ) : (
             <button
               type="button"
-              className="flex-shrink-0 w-11 h-11 flex items-center justify-center transition-colors active:opacity-70"
-              style={{ color: theme.textSecondary }}
+              onClick={handleMicClick}
+              disabled={isTranscribing}
+              className={`flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-full transition-all active:opacity-70 ${
+                isRecording ? 'animate-pulse' : ''
+              }`}
+              style={{ 
+                color: isRecording ? '#EF4444' : theme.textSecondary,
+                backgroundColor: isRecording ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
+              }}
             >
-              <Mic className="w-6 h-6" />
+              {isTranscribing ? (
+                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Mic className="w-6 h-6" />
+              )}
             </button>
           )}
         </form>
