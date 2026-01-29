@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, ChevronDown, Ticket, Check, Loader2 } from 'lucide-react';
 import { signIn, signUp, signInWithGoogle } from '@/app/actions/auth';
+import { validateReferralCode } from '@/app/actions/referral';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -20,6 +21,67 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   
+  // Referral state
+  const [referralCode, setReferralCode] = useState('');
+  const [referredBy, setReferredBy] = useState<string | null>(null);
+  const [showReferralInput, setShowReferralInput] = useState(false);
+  const [validatingCode, setValidatingCode] = useState(false);
+  const [codeError, setCodeError] = useState('');
+  
+  // Load referral from URL params or localStorage on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Check URL params first
+    const params = new URLSearchParams(window.location.search);
+    const urlCode = params.get('ref') || params.get('referral');
+    
+    // Then check localStorage
+    const storedCode = localStorage.getItem('referralCode');
+    const storedReferrer = localStorage.getItem('referredBy');
+    
+    const code = urlCode || storedCode;
+    
+    if (code) {
+      setReferralCode(code.toUpperCase());
+      if (storedReferrer && !urlCode) {
+        // Use cached referrer name if we have it and no new URL code
+        setReferredBy(storedReferrer);
+      } else if (code) {
+        // Validate the code to get referrer name
+        validateCode(code);
+      }
+    }
+  }, []);
+  
+  const validateCode = useCallback(async (code: string) => {
+    if (!code.trim()) {
+      setReferredBy(null);
+      setCodeError('');
+      return;
+    }
+    
+    setValidatingCode(true);
+    setCodeError('');
+    
+    try {
+      const result = await validateReferralCode(code);
+      if (result.valid && result.teamMember) {
+        setReferredBy(result.teamMember);
+        // Cache in localStorage
+        localStorage.setItem('referralCode', code.toUpperCase());
+        localStorage.setItem('referredBy', result.teamMember);
+      } else {
+        setReferredBy(null);
+        setCodeError('Invalid referral code');
+      }
+    } catch {
+      setCodeError('Failed to validate code');
+    } finally {
+      setValidatingCode(false);
+    }
+  }, []);
+  
   // Sync mode when defaultMode changes (e.g., Login vs Enter SoulPrint button)
   // Also reset form state when modal opens
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -31,6 +93,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
       setName('');
       setError('');
       setSuccess(false);
+      // Don't reset referral state - keep it persistent
     }
   }, [defaultMode, isOpen]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -43,7 +106,12 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
     const formData = new FormData();
     formData.append('email', email);
     formData.append('password', password);
-    if (mode === 'signup') formData.append('name', name);
+    if (mode === 'signup') {
+      formData.append('name', name);
+      if (referralCode && referredBy) {
+        formData.append('referralCode', referralCode);
+      }
+    }
 
     const result = mode === 'login' 
       ? await signIn(formData)
@@ -60,7 +128,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
-    await signInWithGoogle();
+    await signInWithGoogle(referralCode && referredBy ? referralCode : undefined);
   };
 
   if (!isOpen) return null;
@@ -101,7 +169,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
           ) : (
             <>
               {/* Header */}
-              <div className="text-center mb-8">
+              <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-white mb-2">
                   {mode === 'login' ? 'Welcome back' : 'Create your account'}
                 </h2>
@@ -109,6 +177,75 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
                   {mode === 'login' ? 'Sign in to continue' : 'Start building your AI memory'}
                 </p>
               </div>
+
+              {/* Referral Badge - Shows when code is validated */}
+              {mode === 'signup' && referredBy && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/20 rounded-xl"
+                >
+                  <Ticket className="w-4 h-4 text-orange-400" />
+                  <span className="text-orange-300 text-sm font-medium">
+                    Invited by <span className="text-orange-400">{referredBy}</span>
+                  </span>
+                  <Check className="w-4 h-4 text-green-400" />
+                </motion.div>
+              )}
+
+              {/* Referral Code Input - Collapsible, shows in signup mode when no valid code */}
+              {mode === 'signup' && !referredBy && (
+                <div className="mb-6">
+                  {!showReferralInput ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowReferralInput(true)}
+                      className="w-full flex items-center justify-center gap-2 text-white/40 hover:text-white/60 text-sm transition-colors py-2"
+                    >
+                      <Ticket className="w-4 h-4" />
+                      <span>Have a referral code?</span>
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="space-y-2"
+                    >
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={referralCode}
+                          onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                          onBlur={() => validateCode(referralCode)}
+                          onKeyDown={(e) => e.key === 'Enter' && validateCode(referralCode)}
+                          placeholder="Enter code"
+                          className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-center uppercase tracking-wider placeholder:text-white/30 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:border-orange-500/50 transition-colors pr-10"
+                        />
+                        {validatingCode && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                      {codeError && (
+                        <p className="text-red-400 text-xs text-center">{codeError}</p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowReferralInput(false);
+                          setReferralCode('');
+                          setCodeError('');
+                        }}
+                        className="w-full text-white/30 hover:text-white/50 text-xs transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </motion.div>
+                  )}
+                </div>
+              )}
 
               {error && (
                 <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">

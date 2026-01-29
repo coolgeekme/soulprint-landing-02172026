@@ -26,11 +26,24 @@ export function SignUpModal({ children }: SignUpModalProps) {
     /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         setMounted(true);
-        // Read referral info from localStorage (set by /enter page)
+        
+        // Check URL params first
+        const params = new URLSearchParams(window.location.search);
+        const urlCode = params.get('ref') || params.get('referral');
+        
+        // Then check localStorage
         const storedCode = localStorage.getItem('referralCode');
         const storedReferrer = localStorage.getItem('referredBy');
-        if (storedCode) setReferralCode(storedCode);
-        if (storedReferrer) setReferredBy(storedReferrer);
+        
+        const code = urlCode || storedCode;
+        
+        if (code) {
+            setReferralCode(code.toUpperCase());
+            if (storedReferrer && !urlCode) {
+                setReferredBy(storedReferrer);
+            }
+            // If URL code but no cached referrer, it will validate on server action
+        }
     }, []);
     /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -116,8 +129,14 @@ export function SignUpModal({ children }: SignUpModalProps) {
                                 <>
                                     {/* Referral Badge */}
                                     {referredBy && (
-                                        <div className="flex items-center justify-center gap-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
-                                            <span className="text-orange-600 text-sm">🎟️ Invited by {referredBy}</span>
+                                        <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl shadow-sm">
+                                            <span className="text-lg">🎟️</span>
+                                            <span className="text-orange-700 text-sm font-medium">
+                                                Invited by <span className="text-orange-600 font-semibold">{referredBy}</span>
+                                            </span>
+                                            <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
                                         </div>
                                     )}
 
