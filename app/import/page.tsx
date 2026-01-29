@@ -122,20 +122,20 @@ export default function ImportPage() {
       <BackgroundBeams />
 
       {/* Header - Compact */}
-      <header className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-white/5 flex-shrink-0">
+      <header className="relative z-10 flex items-center justify-between px-4 py-2 border-b border-white/5 flex-shrink-0">
         <Link href="/" className="flex items-center gap-2">
-          <img src="/logo.svg" alt="SoulPrint" className="w-6 h-6" />
-          <span className="text-white font-semibold text-sm">SoulPrint</span>
+          <img src="/logo.svg" alt="SoulPrint" className="w-5 h-5 sm:w-6 sm:h-6" />
+          <span className="text-white font-semibold text-xs sm:text-sm">SoulPrint</span>
         </Link>
         
-        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 text-xs">
-          <Lock className="w-3 h-3" />
+        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50 text-[10px] sm:text-xs">
+          <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
           <span>Private</span>
         </div>
       </header>
 
       {/* Step Indicator - Horizontal dots */}
-      <div className="relative z-10 flex items-center justify-center gap-2 py-3 flex-shrink-0">
+      <div className="relative z-10 flex items-center justify-center gap-2 py-2 sm:py-3 flex-shrink-0">
         {steps.map((step, i) => (
           <div key={step.id} className="flex items-center gap-2">
             <div 
@@ -165,44 +165,44 @@ export default function ImportPage() {
               exit={{ opacity: 0, x: -20 }}
               className="w-full max-w-sm flex flex-col h-full justify-center"
             >
-              <h1 className="text-xl font-bold text-white mb-1 text-center">Export Your ChatGPT Data</h1>
-              <p className="text-white/50 text-sm mb-4 text-center">Follow these steps in ChatGPT</p>
+              <h1 className="text-lg md:text-xl font-bold text-white mb-0.5 text-center">Export Your ChatGPT Data</h1>
+              <p className="text-white/50 text-xs md:text-sm mb-3 text-center">Follow these steps in ChatGPT</p>
 
-              <div className="space-y-3 mb-4">
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/10">
-                  <div className="w-7 h-7 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                    <Settings className="w-3.5 h-3.5 text-orange-400" />
+              <div className="space-y-2 mb-3">
+                <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-white/[0.03] border border-white/10">
+                  <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                    <Settings className="w-3 h-3 text-orange-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium">1. Open Settings</p>
-                    <p className="text-white/40 text-xs">Profile → Settings → Data controls</p>
+                    <p className="text-white text-sm font-medium leading-tight">1. Open Settings</p>
+                    <p className="text-white/40 text-xs leading-tight">Profile → Settings → Data controls</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/10">
-                  <div className="w-7 h-7 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                    <FileArchive className="w-3.5 h-3.5 text-orange-400" />
+                <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-white/[0.03] border border-white/10">
+                  <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                    <FileArchive className="w-3 h-3 text-orange-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium">2. Export data</p>
-                    <p className="text-white/40 text-xs">Click "Export data" → Confirm</p>
+                    <p className="text-white text-sm font-medium leading-tight">2. Export data</p>
+                    <p className="text-white/40 text-xs leading-tight">Click "Export data" → Confirm</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/10">
-                  <div className="w-7 h-7 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-3.5 h-3.5 text-orange-400" />
+                <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-white/[0.03] border border-white/10">
+                  <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                    <Mail className="w-3 h-3 text-orange-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium">3. Check email</p>
-                    <p className="text-white/40 text-xs">Download the ZIP from OpenAI's email</p>
+                    <p className="text-white text-sm font-medium leading-tight">3. Check email</p>
+                    <p className="text-white/40 text-xs leading-tight">Download ZIP from OpenAI's email</p>
                   </div>
                 </div>
               </div>
 
               <Button 
                 onClick={() => setCurrentStep('upload')}
-                className="w-full bg-orange-500 hover:bg-orange-400 text-black font-semibold h-11"
+                className="w-full bg-orange-500 hover:bg-orange-400 text-black font-semibold h-10"
               >
                 I have my ZIP file <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
@@ -211,7 +211,7 @@ export default function ImportPage() {
                 href="https://help.openai.com/en/articles/7260999-how-do-i-export-my-chatgpt-history-and-data"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1 mt-3 text-xs text-white/40 hover:text-white/60"
+                className="flex items-center justify-center gap-1 mt-2 text-xs text-white/40 hover:text-white/60"
               >
                 Detailed guide <ExternalLink className="w-3 h-3" />
               </a>
