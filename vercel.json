@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/tasks",
-      "schedule": "*/15 * * * *"
+      "path": "/api/embeddings/process",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

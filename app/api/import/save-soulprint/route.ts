@@ -54,7 +54,9 @@ export async function POST(request: Request) {
         total_conversations: soulprint.stats.totalConversations,
         total_messages: soulprint.stats.totalMessages,
         soulprint_generated_at: new Date().toISOString(),
-        embeddings_completed_at: new Date().toISOString(), // No embeddings needed for client-side
+        // Queue for background embedding - will be processed by cron job
+        embedding_status: 'pending',
+        embedding_progress: 0,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id',
