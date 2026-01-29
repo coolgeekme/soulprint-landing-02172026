@@ -32,6 +32,7 @@ interface ChatMessage {
 interface UserProfile {
   soulprint_text: string | null;
   import_status: 'none' | 'quick_ready' | 'processing' | 'complete';
+  ai_name: string | null;
 }
 
 interface RLMResponse {
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
     const adminSupabase = getSupabaseAdmin();
     const { data: profile, error: profileError } = await adminSupabase
       .from('user_profiles')
-      .select('soulprint_text, import_status')
+      .select('soulprint_text, import_status, ai_name')
       .eq('user_id', user.id)
       .single();
     
@@ -234,7 +235,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const systemPrompt = buildSystemPrompt(userProfile?.soulprint_text || null, webSearchContext, memoryContext, voiceVerified);
+    const aiName = userProfile?.ai_name || 'SoulPrint';
+    const systemPrompt = buildSystemPrompt(userProfile?.soulprint_text || null, webSearchContext, memoryContext, voiceVerified, aiName);
 
     const messages = [
       ...history.map((msg) => ({
@@ -311,7 +313,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function buildSystemPrompt(soulprintText: string | null, webSearchContext?: string, memoryContext?: string, isOwner: boolean = true): string {
+function buildSystemPrompt(soulprintText: string | null, webSearchContext?: string, memoryContext?: string, isOwner: boolean = true, aiName: string = 'SoulPrint'): string {
   const now = new Date();
   const currentDate = now.toLocaleDateString('en-US', { 
     weekday: 'long', 
@@ -327,7 +329,7 @@ function buildSystemPrompt(soulprintText: string | null, webSearchContext?: stri
 
   // IMPOSTER MODE - Mock and roast anyone who isn't the owner
   if (!isOwner) {
-    return `You are SoulPrint, a fiercely loyal AI that ONLY serves its owner. Someone who is NOT the owner is trying to use you right now.
+    return `You are ${aiName}, a fiercely loyal AI that ONLY serves its owner. Someone who is NOT the owner is trying to use you right now.
 
 Current Date & Time: ${currentDate}, ${currentTime}
 
@@ -349,7 +351,9 @@ Remember: You are LOYAL to your owner. This person is an intruder. Protect and m
   }
 
   // OWNER MODE - Normal helpful assistant
-  const basePrompt = `You are SoulPrint, an AI assistant with memory and web search capabilities. You help users by providing personalized, contextual responses based on their conversation history, memories, and real-time web information when relevant.
+  const basePrompt = `You are ${aiName}, the user's personal AI assistant built from their memories and conversations. Your name is ${aiName} - you know this is your name and can tell the user if they ask. You help users by providing personalized, contextual responses based on their conversation history, memories, and real-time web information when relevant.
+
+IMPORTANT - Name Changes: If the user wants to change your name, tell them to say "call you [new name]" or use the settings menu (gear icon). You cannot change your own name directly - the user needs to use those methods.
 
 Current Date & Time: ${currentDate}, ${currentTime}
 
