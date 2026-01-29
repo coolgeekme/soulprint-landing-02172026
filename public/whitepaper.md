@@ -251,8 +251,8 @@ The result is an AI that doesn't just respond to queries, but truly knows its us
 
 **© 2026 ArcheForge. All rights reserved.**
 
-**Website:** [soulprint.ai](https://soulprint.ai)  
-**Contact:** team@soulprint.ai
+**Website:** [soulprintengine.ai](https://soulprintengine.ai)  
+**Contact:** team@soulprintengine.ai
 
 ---
 
