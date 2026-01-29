@@ -22,33 +22,35 @@ interface TelegramChatV2Props {
   defaultDarkMode?: boolean;
 }
 
-// Theme colors
+// Theme colors - SoulPrint Branding
 const themes = {
   light: {
-    background: '#ECE6DF',
-    navBg: '#F5F5F5',
-    navBorder: '#E9E9EB',
-    senderBubble: '#E7FECC',
-    recipientBubble: '#FFFFFF',
-    textPrimary: '#000000',
-    textSecondary: '#8E8E93',
+    background: '#FAFAFA',
+    navBg: '#FFFFFF',
+    navBorder: '#E5E5E5',
+    senderBubble: '#EA580C', // SoulPrint orange for user messages
+    senderText: '#FFFFFF',
+    recipientBubble: '#F5F5F5',
+    textPrimary: '#0a0a0a',
+    textSecondary: '#737373',
     inputBg: '#FFFFFF',
-    inputBorder: '#E9E9EB',
-    accent: '#007AFF',
-    homeIndicator: 'rgba(0,0,0,0.2)',
+    inputBorder: '#E5E5E5',
+    accent: '#EA580C', // SoulPrint primary orange
+    homeIndicator: 'rgba(0,0,0,0.15)',
   },
   dark: {
-    background: '#000000',
-    navBg: '#171717',
-    navBorder: '#262628',
-    senderBubble: '#056162',
-    recipientBubble: '#262628',
+    background: '#0a0a0a', // SoulPrint dark background
+    navBg: '#111111', // SoulPrint nav dark
+    navBorder: '#262626',
+    senderBubble: '#EA580C', // SoulPrint orange for user messages
+    senderText: '#FFFFFF',
+    recipientBubble: '#1a1a1a',
     textPrimary: '#FFFFFF',
-    textSecondary: '#8E8E93',
-    inputBg: '#262628',
-    inputBorder: '#3A3A3C',
-    accent: '#0A84FF',
-    homeIndicator: 'rgba(255,255,255,0.2)',
+    textSecondary: '#a3a3a3',
+    inputBg: '#1a1a1a',
+    inputBorder: '#262626',
+    accent: '#EA580C', // SoulPrint primary orange
+    homeIndicator: 'rgba(255,255,255,0.15)',
   },
 };
 
@@ -171,7 +173,7 @@ function SwipeableMessage({
         <div className="px-4 py-3">
           <MessageContent
             content={message.content}
-            textColor={theme.textPrimary}
+            textColor={isUser && 'senderText' in theme ? theme.senderText : theme.textPrimary}
           />
         </div>
         {/* Desktop timestamp - always visible */}
@@ -179,7 +181,7 @@ function SwipeableMessage({
           <div className="px-4 pb-2 -mt-1">
             <span
               className="text-[11px]"
-              style={{ color: theme.textSecondary }}
+              style={{ color: isUser ? 'rgba(255,255,255,0.7)' : theme.textSecondary }}
             >
               {formatTime(message.timestamp || new Date())}
             </span>
@@ -418,11 +420,10 @@ export function TelegramChatV2({
               />
             ) : (
               <div
-                className="w-[34px] h-[34px] rounded-full flex items-center justify-center ml-1"
+                className="w-[34px] h-[34px] rounded-full flex items-center justify-center ml-1 shadow-lg"
                 style={{
-                  background: isDark
-                    ? 'linear-gradient(135deg, #7542C1 44%, #5733A5 95%)'
-                    : 'linear-gradient(139deg, #B7BE6D 8%, #81AB95 66%)'
+                  background: 'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)',
+                  boxShadow: '0 4px 12px rgba(234, 88, 12, 0.3)'
                 }}
               >
                 <span className="text-white text-sm font-medium">
