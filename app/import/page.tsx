@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Upload, Shield, CheckCircle2, AlertCircle, Loader2, Lock, Clock, Database, Zap } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateClientSoulprint, type ClientSoulprint } from '@/lib/import/client-soulprint';
+import { HalftoneBackground } from '@/components/HalftoneBackground';
 
 type ImportStatus = 'idle' | 'processing' | 'saving' | 'success' | 'error';
 
@@ -161,16 +162,7 @@ export default function ImportPage() {
 
   return (
     <TooltipProvider delayDuration={100}>
-      <main className="h-screen bg-black flex flex-col overflow-hidden relative">
-        {/* Subtle dot grid background */}
-        <div 
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
-            backgroundSize: '24px 24px',
-          }}
-        />
-
+      <HalftoneBackground className="h-screen flex flex-col overflow-hidden">
         {/* Header */}
         <header className="relative z-10 flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-white/10">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -352,7 +344,7 @@ export default function ImportPage() {
             </div>
           </div>
         </div>
-      </main>
+      </HalftoneBackground>
     </TooltipProvider>
   );
 }
