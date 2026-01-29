@@ -138,9 +138,11 @@ export async function POST(request: NextRequest) {
 
     if (rlmResponse) {
       // RLM worked - learn from this conversation asynchronously
-      learnFromChat(user.id, message, rlmResponse.response).catch(err => {
-        console.log('[Chat] Learning failed (non-blocking):', err);
-      });
+      if (rlmResponse.response && rlmResponse.response.length > 0) {
+        learnFromChat(user.id, message, rlmResponse.response).catch(err => {
+          console.log('[Chat] Learning failed (non-blocking):', err);
+        });
+      }
 
       // Return SSE format that frontend expects
       const stream = new ReadableStream({

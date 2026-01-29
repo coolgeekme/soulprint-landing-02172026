@@ -139,8 +139,26 @@ export async function storeLearnedFacts(
     const factTexts = facts.map(f => `${f.category}: ${f.fact}`);
     const embeddings = await embedBatch(factTexts);
 
+    // Validate embedding count matches facts count
+    if (embeddings.length !== facts.length) {
+      console.error(`[Learning] Embedding count mismatch: got ${embeddings.length} embeddings for ${facts.length} facts`);
+      return 0;
+    }
+
+    // Filter out any facts where embedding is undefined (defensive)
+    const validPairs = facts
+      .map((fact, i) => ({ fact, embedding: embeddings[i] }))
+      .filter((pair): pair is { fact: LearnedFact; embedding: number[] } => 
+        pair.embedding !== undefined && pair.embedding !== null
+      );
+
+    if (validPairs.length === 0) {
+      console.error('[Learning] No valid embeddings to store');
+      return 0;
+    }
+
     // Insert facts with embeddings
-    const records = facts.map((fact, i) => ({
+    const records = validPairs.map(({ fact, embedding }) => ({
       user_id: userId,
       fact: fact.fact,
       category: fact.category,
@@ -148,7 +166,7 @@ export async function storeLearnedFacts(
       evidence: fact.evidence,
       source_type: 'chat' as const,
       source_message_id: sourceMessageId || null,
-      embedding: embeddings[i],
+      embedding: embedding,
       status: 'active' as const,
     }));
 
@@ -161,8 +179,8 @@ export async function storeLearnedFacts(
       return 0;
     }
 
-    console.log(`[Learning] Stored ${facts.length} new facts for user ${userId}`);
-    return facts.length;
+    console.log(`[Learning] Stored ${validPairs.length} new facts for user ${userId}`);
+    return validPairs.length;
   } catch (error) {
     console.error('[Learning] Error storing facts:', error);
     return 0;
