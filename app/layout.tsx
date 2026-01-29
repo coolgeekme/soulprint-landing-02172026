@@ -1,49 +1,62 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Koulen, Geist, Host_Grotesk, Cinzel } from "next/font/google";
+import { Plus_Jakarta_Sans, Koulen, Geist, Inter, Host_Grotesk, Cinzel } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
+import { AchievementToastProvider } from "@/components/AchievementToast";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const plusJakarta = Plus_Jakarta_Sans({ 
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
+
+const inter = Inter({ 
+  subsets: ["latin"], 
+  variable: "--font-inter" 
+});
+
 const koulen = Koulen({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-koulen"
 });
+
 const geist = Geist({
   subsets: ["latin"],
   variable: "--font-geist",
 });
+
 const hostGrotesk = Host_Grotesk({
   subsets: ["latin"],
   variable: "--font-host-grotesk",
 });
+
 const cinzel = Cinzel({
   subsets: ["latin"],
   variable: "--font-cinzel",
 });
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  themeColor: "#0a0a0a",
-  userScalable: false, // Preserved from previous SoulPrint layout
-  viewportFit: 'cover',
-};
-
 export const metadata: Metadata = {
-  title: "SoulPrint - Discover Your Digital Soul",
-  description: "Analyze your digital footprint and discover your unique SoulPrint.",
+  title: "SoulPrint — AI that remembers you",
+  description: "Import your ChatGPT history. Get an AI that actually knows you.",
   icons: {
-    icon: "/logo.svg", // Preserved
-    apple: "/apple-touch-icon.png", // Preserved
+    icon: '/logo.svg',
+    apple: '/apple-touch-icon.png',
   },
-  manifest: '/manifest.json', // Preserved
-  appleWebApp: { // Preserved
+  manifest: '/manifest.json',
+  appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'SoulPrint',
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
 };
 
 export default function RootLayout({
@@ -52,16 +65,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={cn(
-        "min-h-screen bg-background font-sans antialiased",
-        inter.variable,
-        koulen.variable,
-        geist.variable,
-        hostGrotesk.variable,
-        cinzel.variable
-      )}>
-        {children}
+    <html lang="en">
+      <head>
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
+      <body className={`${plusJakarta.className} ${inter.variable} ${koulen.variable} ${geist.variable} ${hostGrotesk.variable} ${cinzel.variable} antialiased bg-[#0A0A0B]`}>
+        <AchievementToastProvider>
+          {children}
+        </AchievementToastProvider>
       </body>
     </html>
   );
