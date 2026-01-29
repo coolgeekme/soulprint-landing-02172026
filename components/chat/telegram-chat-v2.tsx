@@ -66,9 +66,18 @@ function SwipeableMessage({
 }) {
   const [offsetX, setOffsetX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const isHorizontalSwipe = useRef<boolean | null>(null);
+
+  // Detect desktop viewport
+  useEffect(() => {
+    const checkDesktop = () => setIsDesktop(window.innerWidth >= 768);
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
 
   const formatTime = (date?: Date) => {
     if (!date) return '';
@@ -80,6 +89,7 @@ function SwipeableMessage({
   };
 
   const handleTouchStart = (e: TouchEvent) => {
+    if (isDesktop) return; // No swipe on desktop
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     isHorizontalSwipe.current = null;
@@ -87,7 +97,7 @@ function SwipeableMessage({
   };
 
   const handleTouchMove = (e: TouchEvent) => {
-    if (!isSwiping) return;
+    if (!isSwiping || isDesktop) return;
 
     const deltaX = e.touches[0].clientX - touchStartX.current;
     const deltaY = e.touches[0].clientY - touchStartY.current;
@@ -122,43 +132,59 @@ function SwipeableMessage({
     <div
       className={`flex ${isUser ? 'justify-end' : 'justify-start'} relative`}
     >
-      {/* Timestamp that reveals on swipe */}
-      <div
-        className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center pr-2 pointer-events-none"
-        style={{
-          opacity: timestampOpacity,
-          transform: `translateX(${timestampTranslate}px) translateY(-50%)`,
-          transition: isSwiping ? 'none' : 'all 0.3s ease-out',
-        }}
-      >
-        <span
-          className="text-[11px] whitespace-nowrap"
-          style={{ color: theme.textSecondary }}
+      {/* Timestamp that reveals on swipe - mobile only */}
+      {!isDesktop && (
+        <div
+          className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center pr-2 pointer-events-none md:hidden"
+          style={{
+            opacity: timestampOpacity,
+            transform: `translateX(${timestampTranslate}px) translateY(-50%)`,
+            transition: isSwiping ? 'none' : 'all 0.3s ease-out',
+          }}
         >
-          {formatTime(message.timestamp || new Date())}
-        </span>
-      </div>
+          <span
+            className="text-[11px] whitespace-nowrap"
+            style={{ color: theme.textSecondary }}
+          >
+            {formatTime(message.timestamp || new Date())}
+          </span>
+        </div>
+      )}
 
       {/* Message bubble */}
       <div
-        className="max-w-[75%] px-4 py-3 relative shadow-sm transition-colors duration-300 touch-pan-y"
+        className="max-w-[75%] relative shadow-sm transition-colors duration-300"
         style={{
           backgroundColor: isUser ? theme.senderBubble : theme.recipientBubble,
           borderRadius: isUser
             ? (showTail ? '18px 18px 4px 18px' : '18px')
             : (showTail ? '18px 18px 18px 4px' : '18px'),
-          transform: `translateX(${offsetX}px)`,
+          transform: isDesktop ? 'none' : `translateX(${offsetX}px)`,
           transition: isSwiping ? 'none' : 'transform 0.3s ease-out',
+          touchAction: isDesktop ? 'auto' : 'pan-x',
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         {/* Message Content */}
-        <MessageContent
-          content={message.content}
-          textColor={theme.textPrimary}
-        />
+        <div className="px-4 py-3">
+          <MessageContent
+            content={message.content}
+            textColor={theme.textPrimary}
+          />
+        </div>
+        {/* Desktop timestamp - always visible */}
+        {isDesktop && (
+          <div className="px-4 pb-2 -mt-1">
+            <span
+              className="text-[11px]"
+              style={{ color: theme.textSecondary }}
+            >
+              {formatTime(message.timestamp || new Date())}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -221,10 +247,13 @@ export function TelegramChatV2({
 
   return (
     <>
-      {/* Background - covers full screen */}
+      {/* Background - covers full screen, locked horizontal */}
       <div
-        className="fixed inset-0 transition-colors duration-300"
-        style={{ backgroundColor: theme.background }}
+        className="fixed inset-0 transition-colors duration-300 overflow-hidden"
+        style={{ 
+          backgroundColor: theme.background,
+          touchAction: 'pan-y',
+        }}
       />
 
       {/* FIXED Header - ALWAYS visible at top */}
@@ -308,15 +337,17 @@ export function TelegramChatV2({
         </div>
       </header>
 
-      {/* Scrollable Messages Area */}
+      {/* Scrollable Messages Area - vertical only */}
       <main
-        className="fixed left-0 right-0 overflow-y-auto overscroll-contain"
+        className="fixed left-0 right-0 overflow-x-hidden overflow-y-auto overscroll-contain"
         style={{
           top: `calc(52px + env(safe-area-inset-top, 0px))`,
           bottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px))`,
+          overscrollBehaviorX: 'none',
+          touchAction: 'pan-y',
         }}
       >
-        <div className="flex flex-col gap-2 px-3 py-4">
+        <div className="flex flex-col gap-2 px-3 py-4 overflow-x-hidden">
           {messages.map((message, index) => {
             const isUser = message.role === 'user';
             const showTail = index === messages.length - 1 ||
