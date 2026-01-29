@@ -84,7 +84,7 @@ export function Hero() {
                         className="px-6 w-full max-w-[600px] mx-auto"
                     >
                         <button 
-                            onClick={() => setAuthModal({ open: true, mode: 'signup' })}
+                            onClick={() => setAuthModal({ open: true, mode: 'login' })}
                             className="w-full h-16 bg-orange-600 hover:bg-orange-500 active:scale-[0.98] transition-all flex items-center justify-between px-8 group shadow-2xl shadow-orange-600/20 rounded-none"
                         >
                             <span className="text-black font-black text-xl uppercase tracking-wider font-koulen">Enter SoulPrint</span>
@@ -170,7 +170,7 @@ export function Hero() {
                         className="px-12 w-full max-w-[500px] mx-auto"
                     >
                         <button 
-                            onClick={() => setAuthModal({ open: true, mode: 'signup' })}
+                            onClick={() => setAuthModal({ open: true, mode: 'login' })}
                             className="w-full h-16 bg-orange-600 hover:bg-orange-500 active:scale-[0.98] transition-all flex items-center justify-between px-8 group shadow-2xl shadow-orange-600/20 rounded-none"
                         >
                             <span className="text-black font-black text-xl uppercase tracking-wider font-koulen">Enter SoulPrint</span>
