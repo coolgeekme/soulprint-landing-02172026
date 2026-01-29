@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Hero } from "@/components/sections/hero";
@@ -14,18 +14,29 @@ import { Footer } from "@/components/sections/footer";
 
 export default function Home() {
   const router = useRouter();
+  const [checking, setChecking] = useState(true);
 
-  // Check if user is already authenticated, redirect to chat
+  // Check if user is already authenticated, redirect to dashboard
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        router.push('/chat');
+        router.push('/dashboard');
+        return;
       }
+      setChecking(false);
     };
     checkAuth();
   }, [router]);
+
+  if (checking) {
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen">
