@@ -319,3 +319,10 @@
     transition-duration: 0.01ms !important;
   }
 }
+/* Hero background images */
+.hero-bg-mobile {
+  background-image: url('/images/mobile-hero-v2.png');
+}
+.hero-bg-desktop {
+  background-image: url('/images/desktop-hero-v2.png');
+}
