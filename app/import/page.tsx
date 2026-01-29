@@ -206,9 +206,9 @@ export default function ImportPage() {
       <div className="glow-ambient top-[-100px] left-1/2 -translate-x-1/2" />
 
       <nav className="max-w-5xl mx-auto mb-12 sm:mb-16 flex items-center justify-between">
-        <Link href="/" className="logo">
-          <img src="/logo.svg" alt="SoulPrint" className="logo-icon" />
-          <span className="text-white">SoulPrint</span>
+        <Link href="/" className="flex items-center gap-2">
+          <img src="/logo.svg" alt="SoulPrint" className="w-8 h-8" />
+          <span className="text-white font-semibold text-lg">SoulPrint</span>
         </Link>
       </nav>
 
