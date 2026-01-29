@@ -164,6 +164,45 @@ export default function ChatPage() {
       return;
     }
 
+    // Check for rename request in conversation
+    const renamePatterns = [
+      /(?:call you|name you|rename you|change your name to|your new name is|i.?ll call you|let.?s call you|from now on you.?re|be called)\s+["\']?([a-zA-Z][a-zA-Z0-9\s]{0,20})["\']?/i,
+      /(?:your name (?:is|should be)|i.?m (?:going to |gonna )?(?:call|name) you)\s+["\']?([a-zA-Z][a-zA-Z0-9\s]{0,20})["\']?/i,
+    ];
+
+    for (const pattern of renamePatterns) {
+      const match = content.match(pattern);
+      if (match && match[1]) {
+        const newName = match[1].trim();
+        if (newName.length >= 2 && newName.length <= 20) {
+          try {
+            const res = await fetch('/api/profile/ai-name', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: newName }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              setAiName(data.aiName);
+              const responseMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: `${data.aiName}! I love it. That's my name now. 💫`,
+                timestamp: new Date(),
+              };
+              setMessages(prev => [...prev, responseMessage]);
+              saveMessage('user', content);
+              saveMessage('assistant', responseMessage.content);
+              setIsLoading(false);
+              return;
+            }
+          } catch (error) {
+            console.error('Failed to rename:', error);
+          }
+        }
+      }
+    }
+
     // Regular chat flow
     saveMessage('user', content);
 
