@@ -1,32 +1,39 @@
 'use client';
 
-import Link from 'next/link';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+<<<<<<< HEAD
 import { Bot, Home, Zap, Download, LogOut, Menu, X, Mic, Send } from 'lucide-react';
+=======
+import { TelegramChatV2 } from '@/components/chat/telegram-chat-v2';
+>>>>>>> 115f75ce150e011fdb2c0013d2be71e187804e59
 
 type Message = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  timestamp?: Date;
 };
 
 export default function ChatPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
+<<<<<<< HEAD
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [showPwaPrompt, setShowPwaPrompt] = useState(false);
 
   // AI Profile State
   const [aiName, setAiName] = useState<string | null>(null);
+=======
+  const [aiName, setAiName] = useState<string>('SoulPrint');
+>>>>>>> 115f75ce150e011fdb2c0013d2be71e187804e59
   const [aiAvatar, setAiAvatar] = useState<string | null>(null);
-  const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
   const [isNamingMode, setIsNamingMode] = useState(false);
+<<<<<<< HEAD
   const [isAvatarPromptMode, setIsAvatarPromptMode] = useState(false);
 
   // Rename Modal
@@ -218,6 +225,83 @@ export default function ChatPage() {
     await supabase.auth.signOut();
     window.location.href = '/login';
   };
+=======
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Load initial state
+  useEffect(() => {
+    const loadChatState = async () => {
+      try {
+        // Check auth
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          router.push('/login');
+          return;
+        }
+
+        // Check if AI has a name
+        const nameRes = await fetch('/api/profile/ai-name');
+        if (nameRes.ok) {
+          const nameData = await nameRes.json();
+          if (nameData.aiName) {
+            setAiName(nameData.aiName);
+          } else {
+            // No name yet - start naming flow
+            setIsNamingMode(true);
+            setMessages([{
+              id: 'intro',
+              role: 'assistant',
+              content: "Hey! I'm your new AI — built from your memories and conversations. Before we get started, I need a name. What would you like to call me?",
+              timestamp: new Date(),
+            }]);
+            setLoadingHistory(false);
+            return;
+          }
+        }
+
+        // Load avatar
+        const avatarRes = await fetch('/api/profile/ai-avatar');
+        if (avatarRes.ok) {
+          const avatarData = await avatarRes.json();
+          if (avatarData.avatarUrl) {
+            setAiAvatar(avatarData.avatarUrl);
+          }
+        }
+
+        // Load chat history
+        const historyRes = await fetch('/api/chat/messages?limit=100');
+        if (historyRes.ok) {
+          const data = await historyRes.json();
+          if (data.messages?.length > 0) {
+            setMessages(data.messages.map((m: Message) => ({
+              ...m,
+              timestamp: new Date(),
+            })));
+          } else {
+            setMessages([{
+              id: 'welcome',
+              role: 'assistant',
+              content: `Hey! I'm ${aiName}. I've got your memories loaded. What's on your mind?`,
+              timestamp: new Date(),
+            }]);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load chat state:', error);
+        setMessages([{
+          id: 'error',
+          role: 'assistant',
+          content: "Hey! Something went wrong loading your history, but I'm here. What's on your mind?",
+          timestamp: new Date(),
+        }]);
+      }
+      setLoadingHistory(false);
+    };
+
+    loadChatState();
+  }, [router]);
+>>>>>>> 115f75ce150e011fdb2c0013d2be71e187804e59
 
   const saveMessage = async (role: string, content: string) => {
     try {
@@ -229,6 +313,7 @@ export default function ChatPage() {
     } catch { }
   };
 
+<<<<<<< HEAD
   // Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,6 +324,19 @@ export default function ChatPage() {
 
     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: userContent }]);
     setInput('');
+=======
+  const handleSendMessage = async (content: string) => {
+    if (isLoading) return;
+
+    // Add user message
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+>>>>>>> 115f75ce150e011fdb2c0013d2be71e187804e59
     setIsLoading(true);
 
     // Feature: Naming Mode
@@ -247,13 +345,14 @@ export default function ChatPage() {
         const res = await fetch('/api/profile/ai-name', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: userContent }),
+          body: JSON.stringify({ name: content }),
         });
 
         if (res.ok) {
           const data = await res.json();
           setAiName(data.aiName);
           setIsNamingMode(false);
+<<<<<<< HEAD
           setMessages(prev => [...prev, {
             id: (Date.now() + 1).toString(), role: 'assistant',
             content: `${data.aiName}. I like it! 💫\n\nI'm ready when you are. I've got your memories loaded — ask me anything, or just tell me what's on your mind.`
@@ -298,33 +397,59 @@ export default function ChatPage() {
         setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: msg }]);
         saveMessage('user', userContent);
         saveMessage('assistant', msg);
+=======
+
+          const responseMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: `${data.aiName}. I like it! 💫\n\nI'm ready when you are. I've got your memories loaded — ask me anything, or just tell me what's on your mind.`,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, responseMessage]);
+
+          // Save to history
+          saveMessage('assistant', "Hey! I'm your new AI — built from your memories and conversations. Before we get started, I need a name. What would you like to call me?");
+          saveMessage('user', content);
+          saveMessage('assistant', responseMessage.content);
+        }
+      } catch (error) {
+        console.error('Failed to save name:', error);
+>>>>>>> 115f75ce150e011fdb2c0013d2be71e187804e59
       }
       setIsLoading(false);
       return;
     }
 
+<<<<<<< HEAD
     // Default Chat
     saveMessage('user', userContent);
+=======
+    // Regular chat flow
+    saveMessage('user', content);
+
+>>>>>>> 115f75ce150e011fdb2c0013d2be71e187804e59
     try {
       const history = messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userContent, history }),
+        body: JSON.stringify({ message: content, history }),
       });
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error('Chat request failed');
+      
       const reader = res.body?.getReader();
-      if (!reader) throw new Error();
+      if (!reader) throw new Error('No reader');
 
-      let content = '';
+      let responseContent = '';
       const aiId = (Date.now() + 1).toString();
-      setMessages(prev => [...prev, { id: aiId, role: 'assistant', content: '' }]);
+      setMessages(prev => [...prev, { id: aiId, role: 'assistant', content: '', timestamp: new Date() }]);
 
       const decoder = new TextDecoder();
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+<<<<<<< HEAD
         for (const line of decoder.decode(value).split('\n').filter(Boolean)) {
           try {
             const data = JSON.parse(line);
@@ -333,23 +458,72 @@ export default function ChatPage() {
               setMessages(prev => prev.map(m => m.id === aiId ? { ...m, content } : m));
             }
           } catch { }
+=======
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.content) {
+                responseContent += parsed.content;
+                setMessages(prev =>
+                  prev.map(m => m.id === aiId ? { ...m, content: responseContent } : m)
+                );
+              }
+            } catch {}
+          }
+>>>>>>> 115f75ce150e011fdb2c0013d2be71e187804e59
         }
       }
-      if (content) saveMessage('assistant', content);
-    } catch {
-      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: 'Something went wrong.' }]);
+
+      if (responseContent) {
+        saveMessage('assistant', responseContent);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: "Sorry, something went wrong. Try again?",
+        timestamp: new Date(),
+      }]);
     }
+
     setIsLoading(false);
+  };
+
+  const handleBack = () => {
+    router.push('/dashboard');
+  };
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = '/login';
   };
 
   if (loadingHistory) {
     return (
+<<<<<<< HEAD
       <div className="min-h-screen bg-[#09090B] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+=======
+      <div className="chat-container bg-black items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-[#0A84FF] border-t-transparent rounded-full animate-spin" />
+          <span className="text-[#8E8E93] text-sm">Loading your memories...</span>
+        </div>
+>>>>>>> 115f75ce150e011fdb2c0013d2be71e187804e59
       </div>
     );
   }
 
+<<<<<<< HEAD
   const safeAreaTop = 'env(safe-area-inset-top, 0px)';
   const safeAreaBottom = 'env(safe-area-inset-bottom, 0px)';
 
@@ -597,12 +771,65 @@ export default function ChatPage() {
                 className="flex-1 h-12 bg-orange-500 hover:bg-orange-400 rounded-xl font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Save Changes
+=======
+  return (
+    <>
+      <div className="chat-container">
+        <TelegramChatV2
+          messages={messages}
+          onSendMessage={handleSendMessage}
+          isLoading={isLoading}
+          aiName={aiName}
+          aiAvatar={aiAvatar || undefined}
+          onBack={handleBack}
+          onSettings={() => setShowSettings(true)}
+          defaultDarkMode={true}
+        />
+      </div>
+
+      {/* Settings Modal - Dark Mode */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-50" onClick={() => setShowSettings(false)}>
+          <div className="bg-[#1C1C1E] w-full max-w-md rounded-t-2xl p-6 safe-area-bottom" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-white">Settings</h2>
+              <button 
+                onClick={() => setShowSettings(false)}
+                className="text-[#0A84FF] text-[17px] min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2"
+              >
+                Done
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <button 
+                onClick={() => router.push('/dashboard')}
+                className="w-full text-left px-4 py-4 min-h-[50px] bg-[#2C2C2E] rounded-xl text-white active:opacity-70"
+              >
+                Dashboard
+              </button>
+              <button 
+                onClick={() => router.push('/import')}
+                className="w-full text-left px-4 py-4 min-h-[50px] bg-[#2C2C2E] rounded-xl text-white active:opacity-70"
+              >
+                Import More Memories
+              </button>
+              <button 
+                onClick={handleSignOut}
+                className="w-full text-left px-4 py-4 min-h-[50px] bg-[#2C2C2E] rounded-xl text-[#FF453A] active:opacity-70"
+              >
+                Sign Out
+>>>>>>> 115f75ce150e011fdb2c0013d2be71e187804e59
               </button>
             </div>
           </div>
         </div>
       )}
+<<<<<<< HEAD
 
     </div>
+=======
+    </>
+>>>>>>> 115f75ce150e011fdb2c0013d2be71e187804e59
   );
 }

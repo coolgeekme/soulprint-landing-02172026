@@ -33,7 +33,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#09090B] flex items-center justify-center px-6 sm:px-8 py-16">
+    <main className="min-h-screen-safe bg-[#09090B] flex items-center justify-center px-6 sm:px-8 py-16 safe-area-inset">
       {/* Ambient glow */}
       <div className="glow-ambient top-0 left-1/2 -translate-x-1/2" />
 
