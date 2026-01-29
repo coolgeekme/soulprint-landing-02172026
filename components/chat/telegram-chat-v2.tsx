@@ -66,7 +66,7 @@ export function TelegramChatV2({
   const [isDark, setIsDark] = useState(defaultDarkMode);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
   const theme = isDark ? themes.dark : themes.light;
 
   const scrollToBottom = () => {
@@ -103,14 +103,14 @@ export function TelegramChatV2({
   };
 
   return (
-    <div 
+    <div
       className="flex flex-col h-full transition-colors duration-300"
       style={{ backgroundColor: theme.background }}
     >
       {/* Top Navigation */}
-      <div 
+      <div
         className="flex-shrink-0 safe-area-top transition-colors duration-300"
-        style={{ 
+        style={{
           backgroundColor: theme.navBg,
           borderBottom: `1px solid ${theme.navBorder}`,
         }}
@@ -118,7 +118,7 @@ export function TelegramChatV2({
         {/* Navigation Bar - 44px is the standard iOS nav height */}
         <div className="flex items-center justify-between px-3 h-[52px]">
           {/* Left - Back Button - touch target 44px */}
-          <button 
+          <button
             onClick={onBack}
             className="flex items-center gap-1 px-2 py-2 -ml-2 min-h-[44px] transition-colors active:opacity-70"
             style={{ color: theme.accent }}
@@ -129,13 +129,13 @@ export function TelegramChatV2({
 
           {/* Center - Profile */}
           <div className="flex flex-col items-center">
-            <span 
+            <span
               className="text-[17px] font-semibold transition-colors"
               style={{ color: theme.textPrimary }}
             >
               {aiName}
             </span>
-            <span 
+            <span
               className="text-[13px] transition-colors"
               style={{ color: theme.textSecondary }}
             >
@@ -145,7 +145,7 @@ export function TelegramChatV2({
 
           {/* Right - Theme Toggle & Avatar */}
           <div className="flex items-center gap-1">
-            <button 
+            <button
               onClick={() => setIsDark(!isDark)}
               className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors active:opacity-70"
               style={{ color: theme.accent }}
@@ -153,16 +153,16 @@ export function TelegramChatV2({
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
             {aiAvatar ? (
-              <img 
-                src={aiAvatar} 
+              <img
+                src={aiAvatar}
                 alt={aiName}
                 className="w-[34px] h-[34px] rounded-full object-cover"
               />
             ) : (
-              <div 
+              <div
                 className="w-[34px] h-[34px] rounded-full flex items-center justify-center"
-                style={{ 
-                  background: isDark 
+                style={{
+                  background: isDark
                     ? 'linear-gradient(135deg, #7542C1 44%, #5733A5 95%)'
                     : 'linear-gradient(139deg, #B7BE6D 8%, #81AB95 66%)'
                 }}
@@ -181,45 +181,45 @@ export function TelegramChatV2({
         <div className="flex flex-col gap-2">
           {messages.map((message, index) => {
             const isUser = message.role === 'user';
-            const showTail = index === messages.length - 1 || 
+            const showTail = index === messages.length - 1 ||
               messages[index + 1]?.role !== message.role;
-            
+
             return (
               <div
                 key={message.id}
                 className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className="max-w-[75%] px-3 py-2 relative shadow-sm transition-colors duration-300 overflow-hidden"
+                  className="max-w-[75%] px-4 py-3 relative shadow-sm transition-colors duration-300"
                   style={{
                     backgroundColor: isUser ? theme.senderBubble : theme.recipientBubble,
-                    borderRadius: isUser 
+                    borderRadius: isUser
                       ? (showTail ? '18px 18px 4px 18px' : '18px')
                       : (showTail ? '18px 18px 18px 4px' : '18px'),
                   }}
                 >
                   {/* Message Content */}
-                  <MessageContent 
-                    content={message.content} 
-                    textColor={theme.textPrimary} 
+                  <MessageContent
+                    content={message.content}
+                    textColor={theme.textPrimary}
                   />
-                  
+
                   {/* Timestamp */}
                   <div className={`flex items-center gap-1 mt-1 ${isUser ? 'justify-end' : 'justify-start'}`}>
-                    <span 
+                    <span
                       className="text-[11px] transition-colors"
                       style={{ color: theme.textSecondary }}
                     >
                       {formatTime(message.timestamp || new Date())}
                     </span>
                     {isUser && (
-                      <svg 
-                        className="w-4 h-3" 
-                        viewBox="0 0 16 11" 
+                      <svg
+                        className="w-4 h-3"
+                        viewBox="0 0 16 11"
                         fill={isDark ? '#34C759' : '#4FC3F7'}
                       >
-                        <path d="M11.071 0L5.5 5.571 3.429 3.5 2 4.929l3.5 3.5 7-7L11.071 0z"/>
-                        <path d="M14.071 0L8.5 5.571 7.786 4.857 6.357 6.286l2.143 2.143 7-7L14.071 0z"/>
+                        <path d="M11.071 0L5.5 5.571 3.429 3.5 2 4.929l3.5 3.5 7-7L11.071 0z" />
+                        <path d="M14.071 0L8.5 5.571 7.786 4.857 6.357 6.286l2.143 2.143 7-7L14.071 0z" />
                       </svg>
                     )}
                   </div>
@@ -227,24 +227,24 @@ export function TelegramChatV2({
               </div>
             );
           })}
-          
+
           {/* Loading indicator */}
           {isLoading && (
             <div className="flex justify-start">
-              <div 
+              <div
                 className="rounded-[16px_16px_16px_4px] px-4 py-3 shadow-sm transition-colors"
                 style={{ backgroundColor: theme.recipientBubble }}
               >
                 <div className="flex gap-1">
-                  <span 
+                  <span
                     className="w-2 h-2 rounded-full animate-bounce"
                     style={{ backgroundColor: theme.textSecondary, animationDelay: '0ms' }}
                   />
-                  <span 
+                  <span
                     className="w-2 h-2 rounded-full animate-bounce"
                     style={{ backgroundColor: theme.textSecondary, animationDelay: '150ms' }}
                   />
-                  <span 
+                  <span
                     className="w-2 h-2 rounded-full animate-bounce"
                     style={{ backgroundColor: theme.textSecondary, animationDelay: '300ms' }}
                   />
@@ -252,22 +252,22 @@ export function TelegramChatV2({
               </div>
             </div>
           )}
-          
+
           <div ref={messagesEndRef} />
         </div>
       </div>
 
       {/* Bottom Navigation - Input Area */}
-      <div 
+      <div
         className="flex-shrink-0 safe-area-bottom transition-colors duration-300"
-        style={{ 
+        style={{
           backgroundColor: theme.navBg,
           borderTop: `1px solid ${theme.navBorder}`,
         }}
       >
         <form onSubmit={handleSubmit} className="flex items-center gap-2 px-3 py-2">
           {/* Attach Button - 44px touch target */}
-          <button 
+          <button
             type="button"
             className="flex-shrink-0 w-11 h-11 flex items-center justify-center transition-colors active:opacity-70"
             style={{ color: theme.textSecondary }}
@@ -276,9 +276,9 @@ export function TelegramChatV2({
           </button>
 
           {/* Input Field */}
-          <div 
+          <div
             className="flex-1 flex items-center rounded-full px-4 min-h-[44px] transition-colors duration-300"
-            style={{ 
+            style={{
               backgroundColor: theme.inputBg,
               border: `1px solid ${theme.inputBorder}`,
             }}
@@ -300,7 +300,7 @@ export function TelegramChatV2({
 
           {/* Voice/Send Button - 44px touch target */}
           {input.trim() ? (
-            <button 
+            <button
               type="submit"
               disabled={isLoading}
               className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-full transition-colors active:opacity-70"
@@ -309,7 +309,7 @@ export function TelegramChatV2({
               <Send className="w-5 h-5 text-white" />
             </button>
           ) : (
-            <button 
+            <button
               type="button"
               className="flex-shrink-0 w-11 h-11 flex items-center justify-center transition-colors active:opacity-70"
               style={{ color: theme.textSecondary }}
@@ -318,10 +318,10 @@ export function TelegramChatV2({
             </button>
           )}
         </form>
-        
+
         {/* Home Indicator - only show if no safe area */}
         <div className="flex justify-center pb-1" style={{ paddingBottom: 'max(4px, env(safe-area-inset-bottom, 4px))' }}>
-          <div 
+          <div
             className="w-[134px] h-[5px] rounded-full transition-colors"
             style={{ backgroundColor: theme.homeIndicator }}
           />
