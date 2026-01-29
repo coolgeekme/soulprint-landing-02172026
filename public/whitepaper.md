@@ -92,11 +92,12 @@ SoulPrint's core innovation is **Recursive Language Models (RLM)**—a paradigm 
 ┌─────────────────────────────────────────────────────────────────┐
 │                      SUPABASE (Database)                        │
 │  ┌────────────────┐  ┌────────────────┐  ┌─────────────────┐   │
-│  │ user_profiles  │  │ conversation_  │  │  memory_chunks  │   │
+│  │ user_profiles  │  │ conversation_  │  │  learned_facts  │   │
 │  │                │  │ chunks         │  │                 │   │
-│  │ • soulprint    │  │ • title        │  │ • embedding     │   │
-│  │ • ai_name      │  │ • content      │  │ • metadata      │   │
-│  │ • preferences  │  │ • is_recent    │  │ • pgvector idx  │   │
+│  │ • soulprint    │  │ • title        │  │ • fact          │   │
+│  │ • ai_name      │  │ • content      │  │ • embedding     │   │
+│  │ • preferences  │  │ • embedding    │  │ • category      │   │
+│  │ • locked_at    │  │ • (locked)     │  │ • (grows)       │   │
 │  └────────────────┘  └────────────────┘  └─────────────────┘   │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
@@ -127,10 +128,12 @@ SoulPrint's core innovation is **Recursive Language Models (RLM)**—a paradigm 
 
 | Component | Specification |
 |-----------|---------------|
-| Embedding Model | Amazon Titan Text Embeddings v2 |
-| Embedding Dimensions | 1024 |
-| Vector Database | Supabase pgvector (HNSW index) |
+| Embedding Model | OpenAI text-embedding-3-small |
+| Embedding Dimensions | 1536 |
+| Vector Database | Supabase pgvector (ivfflat index) |
 | Retrieval Latency | <50ms for 1M+ chunks |
+| Similarity Threshold | 0.5 (cosine similarity) |
+| Top-K Retrieval | 5 chunks per query |
 | RLM Backend | Claude Sonnet 4 (Anthropic) |
 | Parallel Workers | 5 concurrent embedding jobs |
 | Memory Capacity | 10M+ tokens (scales with storage) |
@@ -212,15 +215,58 @@ interface SoulPrint {
 
 ---
 
-## 5. Continuous Learning
+## 5. Memory Evolution System
 
-Unlike static knowledge bases, SoulPrint's memory is continuously updated:
+SoulPrint's memory architecture consists of two distinct layers that work together:
 
-- Every new conversation is chunked and embedded automatically
-- User profile weights update based on recent interactions
-- The AI becomes more attuned to the user over time
-- No manual re-training or re-importing required
-- Background workers process new data without interrupting chat
+### 5.1 Foundational Memory (One-Time Import)
+
+When a user imports their ChatGPT history, it becomes their **foundational memory**:
+
+- **One import per account** — locked after successful processing
+- All conversations are chunked, embedded, and indexed
+- This forms the "long-term memory" of who the user is
+- Cannot be overwritten or re-imported (data integrity)
+
+### 5.2 Evolving Memory (Continuous Learning)
+
+Unlike static knowledge bases, SoulPrint **learns from every conversation**:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    AFTER EACH CHAT EXCHANGE                     │
+│                                                                 │
+│  1. Analyze conversation for extractable facts                  │
+│     • Preferences: "User prefers Italian food"                  │
+│     • Relationships: "User's sister is named Maya"              │
+│     • Milestones: "User started new job at Acme Corp"           │
+│     • Decisions: "User chose to learn Python"                   │
+│                                                                 │
+│  2. Embed new facts with OpenAI text-embedding-3-small          │
+│                                                                 │
+│  3. Store in learned_facts table (separate from import)         │
+│                                                                 │
+│  4. Available immediately for future retrieval                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 5.3 Memory Sources for RLM Retrieval
+
+| Source | Description | Updates |
+|--------|-------------|---------|
+| `conversation_chunks` | Imported ChatGPT history | One-time (locked) |
+| `learned_facts` | Facts extracted from SoulPrint chats | Every conversation |
+| `soulprints` | Core personality traits & style | Periodic synthesis |
+
+**The result:** An AI that starts knowing your history and gets smarter with every interaction—just like a real relationship.
+
+### 5.4 Periodic Synthesis
+
+Every 24 hours (or after significant new learnings), SoulPrint synthesizes:
+- Updates to the core personality profile
+- Consolidation of related facts
+- Pruning of outdated or superseded information
+- Generation of updated SOUL.md personality document
 
 ---
 
@@ -277,7 +323,8 @@ All initial processing occurs **client-side in the user's browser**:
 | Database | Supabase (PostgreSQL + pgvector) |
 | Auth | Supabase Auth (Google, Email) |
 | RLM Service | Python, FastAPI, Render |
-| Embeddings | AWS Bedrock (Titan v2) |
+| Embeddings | OpenAI text-embedding-3-small (1536 dims) |
+| Vector Search | pgvector ivfflat (cosine similarity) |
 | LLM | Claude Sonnet 4 (Anthropic) |
 | Hosting | Vercel (frontend), Render (RLM) |
 | Messaging | Twilio (SMS), Telegram Bot API |
