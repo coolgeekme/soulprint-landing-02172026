@@ -230,7 +230,7 @@ export default function ChatPage() {
 
   if (loadingHistory) {
     return (
-      <div className="chat-container bg-black items-center justify-center">
+      <div className="fixed inset-0 h-screen w-screen bg-black flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-[#0A84FF] border-t-transparent rounded-full animate-spin" />
           <span className="text-[#8E8E93] text-sm">Loading your memories...</span>
@@ -241,7 +241,7 @@ export default function ChatPage() {
 
   return (
     <>
-      <div className="chat-container">
+      <div className="fixed inset-0 h-screen w-screen">
         <TelegramChatV2
           messages={messages}
           onSendMessage={handleSendMessage}
