@@ -225,7 +225,7 @@ export default function ChatPage() {
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   if (loadingHistory) {
