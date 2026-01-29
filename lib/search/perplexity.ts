@@ -89,86 +89,62 @@ export async function queryPerplexity(
 }
 
 /**
- * Determine if a message needs real-time/news information from Perplexity
- * More specific than general web search - focused on current events and news
+ * Determine if a message should SKIP Perplexity (memory/personal questions)
+ * AGGRESSIVE MODE: Default to using Perplexity for everything except personal/memory questions
  */
 export function needsRealtimeInfo(message: string): boolean {
   const lowerMessage = message.toLowerCase();
 
-  // Skip memory-based questions
-  const memoryIndicators = [
+  // ONLY skip for clearly personal/memory-based questions
+  const skipIndicators = [
+    // Memory questions
     'remember when',
     'do you remember',
     'we talked about',
     'i told you',
     'you said',
-    'last time',
-    'my favorite',
-    'my name',
-    'about me',
+    'last time we',
     'our conversation',
+    'our last chat',
+    
+    // Personal profile questions
+    'my name is',
+    'my favorite',
+    'about me',
     'my profile',
+    'what do you know about me',
+    'what\'s my',
+    'who am i',
+    
+    // Simple greetings/chitchat (no research needed)
+    'hello',
+    'hi there',
+    'hey',
+    'good morning',
+    'good night',
+    'how are you',
+    'thank you',
+    'thanks',
+    'bye',
+    'goodbye',
   ];
   
-  if (memoryIndicators.some(indicator => lowerMessage.includes(indicator))) {
+  // Skip Perplexity ONLY if it matches a skip indicator
+  if (skipIndicators.some(indicator => lowerMessage.includes(indicator))) {
+    console.log('[Perplexity] Skipping - personal/memory question detected');
     return false;
   }
 
-  // Time-sensitive indicators
-  const realtimeIndicators = [
-    // News and events
-    'news',
-    'headlines',
-    'breaking',
-    'happening',
-    'update on',
-    'latest',
-    
-    // Time references
-    'today',
-    'yesterday',
-    'this week',
-    'this month',
-    'right now',
-    'currently',
-    'recent',
-    'just happened',
-    
-    // Current information
-    'current',
-    'live',
-    'real-time',
-    'realtime',
-    
-    // Specific queries that need fresh data
-    'stock price',
-    'weather',
-    'score',
-    'election',
-    'results',
-    
-    // Question patterns about current state
-    'what\'s happening',
-    'what is happening',
-    'what happened',
-    'who won',
-    'who is winning',
-    'is it true that',
-    'did they',
-  ];
-
-  // Check for realtime indicators
-  if (realtimeIndicators.some(indicator => lowerMessage.includes(indicator))) {
-    return true;
+  // Also skip very short messages (likely greetings)
+  if (lowerMessage.length < 10) {
+    console.log('[Perplexity] Skipping - message too short');
+    return false;
   }
 
-  // Check for recent year references (2024, 2025, 2026)
-  const yearMatch = lowerMessage.match(/20(2[4-9]|[3-9]\d)/);
-  if (yearMatch) {
-    return true;
-  }
-
-  return false;
+  // DEFAULT: Use Perplexity for everything else
+  // The LLM will combine its knowledge with real-time data
+  console.log('[Perplexity] Will query - aggressive mode enabled');
+  return true;
 }
 
 /**
