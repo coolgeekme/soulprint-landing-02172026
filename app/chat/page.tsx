@@ -32,6 +32,8 @@ export default function ChatPage() {
   const [showRename, setShowRename] = useState(false);
   const [renameInput, setRenameInput] = useState('');
   const [hasReceivedAIResponse, setHasReceivedAIResponse] = useState(false);
+  const [memoryProgress, setMemoryProgress] = useState<number | null>(null);
+  const [memoryStatus, setMemoryStatus] = useState<string>('loading');
   
   // Message queue for handling multiple messages while AI is responding
   const messageQueueRef = useRef<QueuedMessage[]>([]);
@@ -114,6 +116,37 @@ export default function ChatPage() {
 
     loadChatState();
   }, [router, aiName]);
+
+  // Poll memory/embedding status
+  useEffect(() => {
+    const checkMemoryStatus = async () => {
+      try {
+        const res = await fetch('/api/memory/status');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.embeddingStatus === 'complete' || data.embeddingProgress >= 100) {
+            setMemoryStatus('ready');
+            setMemoryProgress(100);
+          } else if (data.embeddingStatus === 'processing' || data.totalChunks > 0) {
+            setMemoryStatus('loading');
+            const progress = data.totalChunks > 0 
+              ? Math.round((data.processedChunks / data.totalChunks) * 100)
+              : data.embeddingProgress || 0;
+            setMemoryProgress(progress);
+          } else {
+            setMemoryStatus('none');
+            setMemoryProgress(null);
+          }
+        }
+      } catch (err) {
+        console.error('Memory status check failed:', err);
+      }
+    };
+    
+    checkMemoryStatus();
+    const interval = setInterval(checkMemoryStatus, 5000); // Poll every 5s
+    return () => clearInterval(interval);
+  }, []);
 
   const saveMessage = async (role: string, content: string) => {
     try {
@@ -456,6 +489,16 @@ export default function ChatPage() {
           defaultDarkMode={true}
         />
       </div>
+
+      {/* Memory Loading Indicator */}
+      {memoryStatus === 'loading' && memoryProgress !== null && memoryProgress < 100 && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40">
+          <div className="bg-[#1a1a1a]/90 backdrop-blur-sm border border-[#262626] rounded-full px-4 py-2 flex items-center gap-2">
+            <div className="w-3 h-3 border-2 border-[#EA580C] border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-[#a3a3a3]">Memory: {memoryProgress}%</span>
+          </div>
+        </div>
+      )}
 
       {/* iOS Add to Home Screen Prompt */}
       <AddToHomeScreen canShow={hasReceivedAIResponse} />
