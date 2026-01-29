@@ -81,7 +81,7 @@ SoulPrint's core innovation is treating conversational memory as **external stru
 | Component | Specification |
 |-----------|---------------|
 | Chunk Size | 512 tokens (optimized for semantic coherence) |
-| Embedding Dimensions | 1536 (text-embedding-3-small) |
+| Embedding Dimensions | 1024 (Amazon Titan) |
 | Similarity Metric | Cosine distance |
 | Index Type | HNSW (Hierarchical Navigable Small World) |
 | Retrieval Latency | <50ms for 1M+ chunks |
@@ -217,7 +217,7 @@ All initial processing occurs client-side in the user's browser:
 | Database | PostgreSQL with pgvector extension |
 | Authentication | OAuth 2.0, JWT |
 | LLM Inference | AWS Bedrock |
-| Embeddings | OpenAI text-embedding-3-small |
+| Embeddings | Amazon Titan (AWS Bedrock) |
 | Vector Index | HNSW via pgvector |
 
 ---
@@ -225,7 +225,7 @@ All initial processing occurs client-side in the user's browser:
 ## 10. References
 
 1. Anthropic. (2024). *The Claude Model Card.* Context window limitations and performance characteristics.
-2. OpenAI. (2024). *text-embedding-3 Technical Report.* Embedding model specifications.
+2. AWS. (2024). *Amazon Titan Embeddings.* AWS Bedrock embedding model specifications.
 3. Malkov, Y. & Yashunin, D. (2018). *Efficient and robust approximate nearest neighbor search using HNSW graphs.*
 
 ---
