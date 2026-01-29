@@ -173,22 +173,15 @@ export async function POST(request: NextRequest) {
     );
 
     if (rlmResponse) {
-      // RLM worked - return non-streaming response
+      // RLM worked - return SSE format that frontend expects
       const stream = new ReadableStream({
         start(controller) {
-          const metadata = JSON.stringify({
-            type: 'metadata',
-            hasMemoryContext: rlmResponse.chunks_used > 0,
-            hasSoulprint,
-            method: rlmResponse.method,
-            memoryChunksUsed: rlmResponse.chunks_used,
-          }) + '\n';
-          controller.enqueue(new TextEncoder().encode(metadata));
+          // Send content in SSE format: "data: {json}\n\n"
+          const content = `data: ${JSON.stringify({ content: rlmResponse.response })}\n\n`;
+          controller.enqueue(new TextEncoder().encode(content));
 
-          const text = JSON.stringify({ type: 'text', text: rlmResponse.response }) + '\n';
-          controller.enqueue(new TextEncoder().encode(text));
-
-          const done = JSON.stringify({ type: 'done' }) + '\n';
+          // Send done signal
+          const done = `data: [DONE]\n\n`;
           controller.enqueue(new TextEncoder().encode(done));
           controller.close();
         },
@@ -269,15 +262,6 @@ export async function POST(request: NextRequest) {
 
     const stream = new ReadableStream({
       async start(controller) {
-        const metadata = JSON.stringify({
-          type: 'metadata',
-          hasMemoryContext: memoryChunksUsed > 0,
-          hasSoulprint,
-          method: 'bedrock',
-          memoryChunksUsed,
-        }) + '\n';
-        controller.enqueue(new TextEncoder().encode(metadata));
-
         try {
           if (response.body) {
             for await (const event of response.body) {
@@ -289,7 +273,8 @@ export async function POST(request: NextRequest) {
                 if (chunkData.type === 'content_block_delta') {
                   const text = chunkData.delta?.text || '';
                   if (text) {
-                    const data = JSON.stringify({ type: 'text', text }) + '\n';
+                    // SSE format: "data: {json}\n\n"
+                    const data = `data: ${JSON.stringify({ content: text })}\n\n`;
                     controller.enqueue(new TextEncoder().encode(data));
                   }
                 }
@@ -298,11 +283,10 @@ export async function POST(request: NextRequest) {
           }
         } catch (error) {
           console.error('Stream error:', error);
-          const errorData = JSON.stringify({ type: 'error', error: 'Stream failed' }) + '\n';
-          controller.enqueue(new TextEncoder().encode(errorData));
         }
 
-        const done = JSON.stringify({ type: 'done' }) + '\n';
+        // Send done signal in SSE format
+        const done = `data: [DONE]\n\n`;
         controller.enqueue(new TextEncoder().encode(done));
         controller.close();
       },
