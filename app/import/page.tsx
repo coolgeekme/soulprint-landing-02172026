@@ -154,7 +154,7 @@ export default function ImportPage() {
       </div>
 
       {/* Main Content - Fills remaining space */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 relative z-10 overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center px-3 sm:px-4 relative z-10 overflow-hidden min-h-0">
         <AnimatePresence mode="wait">
           {/* EXPORT STEP */}
           {currentStep === 'export' && (
@@ -163,9 +163,9 @@ export default function ImportPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="w-full max-w-sm flex flex-col h-full justify-center"
+              className="w-full max-w-sm flex flex-col justify-center"
             >
-              <h1 className="text-lg md:text-xl font-bold text-white mb-0.5 text-center">Export Your ChatGPT Data</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-white mb-0.5 text-center">Export Your ChatGPT Data</h1>
               <p className="text-white/50 text-xs md:text-sm mb-3 text-center">Follow these steps in ChatGPT</p>
 
               <div className="space-y-2 mb-3">
@@ -225,10 +225,10 @@ export default function ImportPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="w-full max-w-sm flex flex-col h-full justify-center"
+              className="w-full max-w-sm flex flex-col justify-center"
             >
-              <h1 className="text-xl font-bold text-white mb-1 text-center">Upload Your Export</h1>
-              <p className="text-white/50 text-sm mb-4 text-center">Drop the ZIP file you downloaded</p>
+              <h1 className="text-lg sm:text-xl font-bold text-white mb-0.5 sm:mb-1 text-center">Upload Your Export</h1>
+              <p className="text-white/50 text-xs sm:text-sm mb-3 sm:mb-4 text-center">Drop the ZIP file you downloaded</p>
 
               <div
                 onDragEnter={handleDrag}
@@ -237,7 +237,7 @@ export default function ImportPage() {
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 className={`
-                  cursor-pointer border-2 border-dashed rounded-2xl p-8 text-center transition-all
+                  cursor-pointer border-2 border-dashed rounded-xl sm:rounded-2xl p-5 sm:p-8 text-center transition-all
                   ${dragActive 
                     ? 'border-orange-500 bg-orange-500/10' 
                     : 'border-white/15 bg-white/[0.02] hover:border-orange-500/40'
@@ -251,25 +251,25 @@ export default function ImportPage() {
                   onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                   className="hidden"
                 />
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 transition-colors ${dragActive ? 'bg-orange-500/20' : 'bg-white/5'}`}>
-                  <Upload className={`w-7 h-7 transition-colors ${dragActive ? 'text-orange-400' : 'text-white/40'}`} />
+                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 transition-colors ${dragActive ? 'bg-orange-500/20' : 'bg-white/5'}`}>
+                  <Upload className={`w-6 h-6 sm:w-7 sm:h-7 transition-colors ${dragActive ? 'text-orange-400' : 'text-white/40'}`} />
                 </div>
-                <p className="text-white font-medium mb-1">
+                <p className="text-white font-medium text-sm sm:text-base mb-0.5 sm:mb-1">
                   {dragActive ? 'Drop it here!' : 'Drop ZIP file here'}
                 </p>
                 <p className="text-white/40 text-xs">or tap to browse</p>
               </div>
 
-              <div className="flex items-center gap-2 mt-4 p-3 rounded-xl bg-green-500/5 border border-green-500/20">
-                <Shield className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <p className="text-white/50 text-xs">
+              <div className="flex items-center gap-2 mt-3 sm:mt-4 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-green-500/5 border border-green-500/20">
+                <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400 flex-shrink-0" />
+                <p className="text-white/50 text-[11px] sm:text-xs">
                   100% private — processed in your browser only
                 </p>
               </div>
 
               <button 
                 onClick={() => setCurrentStep('export')}
-                className="mt-4 text-white/40 text-xs hover:text-white/60"
+                className="mt-3 sm:mt-4 text-white/40 text-xs hover:text-white/60"
               >
                 ← Back to instructions
               </button>
@@ -283,17 +283,17 @@ export default function ImportPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm flex flex-col h-full justify-center text-center"
+              className="w-full max-w-sm flex flex-col justify-center text-center"
             >
-              <div className="w-14 h-14 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-4">
-                <AlertCircle className="w-7 h-7 text-red-500" />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7 text-red-500" />
               </div>
-              <h2 className="text-xl font-bold text-white mb-2">Something went wrong</h2>
-              <p className="text-white/50 text-sm mb-6">{errorMessage}</p>
+              <h2 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">Something went wrong</h2>
+              <p className="text-white/50 text-xs sm:text-sm mb-4 sm:mb-6">{errorMessage}</p>
               <Button 
                 onClick={handleRetry}
                 variant="outline"
-                className="border-white/20 text-white hover:bg-white/10"
+                className="border-white/20 text-white hover:bg-white/10 h-9 sm:h-10"
               >
                 Try Again
               </Button>
@@ -307,19 +307,19 @@ export default function ImportPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm flex flex-col h-full justify-center text-center"
+              className="w-full max-w-sm flex flex-col justify-center text-center"
             >
-              <div className="mb-4">
+              <div className="mb-3 sm:mb-4">
                 <RingProgress 
                   progress={progress} 
-                  size={100} 
-                  strokeWidth={6}
+                  size={80} 
+                  strokeWidth={5}
                 />
               </div>
-              <h2 className="text-xl font-bold text-white mb-2">Creating your SoulPrint</h2>
-              <p className="text-white/50 text-sm">{progressStage || 'Analyzing your conversations...'}</p>
+              <h2 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">Creating your SoulPrint</h2>
+              <p className="text-white/50 text-xs sm:text-sm">{progressStage || 'Analyzing your conversations...'}</p>
               
-              <div className="mt-6 w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+              <div className="mt-4 sm:mt-6 w-full h-1 sm:h-1.5 bg-white/10 rounded-full overflow-hidden">
                 <motion.div
                   className="h-full bg-gradient-to-r from-orange-600 to-orange-400 rounded-full"
                   initial={{ width: 0 }}
@@ -337,21 +337,21 @@ export default function ImportPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm flex flex-col h-full justify-center text-center"
+              className="w-full max-w-sm flex flex-col justify-center text-center"
             >
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', delay: 0.1 }}
-                className="w-16 h-16 rounded-full bg-green-500/15 flex items-center justify-center mx-auto mb-4"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-green-500/15 flex items-center justify-center mx-auto mb-3 sm:mb-4"
               >
-                <CheckCircle2 className="w-8 h-8 text-green-500" />
+                <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-green-500" />
               </motion.div>
-              <h2 className="text-2xl font-bold text-white mb-2">You're all set!</h2>
-              <p className="text-white/50 text-sm mb-6">Your AI now understands you</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 sm:mb-2">You're all set!</h2>
+              <p className="text-white/50 text-xs sm:text-sm mb-4 sm:mb-6">Your AI now understands you</p>
               <Button 
                 onClick={() => router.push('/chat')}
-                className="w-full bg-orange-500 hover:bg-orange-400 text-black font-semibold h-11"
+                className="w-full bg-orange-500 hover:bg-orange-400 text-black font-semibold h-10 sm:h-11"
               >
                 Start Chatting <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
