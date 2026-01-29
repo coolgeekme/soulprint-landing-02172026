@@ -12,7 +12,7 @@ export function MemorySection() {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.6 }}
-                    className="flex flex-1 flex-col items-start justify-start gap-5"
+                    className="flex flex-1 flex-col items-start justify-center gap-5"
                 >
                     <h2 className="font-koulen text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[0.9] uppercase text-white">
                         Your Memory,
