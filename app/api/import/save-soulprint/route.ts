@@ -78,7 +78,15 @@ export async function POST(request: Request) {
       // Insert new chunks in batches
       const BATCH_SIZE = 50;
       for (let i = 0; i < conversationChunks.length; i += BATCH_SIZE) {
-        const batch = conversationChunks.slice(i, i + BATCH_SIZE).map((chunk: any) => ({
+        interface ChunkInput {
+          id: string;
+          title: string;
+          content: string;
+          messageCount: number;
+          createdAt: string;
+          isRecent: boolean;
+        }
+        const batch = conversationChunks.slice(i, i + BATCH_SIZE).map((chunk: ChunkInput) => ({
           user_id: user.id,
           conversation_id: chunk.id,
           title: chunk.title,
@@ -117,7 +125,15 @@ export async function POST(request: Request) {
   }
 }
 
-function generateSoulprintText(soulprint: any): string {
+interface Soulprint {
+  aiPersona: { soulMd: string };
+  stats: { totalConversations: number; totalMessages: number };
+  interests: string[];
+  facts: string[];
+  relationships?: Array<{ name: string; context: string }>;
+}
+
+function generateSoulprintText(soulprint: Soulprint): string {
   const lines: string[] = [
     soulprint.aiPersona.soulMd,
     '',
@@ -128,13 +144,13 @@ function generateSoulprintText(soulprint: any): string {
     `**Conversations analyzed:** ${soulprint.stats.totalConversations.toLocaleString()} (${soulprint.stats.totalMessages.toLocaleString()} messages)`,
     '',
     '### Interests',
-    soulprint.interests.map((i: string) => `- ${i}`).join('\n') || '- Unknown',
+    soulprint.interests.map((i) => `- ${i}`).join('\n') || '- Unknown',
     '',
     '### Key Facts',
-    soulprint.facts.slice(0, 10).map((f: string) => `- ${f}`).join('\n') || '- None extracted',
+    soulprint.facts.slice(0, 10).map((f) => `- ${f}`).join('\n') || '- None extracted',
   ];
   
-  if (soulprint.relationships?.length > 0) {
+  if (soulprint.relationships?.length) {
     lines.push('', '### People Mentioned');
     for (const rel of soulprint.relationships.slice(0, 5)) {
       lines.push(`- ${rel.name} (${rel.context})`);

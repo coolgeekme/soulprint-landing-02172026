@@ -132,9 +132,10 @@ CREATE INDEX IF NOT EXISTS idx_achievements_category ON achievements(category);
 `;
 
 export async function POST(request: Request) {
-  // Simple auth check
+  // Auth check via environment variable
   const { secret } = await request.json();
-  if (secret !== 'run-gamification-migration') {
+  const expectedSecret = process.env.ADMIN_MIGRATION_SECRET;
+  if (!expectedSecret || secret !== expectedSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -35,14 +35,6 @@ interface ToastContextValue {
 
 const ToastContext = React.createContext<ToastContextValue | undefined>(undefined)
 
-export function useToast() {
-  const context = React.useContext(ToastContext)
-  if (context === undefined) {
-    throw new Error("useToast must be used within a ToastProvider")
-  }
-  return context
-}
-
 const toastConfig = {
   success: {
     icon: CheckCircle,
@@ -66,6 +58,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<Toast[]>([])
   const toastTimeouts = React.useRef<Map<string, NodeJS.Timeout>>(new Map())
 
+  const removeToast = React.useCallback((id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id))
+    
+    // Clear timeout
+    const timeout = toastTimeouts.current.get(id)
+    if (timeout) {
+      clearTimeout(timeout)
+      toastTimeouts.current.delete(id)
+    }
+  }, [])
+
   const addToast = React.useCallback((toast: Omit<Toast, "id">) => {
     const id = Math.random().toString(36).substring(2, 9)
     const newToast: Toast = { id, duration: 5000, ...toast }
@@ -79,18 +82,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       }, newToast.duration)
       toastTimeouts.current.set(id, timeout)
     }
-  }, [])
-
-  const removeToast = React.useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id))
-    
-    // Clear timeout
-    const timeout = toastTimeouts.current.get(id)
-    if (timeout) {
-      clearTimeout(timeout)
-      toastTimeouts.current.delete(id)
-    }
-  }, [])
+  }, [removeToast])
 
   const clearAllToasts = React.useCallback(() => {
     setToasts([])
@@ -168,23 +160,27 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Hook helpers
-export const toast = {
-  success: (title: string, description?: string) => {
-    const { addToast } = React.useContext(ToastContext) || { addToast: () => {} }
-    addToast({ title, description, type: "success" })
-  },
-  error: (title: string, description?: string) => {
-    const { addToast } = React.useContext(ToastContext) || { addToast: () => {} }
-    addToast({ title, description, type: "error" })
-  },
-  warning: (title: string, description?: string) => {
-    const { addToast } = React.useContext(ToastContext) || { addToast: () => {} }
-    addToast({ title, description, type: "warning" })
-  },
-  info: (title: string, description?: string) => {
-    const { addToast } = React.useContext(ToastContext) || { addToast: () => {} }
-    addToast({ title, description, type: "info" })
+// Hook to use toast notifications - must be called within a component
+export function useToast() {
+  const context = React.useContext(ToastContext)
+  if (!context) {
+    throw new Error('useToast must be used within a ToastProvider')
+  }
+  
+  return {
+    ...context,
+    success: (title: string, description?: string) => {
+      context.addToast({ title, description, type: "success" })
+    },
+    error: (title: string, description?: string) => {
+      context.addToast({ title, description, type: "error" })
+    },
+    warning: (title: string, description?: string) => {
+      context.addToast({ title, description, type: "warning" })
+    },
+    info: (title: string, description?: string) => {
+      context.addToast({ title, description, type: "info" })
+    }
   }
 }
 

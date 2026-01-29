@@ -22,6 +22,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
   
   // Sync mode when defaultMode changes (e.g., Login vs Enter SoulPrint button)
   // Also reset form state when modal opens
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setMode(defaultMode);
     if (isOpen) {
@@ -32,6 +33,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
       setSuccess(false);
     }
   }, [defaultMode, isOpen]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -37,8 +37,8 @@ export default function WhitepaperPage() {
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6">
             <p className="text-white/80 leading-relaxed">
               SoulPrint is a privacy-first AI personalization platform that creates deeply personalized AI assistants 
-              by analyzing users' existing conversation history. Unlike traditional AI assistants that start from zero, 
-              SoulPrint builds a comprehensive understanding of each user's communication style, interests, knowledge areas, 
+              by analyzing users&apos; existing conversation history. Unlike traditional AI assistants that start from zero, 
+              SoulPrint builds a comprehensive understanding of each user&apos;s communication style, interests, knowledge areas, 
               and personality traits—creating an AI that truly knows them.
             </p>
           </div>
@@ -55,8 +55,8 @@ export default function WhitepaperPage() {
           
           <h2 className="text-2xl font-semibold mb-6">The Solution</h2>
           <p className="text-white/70 leading-relaxed">
-            SoulPrint inverts this paradigm. By analyzing a user's historical conversations (starting with ChatGPT exports), 
-            we construct a rich semantic profile—a "SoulPrint"—that enables the AI to understand who the user is from the 
+            SoulPrint inverts this paradigm. By analyzing a user&apos;s historical conversations (starting with ChatGPT exports), 
+            we construct a rich semantic profile—a &quot;SoulPrint&quot;—that enables the AI to understand who the user is from the 
             very first interaction.
           </p>
         </section>
@@ -117,7 +117,7 @@ export default function WhitepaperPage() {
               <span className="text-xl">🔒</span> Key Innovation
             </h3>
             <p className="text-white/80">
-              All conversation analysis happens in the user's browser. Raw conversation data never leaves the device.
+              All conversation analysis happens in the user&apos;s browser. Raw conversation data never leaves the device.
             </p>
           </div>
 
@@ -148,7 +148,7 @@ export default function WhitepaperPage() {
         <section className="mb-16">
           <h2 className="text-2xl font-semibold mb-6 text-orange-500">The SoulPrint Object</h2>
           <p className="text-white/70 mb-6">
-            A SoulPrint is a structured representation of a user's digital identity:
+            A SoulPrint is a structured representation of a user&apos;s digital identity:
           </p>
           <div className="bg-[#111] border border-white/10 rounded-2xl p-6 font-mono text-sm overflow-x-auto">
             <pre className="text-white/70">{`interface SoulPrint {
@@ -183,32 +183,32 @@ export default function WhitepaperPage() {
         <section className="mb-16">
           <h2 className="text-2xl font-semibold mb-6 text-orange-500">Memory-Enhanced Conversations</h2>
           <p className="text-white/70 mb-6">
-            When a user sends a message, SoulPrint enhances the AI's response with relevant memories:
+            When a user sends a message, SoulPrint enhances the AI&apos;s response with relevant memories:
           </p>
           
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center text-orange-500 font-bold">1</div>
               <div className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
-                <p className="text-white/80">User sends message: "What should I do about my startup?"</p>
+                <p className="text-white/80">User sends message: &quot;What should I do about my startup?&quot;</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center text-orange-500 font-bold">2</div>
               <div className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
-                <p className="text-white/80">Semantic search retrieves relevant memories about user's business context</p>
+                <p className="text-white/80">Semantic search retrieves relevant memories about user&apos;s business context</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center text-orange-500 font-bold">3</div>
               <div className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
-                <p className="text-white/80">Context-enriched request sent to LLM with user's SoulPrint + memories</p>
+                <p className="text-white/80">Context-enriched request sent to LLM with user&apos;s SoulPrint + memories</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center text-green-500 font-bold">✓</div>
               <div className="flex-1 bg-green-500/10 border border-green-500/20 rounded-xl p-4">
-                <p className="text-white/80">Personalized response that knows user's specific context</p>
+                <p className="text-white/80">Personalized response that knows user&apos;s specific context</p>
               </div>
             </div>
           </div>

@@ -14,6 +14,8 @@ export function AddToHomeScreen({ canShow = true }: AddToHomeScreenProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isIOSSafari, setIsIOSSafari] = useState(false);
 
+  // Platform detection - intentional setState in effect
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     // Only run on client
     if (typeof window === 'undefined') return;
@@ -37,6 +39,7 @@ export function AddToHomeScreen({ canShow = true }: AddToHomeScreenProps) {
       setIsIOSSafari(true);
     }
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Show prompt when conditions are met
   useEffect(() => {

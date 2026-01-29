@@ -33,13 +33,15 @@ export async function GET() {
     }
 
     // Get or create user stats
-    let { data: stats, error } = await supabase
+    const { data: existingStats, error: fetchError } = await supabase
       .from('user_stats')
       .select('*')
       .eq('user_id', user.id)
       .single();
 
-    if (error?.code === 'PGRST116') {
+    let stats = existingStats;
+
+    if (fetchError?.code === 'PGRST116') {
       // No stats yet, create them
       const { data: newStats, error: insertError } = await supabase
         .from('user_stats')
@@ -52,8 +54,8 @@ export async function GET() {
         return NextResponse.json({ error: 'Failed to create stats' }, { status: 500 });
       }
       stats = newStats;
-    } else if (error) {
-      console.error('Error fetching stats:', error);
+    } else if (fetchError) {
+      console.error('Error fetching stats:', fetchError);
       return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
     }
 

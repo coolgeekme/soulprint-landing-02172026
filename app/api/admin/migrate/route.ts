@@ -6,9 +6,10 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
-  // Simple auth check
+  // Auth check via environment variable
   const { secret } = await request.json();
-  if (secret !== 'run-migration-20250127') {
+  const expectedSecret = process.env.ADMIN_MIGRATION_SECRET;
+  if (!expectedSecret || secret !== expectedSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

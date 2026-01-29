@@ -42,7 +42,20 @@ export async function GET(request: Request) {
     console.log('[Test Import] ZIP contains:', fileNames);
     
     // Step 3: Find and parse conversations.json
-    let conversations: any[] = [];
+    interface ChatGPTConversation {
+      id: string;
+      title: string;
+      create_time?: number;
+      update_time?: number;
+      mapping?: Record<string, {
+        message?: {
+          author?: { role: string };
+          content?: { parts?: string[] };
+        };
+      }>;
+    }
+    
+    let conversations: ChatGPTConversation[] = [];
     let conversationsFile = null;
     
     for (const fileName of fileNames) {
@@ -63,7 +76,7 @@ export async function GET(request: Request) {
     }
     
     // Step 4: Summarize the conversations
-    const summary = conversations.map((conv: any) => ({
+    const summary = conversations.map((conv) => ({
       id: conv.id,
       title: conv.title,
       createTime: conv.create_time ? new Date(conv.create_time * 1000).toISOString() : null,
@@ -72,7 +85,7 @@ export async function GET(request: Request) {
     }));
     
     // Sort by update time (most recent first)
-    summary.sort((a: any, b: any) => {
+    summary.sort((a, b) => {
       const aTime = a.updateTime || a.createTime || '';
       const bTime = b.updateTime || b.createTime || '';
       return bTime.localeCompare(aTime);

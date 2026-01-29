@@ -184,7 +184,7 @@ export default function TestVoicePage() {
 
       <div className="mt-6 text-gray-500 text-sm">
         <p>This page tests the voice recording and transcription pipeline.</p>
-        <p>If this works but chat doesn't, the issue is in the chat component.</p>
+        <p>If this works but chat doesn&apos;t, the issue is in the chat component.</p>
       </div>
     </div>
   );

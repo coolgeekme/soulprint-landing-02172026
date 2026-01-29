@@ -5,7 +5,17 @@ import Link from 'next/link';
 
 export default function TestUploadPage() {
   const [status, setStatus] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle');
-  const [result, setResult] = useState<any>(null);
+  interface UploadResult {
+    success: boolean;
+    stats: {
+      fileSize: string;
+      jsonSize: string;
+      conversationCount: number;
+      totalMessages: number;
+      sampleTitles: string[];
+    };
+  }
+  const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 

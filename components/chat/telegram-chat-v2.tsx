@@ -322,12 +322,15 @@ export function TelegramChatV2({
   }, [messages]);
 
   // Check system preference on mount
+  // System preference sync - intentional setState in effect
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (typeof window !== 'undefined' && !defaultDarkMode) {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       setIsDark(prefersDark);
     }
   }, [defaultDarkMode]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

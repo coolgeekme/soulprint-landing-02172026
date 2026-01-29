@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Send } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,17 @@ export default function AIChatCard({ className }: { className?: string }) {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Pre-calculate particle positions - decorative only, random values acceptable
+  /* eslint-disable react-hooks/purity */
+  const particleData = useMemo(() => 
+    Array.from({ length: 20 }).map(() => ({
+      xStart: Math.random() * 200 - 100,
+      xEnd: Math.random() * 200 - 100,
+      duration: 5 + Math.random() * 3,
+      left: Math.random() * 100,
+    })), []);
+  /* eslint-enable react-hooks/purity */
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -47,22 +58,22 @@ export default function AIChatCard({ className }: { className?: string }) {
         />
 
         {/* Floating Particles */}
-        {Array.from({ length: 20 }).map((_, i) => (
+        {particleData.map((particle, i) => (
           <motion.div
             key={i}
             className="absolute w-1 h-1 rounded-full bg-orange-500/20"
             animate={{
               y: ["0%", "-140%"],
-              x: [Math.random() * 200 - 100, Math.random() * 200 - 100],
+              x: [particle.xStart, particle.xEnd],
               opacity: [0, 1, 0],
             }}
             transition={{
-              duration: 5 + Math.random() * 3,
+              duration: particle.duration,
               repeat: Infinity,
               delay: i * 0.5,
               ease: "easeInOut",
             }}
-            style={{ left: `${Math.random() * 100}%`, bottom: "-10%" }}
+            style={{ left: `${particle.left}%`, bottom: "-10%" }}
           />
         ))}
 

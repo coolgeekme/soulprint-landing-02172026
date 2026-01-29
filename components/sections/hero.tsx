@@ -57,7 +57,7 @@ export function Hero() {
                         </h1>
 
                         <p className="text-white/70 text-base sm:text-lg leading-relaxed max-w-sm mx-auto">
-                            The world's first high-fidelity digital identity platform. Capture your essence.
+                            The world&apos;s first high-fidelity digital identity platform. Capture your essence.
                         </p>
 
                         <button 
@@ -120,7 +120,7 @@ export function Hero() {
                         </h1>
 
                         <p className="text-white/70 text-xl xl:text-2xl leading-relaxed max-w-2xl mx-auto">
-                            The world's first high-fidelity digital identity platform. Capture your essence.
+                            The world&apos;s first high-fidelity digital identity platform. Capture your essence.
                         </p>
 
                         <button 

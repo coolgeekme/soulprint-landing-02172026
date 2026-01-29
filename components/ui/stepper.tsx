@@ -96,6 +96,7 @@ function usePrevious<T>(value: T): T | undefined {
     ref.current = value
   }, [value])
 
+  // eslint-disable-next-line react-hooks/refs
   return ref.current
 }
 
@@ -316,7 +317,7 @@ function VerticalContent({ children }: { children: React.ReactNode }) {
       {React.Children.map(children, (child, i) => {
         const isCompletedStep =
           (React.isValidElement(child) &&
-            (child.props as any).isCompletedStep) ??
+            (child.props as { isCompletedStep?: boolean }).isCompletedStep) ??
           i < activeStep
         const isLastStep = i === stepCount - 1
         const isCurrentStep = i === activeStep
@@ -394,8 +395,8 @@ interface StepInternalConfig {
 
 interface FullStepProps extends StepProps, StepInternalConfig {}
 
-const Step = React.forwardRef<HTMLLIElement, StepProps>(
-  (props, ref: React.Ref<any>) => {
+const Step = React.forwardRef<HTMLDivElement, StepProps>(
+  (props, ref: React.Ref<HTMLDivElement>) => {
     const {
       children,
       description,
@@ -799,7 +800,7 @@ function StepButtonContainer({
 
 // <---------- STEP ICON ---------->
 
-type IconType = LucideIcon | React.ComponentType<any> | undefined
+type IconType = LucideIcon | React.ComponentType<{ className?: string }> | undefined
 
 const iconVariants = cva('', {
   variants: {

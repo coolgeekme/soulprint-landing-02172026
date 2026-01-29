@@ -166,7 +166,7 @@ export default function ImportPage() {
               className="w-full max-w-sm flex flex-col justify-center"
             >
               <h1 className="text-lg sm:text-xl font-bold text-white mb-0.5 text-center">Export Your ChatGPT Data</h1>
-              <p className="text-white/50 text-xs md:text-sm mb-3 text-center">We'll guide you through it step by step</p>
+              <p className="text-white/50 text-xs md:text-sm mb-3 text-center">We&apos;ll guide you through it step by step</p>
 
               <div className="space-y-2 sm:space-y-2.5 mb-3">
                 <div className="flex gap-2.5 p-2.5 sm:p-3 rounded-lg bg-white/[0.03] border border-white/10">
@@ -212,7 +212,7 @@ export default function ImportPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium leading-tight">4. Download the ZIP file</p>
                     <p className="text-white/50 text-xs leading-snug mt-0.5">
-                      Click the link in your email — you'll get a <span className="text-white/70">.zip</span> file to upload here
+                      Click the link in your email — you&apos;ll get a <span className="text-white/70">.zip</span> file to upload here
                     </p>
                   </div>
                 </div>
@@ -365,7 +365,7 @@ export default function ImportPage() {
               >
                 <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-green-500" />
               </motion.div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 sm:mb-2">You're all set!</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 sm:mb-2">You&apos;re all set!</h2>
               <p className="text-white/50 text-xs sm:text-sm mb-4 sm:mb-6">Your AI now understands you</p>
               <Button 
                 onClick={() => router.push('/chat')}

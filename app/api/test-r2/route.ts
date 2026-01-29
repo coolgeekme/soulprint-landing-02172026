@@ -8,8 +8,16 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export const runtime = 'nodejs';
 
+interface TestResults {
+  timestamp: string;
+  steps: Record<string, string | Record<string, string>>;
+  error?: string;
+  success?: boolean;
+  summary?: string;
+}
+
 export async function GET() {
-  const results: Record<string, any> = {
+  const results: TestResults = {
     timestamp: new Date().toISOString(),
     steps: {},
   };

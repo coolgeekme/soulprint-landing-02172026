@@ -63,8 +63,11 @@ export async function POST(request: Request) {
     for (const conv of rawConversations) {
       conversationTitles.push(conv.title || 'Untitled');
       if (conv.mapping) {
-        for (const node of Object.values(conv.mapping) as any[]) {
-          if (node.message?.content?.parts?.length > 0) {
+        interface MappingNode {
+          message?: { content?: { parts?: string[] } };
+        }
+        for (const node of Object.values(conv.mapping) as MappingNode[]) {
+          if (node.message?.content?.parts?.length) {
             totalMessages++;
           }
         }

@@ -123,10 +123,10 @@ export default function ImportPageV2() {
 
               {/* Copy */}
               <h1 className="text-2xl font-semibold text-white mb-2">
-                Let's get to know you
+                Let&apos;s get to know you
               </h1>
               <p className="text-white/50 text-sm mb-8 leading-relaxed">
-                Upload your ChatGPT export and we'll create your personalized AI in seconds.
+                Upload your ChatGPT export and we&apos;ll create your personalized AI in seconds.
               </p>
 
               {/* Upload Zone */}
@@ -160,7 +160,7 @@ export default function ImportPageV2() {
 
               {/* Help Link */}
               <p className="mt-6 text-white/30 text-xs">
-                Don't have it?{' '}
+                Don&apos;t have it?{' '}
                 <a 
                   href="https://help.openai.com/en/articles/7260999-how-do-i-export-my-chatgpt-history-and-data" 
                   target="_blank"
@@ -239,7 +239,7 @@ export default function ImportPageV2() {
               </motion.div>
 
               <h2 className="text-2xl font-semibold text-white mb-2">
-                You're all set
+                You&apos;re all set
               </h2>
               <p className="text-white/50 text-sm mb-8">
                 Your AI is ready and waiting

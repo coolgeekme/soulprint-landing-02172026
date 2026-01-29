@@ -14,9 +14,12 @@ export function ThemeToggle({ className, iconOnly = true }: ThemeToggleProps) {
     const { theme, setTheme } = useTheme()
     const [mounted, setMounted] = useState(false)
 
+    // Hydration fix - intentional setState in effect
+    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         setMounted(true)
     }, [])
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     if (!mounted) {
         return (
