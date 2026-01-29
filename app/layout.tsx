@@ -1,36 +1,49 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Koulen, Geist, Host_Grotesk, Cinzel } from "next/font/google";
 import "./globals.css";
-import { AchievementToastProvider } from "@/components/AchievementToast";
+import { cn } from "@/lib/utils";
 
-const plusJakarta = Plus_Jakarta_Sans({ 
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const koulen = Koulen({
+  weight: "400",
   subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "500", "600", "700"],
+  variable: "--font-koulen"
+});
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist",
+});
+const hostGrotesk = Host_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-host-grotesk",
+});
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  variable: "--font-cinzel",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#0a0a0a",
+  userScalable: false, // Preserved from previous SoulPrint layout
+  viewportFit: 'cover',
+};
+
 export const metadata: Metadata = {
-  title: "SoulPrint — AI that remembers you",
-  description: "Import your ChatGPT history. Get an AI that actually knows you.",
+  title: "SoulPrint - Discover Your Digital Soul",
+  description: "Analyze your digital footprint and discover your unique SoulPrint.",
   icons: {
-    icon: '/logo.svg',
-    apple: '/apple-touch-icon.png',
+    icon: "/logo.svg", // Preserved
+    apple: "/apple-touch-icon.png", // Preserved
   },
-  manifest: '/manifest.json',
-  appleWebApp: {
+  manifest: '/manifest.json', // Preserved
+  appleWebApp: { // Preserved
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'SoulPrint',
   },
-};
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: 'cover',
-  interactiveWidget: 'resizes-content',
 };
 
 export default function RootLayout({
@@ -39,16 +52,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <head>
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-      </head>
-      <body className={`${plusJakarta.className} antialiased bg-[#0A0A0B]`}>
-        <AchievementToastProvider>
-          {children}
-        </AchievementToastProvider>
+    <html lang="en" className="dark">
+      <body className={cn(
+        "min-h-screen bg-background font-sans antialiased",
+        inter.variable,
+        koulen.variable,
+        geist.variable,
+        hostGrotesk.variable,
+        cinzel.variable
+      )}>
+        {children}
       </body>
     </html>
   );
