@@ -108,7 +108,7 @@ export async function getMemoryContext(
       .join('\n\n');
 
     return { chunks, contextText };
-  } catch (error) {
+  } catch {
     // Gracefully handle missing embeddings/functions
     // This happens when using client-side processing without vector embeddings
     console.log('[Memory] Vector search unavailable, using soulprint only');

@@ -6,7 +6,7 @@ import {
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { searchWeb, shouldSearchWeb, formatSearchContext } from '@/lib/search/tavily';
-import { queryPerplexity, needsRealtimeInfo, formatPerplexityContext, formatSourcesForDisplay, PerplexityModel } from '@/lib/search/perplexity';
+import { queryPerplexity, needsRealtimeInfo, formatPerplexityContext, PerplexityModel } from '@/lib/search/perplexity';
 
 // Initialize Bedrock client (fallback)
 const bedrockClient = new BedrockRuntimeClient({
@@ -206,12 +206,10 @@ export async function POST(request: NextRequest) {
 
     // Search conversation chunks for memory context
     let memoryContext = '';
-    let memoryChunksUsed = 0;
     if (hasSoulprint) {
       try {
         console.log('[Chat] Searching conversation chunks...');
         const { chunks, count } = await searchConversationChunks(user.id, message, 5);
-        memoryChunksUsed = count;
         if (chunks.length > 0) {
           memoryContext = chunks
             .map((c, i) => `[Memory ${i + 1}: ${c.title}]\n${c.content.slice(0, 1500)}`)

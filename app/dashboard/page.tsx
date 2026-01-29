@@ -2,11 +2,9 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 export default function DashboardPage() {
-  const router = useRouter();
   const [aiName, setAiName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showRenameModal, setShowRenameModal] = useState(false);

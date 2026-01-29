@@ -32,7 +32,7 @@ export async function extractFacts(chunks: MemoryChunk[]): Promise<ExtractedFact
   }
 
   const chunksText = chunks
-    .map((chunk, i) => `[Chunk ${chunk.id}]\n${chunk.content}`)
+    .map((chunk) => `[Chunk ${chunk.id}]\n${chunk.content}`)
     .join('\n\n---\n\n');
 
   const prompt = `Analyze the following memory chunks and extract durable facts about the person. Focus on facts that are likely to remain true over time.

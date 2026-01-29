@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, TouchEvent } from 'react';
-import { ArrowLeft, Paperclip, Mic, Send, Moon, Sun, LogOut, Search } from 'lucide-react';
+import { ArrowLeft, Mic, Send, Moon, Sun, LogOut, Search } from 'lucide-react';
 import { MessageContent } from './message-content';
 
 type Message = {
@@ -209,7 +209,6 @@ export function TelegramChatV2({
   const [deepSearchEnabled, setDeepSearchEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(52);
   const [inputHeight, setInputHeight] = useState(70);
   const headerRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
@@ -308,11 +307,8 @@ export function TelegramChatV2({
     }
   };
 
-  // Measure actual header and input heights
+  // Measure actual input height
   useEffect(() => {
-    if (headerRef.current) {
-      setHeaderHeight(headerRef.current.offsetHeight);
-    }
     if (inputAreaRef.current) {
       setInputHeight(inputAreaRef.current.offsetHeight);
     }
