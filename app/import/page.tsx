@@ -189,17 +189,17 @@ export default function ImportPage() {
         <BackgroundBeams />
 
         {/* Header */}
-        <header className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-white/5">
+        <header className="relative z-10 flex items-center justify-between px-4 md:px-6 py-2 md:py-4 border-b border-white/5">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2.5">
-              <img src="/logo.svg" alt="SoulPrint" className="w-7 h-7" />
-              <span className="text-white font-semibold">SoulPrint</span>
+            <Link href="/" className="flex items-center gap-2">
+              <img src="/logo.svg" alt="SoulPrint" className="w-6 h-6 md:w-7 md:h-7" />
+              <span className="text-white font-semibold text-sm md:text-base">SoulPrint</span>
             </Link>
           </div>
           
           <Tooltip>
             <TooltipTrigger asChild>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white/70 hover:border-white/20 transition-all text-xs">
+              <button className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white/70 hover:border-white/20 transition-all text-xs">
                 <Lock className="w-3 h-3" />
                 <span>Private</span>
               </button>
@@ -211,9 +211,9 @@ export default function ImportPage() {
         </header>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10 min-h-0">
+        <div className="flex-1 flex flex-col items-center justify-center px-4 md:px-6 relative z-10 min-h-0 py-2 md:py-4">
           {/* Title */}
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-8 text-center">
+          <h1 className="text-2xl md:text-4xl font-bold text-white mb-4 md:mb-8 text-center">
             Import Your ChatGPT History
           </h1>
 
@@ -242,7 +242,7 @@ export default function ImportPage() {
                       onDragOver={handleDrag}
                       onDrop={handleDrop}
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-10 text-center"
+                      className="p-6 md:p-10 text-center"
                     >
                       <input
                         ref={fileInputRef}
@@ -251,13 +251,13 @@ export default function ImportPage() {
                         onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                         className="hidden"
                       />
-                      <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors ${dragActive ? 'bg-orange-500/20' : 'bg-white/5'}`}>
-                        <Upload className={`w-7 h-7 transition-colors ${dragActive ? 'text-orange-400' : 'text-white/40'}`} />
+                      <div className={`w-10 h-10 md:w-14 md:h-14 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 transition-colors ${dragActive ? 'bg-orange-500/20' : 'bg-white/5'}`}>
+                        <Upload className={`w-5 h-5 md:w-7 md:h-7 transition-colors ${dragActive ? 'text-orange-400' : 'text-white/40'}`} />
                       </div>
-                      <p className="text-white font-semibold text-lg mb-1">
+                      <p className="text-white font-semibold text-base md:text-lg mb-1">
                         {dragActive ? 'Drop to upload' : 'Drop your ZIP file here'}
                       </p>
-                      <p className="text-white/40 text-sm">or click to browse</p>
+                      <p className="text-white/40 text-xs md:text-sm">or click to browse</p>
                     </div>
                   </SpotlightCard>
                 </motion.div>
@@ -269,16 +269,16 @@ export default function ImportPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-10 text-center"
+                  className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-6 md:p-10 text-center"
                 >
-                  <div className="mb-6">
+                  <div className="mb-4 md:mb-6">
                     <RingProgress 
                       progress={progress} 
-                      size={100} 
-                      strokeWidth={6}
+                      size={80} 
+                      strokeWidth={5}
                     />
                   </div>
-                  <p className="text-white/60 text-sm mb-4">{progressStage || 'Processing...'}</p>
+                  <p className="text-white/60 text-xs md:text-sm mb-3 md:mb-4">{progressStage || 'Processing...'}</p>
                   <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
                     <motion.div
                       className="h-full bg-gradient-to-r from-orange-600 to-orange-400 rounded-full"
@@ -295,23 +295,23 @@ export default function ImportPage() {
                   key="success"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-2xl border border-green-500/20 bg-green-500/5 backdrop-blur-sm p-10 text-center"
+                  className="rounded-2xl border border-green-500/20 bg-green-500/5 backdrop-blur-sm p-6 md:p-10 text-center"
                 >
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', delay: 0.1 }}
-                    className="w-14 h-14 rounded-full bg-green-500/15 flex items-center justify-center mx-auto mb-4"
+                    className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-green-500/15 flex items-center justify-center mx-auto mb-3 md:mb-4"
                   >
-                    <CheckCircle2 className="w-7 h-7 text-green-500" />
+                    <CheckCircle2 className="w-5 h-5 md:w-7 md:h-7 text-green-500" />
                   </motion.div>
-                  <h3 className="text-white font-semibold text-xl mb-2">Import Complete</h3>
-                  <p className="text-white/50 text-sm mb-6">Your AI now knows you</p>
+                  <h3 className="text-white font-semibold text-lg md:text-xl mb-1 md:mb-2">Import Complete</h3>
+                  <p className="text-white/50 text-xs md:text-sm mb-4 md:mb-6">Your AI now knows you</p>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => router.push('/chat')}
-                    className="px-8 py-2.5 bg-orange-500 hover:bg-orange-400 text-black font-semibold rounded-xl transition-colors"
+                    className="px-6 md:px-8 py-2 md:py-2.5 bg-orange-500 hover:bg-orange-400 text-black font-semibold rounded-xl transition-colors text-sm md:text-base"
                   >
                     Start Chatting
                   </motion.button>
@@ -323,16 +323,16 @@ export default function ImportPage() {
                   key="error"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="rounded-2xl border border-red-500/20 bg-red-500/5 backdrop-blur-sm p-10 text-center"
+                  className="rounded-2xl border border-red-500/20 bg-red-500/5 backdrop-blur-sm p-6 md:p-10 text-center"
                 >
-                  <div className="w-14 h-14 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-4">
-                    <AlertCircle className="w-7 h-7 text-red-500" />
+                  <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-3 md:mb-4">
+                    <AlertCircle className="w-5 h-5 md:w-7 md:h-7 text-red-500" />
                   </div>
-                  <h3 className="text-white font-semibold text-lg mb-2">Something went wrong</h3>
-                  <p className="text-white/50 text-sm mb-6">{errorMessage}</p>
+                  <h3 className="text-white font-semibold text-base md:text-lg mb-1 md:mb-2">Something went wrong</h3>
+                  <p className="text-white/50 text-xs md:text-sm mb-4 md:mb-6">{errorMessage}</p>
                   <button
                     onClick={() => { setStatus('idle'); setErrorMessage(''); }}
-                    className="px-6 py-2.5 bg-white/10 hover:bg-white/15 text-white/80 rounded-xl transition-colors font-medium"
+                    className="px-5 md:px-6 py-2 md:py-2.5 bg-white/10 hover:bg-white/15 text-white/80 rounded-xl transition-colors font-medium text-sm md:text-base"
                   >
                     Try Again
                   </button>
@@ -342,14 +342,14 @@ export default function ImportPage() {
           </div>
 
           {/* FAQ Tooltips */}
-          <div className="w-full max-w-lg mt-8">
-            <div className="flex justify-center gap-3">
+          <div className="w-full max-w-lg mt-4 md:mt-8 px-2 md:px-0">
+            <div className="grid grid-cols-2 md:flex md:justify-center gap-2 md:gap-3">
               {faqs.map((faq, i) => (
                 <Tooltip key={i}>
                   <TooltipTrigger asChild>
-                    <button className="group flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] hover:border-orange-500/20 transition-all">
-                      <faq.icon className="w-3.5 h-3.5 text-white/30 group-hover:text-orange-400 transition-colors" />
-                      <span className="text-xs text-white/40 group-hover:text-white/60 transition-colors">
+                    <button className="group flex items-center justify-center gap-1 md:gap-1.5 px-2 py-1.5 md:px-3 md:py-2 rounded-lg bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] hover:border-orange-500/20 transition-all">
+                      <faq.icon className="w-3 h-3 md:w-3.5 md:h-3.5 text-white/30 group-hover:text-orange-400 transition-colors flex-shrink-0" />
+                      <span className="text-[10px] md:text-xs text-white/40 group-hover:text-white/60 transition-colors truncate">
                         {faq.title}
                       </span>
                     </button>
