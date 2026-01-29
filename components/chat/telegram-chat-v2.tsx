@@ -221,7 +221,21 @@ export function TelegramChatV2({
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      
+      // Try different MIME types for browser compatibility
+      let mimeType = 'audio/webm';
+      if (!MediaRecorder.isTypeSupported('audio/webm')) {
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          mimeType = 'audio/ogg';
+        } else {
+          mimeType = ''; // Let browser choose
+        }
+      }
+      
+      const options = mimeType ? { mimeType } : undefined;
+      const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -232,7 +246,7 @@ export function TelegramChatV2({
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' });
         stream.getTracks().forEach(track => track.stop());
         await transcribeAudio(audioBlob);
       };
@@ -241,7 +255,7 @@ export function TelegramChatV2({
       setIsRecording(true);
     } catch (error) {
       console.error('Failed to start recording:', error);
-      alert('Could not access microphone. Please allow microphone access.');
+      alert('Could not access microphone. Please allow microphone access and try again.');
     }
   };
 

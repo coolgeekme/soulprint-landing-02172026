@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
+      console.log('[Transcribe] Auth error:', authError?.message);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -15,14 +16,28 @@ export async function POST(request: NextRequest) {
     const audioFile = formData.get('audio') as File;
     
     if (!audioFile) {
+      console.log('[Transcribe] No audio file');
       return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
+    }
+
+    console.log('[Transcribe] File received:', audioFile.name, audioFile.type, audioFile.size, 'bytes');
+
+    // Determine file extension from MIME type
+    let extension = 'webm';
+    if (audioFile.type.includes('mp4') || audioFile.type.includes('m4a')) {
+      extension = 'mp4';
+    } else if (audioFile.type.includes('ogg')) {
+      extension = 'ogg';
+    } else if (audioFile.type.includes('wav')) {
+      extension = 'wav';
     }
 
     // Send to OpenAI Whisper
     const openaiFormData = new FormData();
-    openaiFormData.append('file', audioFile, 'audio.webm');
+    openaiFormData.append('file', audioFile, `audio.${extension}`);
     openaiFormData.append('model', 'whisper-1');
-    openaiFormData.append('language', 'en');
+
+    console.log('[Transcribe] Sending to OpenAI...');
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -34,14 +49,15 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('[Transcribe] OpenAI error:', error);
-      return NextResponse.json({ error: 'Transcription failed' }, { status: 500 });
+      console.error('[Transcribe] OpenAI error:', response.status, error);
+      return NextResponse.json({ error: 'Transcription failed', details: error }, { status: 500 });
     }
 
     const data = await response.json();
+    console.log('[Transcribe] Success:', data.text?.slice(0, 50) + '...');
     return NextResponse.json({ text: data.text });
   } catch (error) {
     console.error('[Transcribe] Error:', error);
-    return NextResponse.json({ error: 'Transcription failed' }, { status: 500 });
+    return NextResponse.json({ error: 'Transcription failed', details: String(error) }, { status: 500 });
   }
 }
