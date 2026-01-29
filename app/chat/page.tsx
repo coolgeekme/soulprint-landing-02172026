@@ -164,10 +164,45 @@ export default function ChatPage() {
       return;
     }
 
+    // Check for "what is your name" question
+    if (/what.?s?\s+(?:is\s+)?(?:your|ur)\s+name/i.test(content) || 
+        /(?:your|ur)\s+name\s*\?/i.test(content) ||
+        /who\s+are\s+you/i.test(content)) {
+      const responseMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `I'm ${aiName}! 👋 If you want to change my name, just say "call you [new name]" or tap the settings gear.`,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, responseMessage]);
+      saveMessage('user', content);
+      saveMessage('assistant', responseMessage.content);
+      setIsLoading(false);
+      return;
+    }
+
+    // Check for "change your name" without a new name (prompt them)
+    if (/(?:change|rename|edit)\s+(?:your|the|my ai.?s?)\s+name/i.test(content) ||
+        /(?:want|like)\s+to\s+(?:change|rename)\s+(?:your|you)/i.test(content) ||
+        /(?:can|could)\s+(?:i|we)\s+(?:change|rename)\s+(?:your|you)/i.test(content)) {
+      const responseMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `Sure! What would you like to call me instead? Just say "call you [name]" and I'll update it! 💫`,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, responseMessage]);
+      saveMessage('user', content);
+      saveMessage('assistant', responseMessage.content);
+      setIsLoading(false);
+      return;
+    }
+
     // Check for rename request in conversation
     const renamePatterns = [
       /(?:call you|name you|rename you|change your name to|your new name is|i.?ll call you|let.?s call you|from now on you.?re|be called)\s+["\']?([a-zA-Z][a-zA-Z0-9\s]{0,20})["\']?/i,
       /(?:your name (?:is|should be)|i.?m (?:going to |gonna )?(?:call|name) you)\s+["\']?([a-zA-Z][a-zA-Z0-9\s]{0,20})["\']?/i,
+      /(?:you.?re|you are|be)\s+(?:now\s+)?(?:called\s+)?["\']?([a-zA-Z][a-zA-Z0-9\s]{0,20})["\']?\s*(?:now)?$/i,
     ];
 
     for (const pattern of renamePatterns) {
