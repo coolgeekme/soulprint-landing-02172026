@@ -11,10 +11,117 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
+
+interface PerplexityCitation {
+  url: string;
+  title?: string;
+}
+
+interface PerplexityResponse {
+  choices: Array<{
+    message: {
+      content: string;
+    };
+  }>;
+  citations?: string[] | PerplexityCitation[];
+}
+
 /**
- * Format search results into a nice HTML email section
+ * Query Perplexity's Sonar model for real-time research
  */
-function formatNewsForEmail(results: SearchResult[], answer?: string): string {
+async function queryPerplexity(query: string): Promise<{ content: string; citations: string[]; error?: string }> {
+  if (!PERPLEXITY_API_KEY) {
+    throw new Error('PERPLEXITY_API_KEY not configured');
+  }
+
+  const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'sonar',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful research assistant. Provide concise, well-organized summaries with the most important and recent information. Use bullet points for clarity.',
+        },
+        {
+          role: 'user',
+          content: query,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Perplexity API error: ${response.status} - ${errorText}`);
+  }
+
+  const data: PerplexityResponse = await response.json();
+  const content = data.choices?.[0]?.message?.content || '';
+  
+  // Extract citations - handle both string[] and object[] formats
+  const citations: string[] = (data.citations || []).map((c: string | PerplexityCitation) => 
+    typeof c === 'string' ? c : c.url
+  );
+
+  return { content, citations };
+}
+
+/**
+ * Format Perplexity response into styled HTML for email
+ */
+function formatPerplexityForEmail(content: string, citations: string[]): string {
+  // Convert markdown-style content to HTML
+  let html = content
+    // Convert headers
+    .replace(/^### (.+)$/gm, '<h4 style="color: #1f2937; margin: 16px 0 8px 0;">$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3 style="color: #1f2937; margin: 16px 0 8px 0;">$1</h3>')
+    // Convert bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Convert bullet points
+    .replace(/^[•\-\*] (.+)$/gm, '<li style="margin: 4px 0;">$1</li>')
+    // Wrap consecutive list items
+    .replace(/(<li[^>]*>.*<\/li>\n?)+/g, '<ul style="margin: 12px 0; padding-left: 20px;">$&</ul>')
+    // Convert newlines to paragraphs (for non-list content)
+    .replace(/\n\n/g, '</p><p style="margin: 12px 0;">')
+    // Clean up
+    .replace(/\n/g, '<br>');
+
+  // Wrap in container
+  html = `<div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+    <p style="margin: 12px 0;">${html}</p>
+  </div>`;
+
+  // Add citations if available
+  if (citations.length > 0) {
+    html += `
+      <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+        <p style="color: #6b7280; font-size: 12px; font-weight: 600; margin-bottom: 8px;">SOURCES</p>
+        <ul style="margin: 0; padding-left: 16px; font-size: 13px;">
+          ${citations.slice(0, 5).map(url => {
+            try {
+              const hostname = new URL(url).hostname.replace('www.', '');
+              return `<li style="margin: 4px 0;"><a href="${url}" style="color: #2563eb; text-decoration: none;">${hostname}</a></li>`;
+            } catch {
+              return `<li style="margin: 4px 0;"><a href="${url}" style="color: #2563eb; text-decoration: none;">${url}</a></li>`;
+            }
+          }).join('')}
+        </ul>
+      </div>`;
+  }
+
+  return html;
+}
+
+/**
+ * Format Tavily search results into a nice HTML email section (fallback)
+ */
+function formatTavilyForEmail(results: SearchResult[], answer?: string): string {
   if (!results.length) {
     return '<p>No recent news found. Check back later!</p>';
   }
@@ -48,9 +155,24 @@ function formatNewsForEmail(results: SearchResult[], answer?: string): string {
 }
 
 /**
- * Fetch real-time AI news using Tavily
+ * Fetch real-time AI news using Perplexity (primary) or Tavily (fallback)
  */
 async function fetchAINews(): Promise<{ content: string; error?: string }> {
+  // Try Perplexity first (better for news summaries)
+  if (PERPLEXITY_API_KEY) {
+    try {
+      const { content, citations } = await queryPerplexity(
+        'What are the most important AI and artificial intelligence news stories from today and this week? Include major announcements, product launches, research breakthroughs, and industry developments.'
+      );
+      
+      const formattedHtml = formatPerplexityForEmail(content, citations);
+      return { content: formattedHtml };
+    } catch (error) {
+      console.error('[Cron] Perplexity failed, falling back to Tavily:', error);
+    }
+  }
+
+  // Fallback to Tavily
   try {
     const response = await searchWeb('latest AI artificial intelligence news today', {
       maxResults: 5,
@@ -58,7 +180,7 @@ async function fetchAINews(): Promise<{ content: string; error?: string }> {
       includeAnswer: true,
     });
     
-    const formattedHtml = formatNewsForEmail(response.results, response.answer);
+    const formattedHtml = formatTavilyForEmail(response.results, response.answer);
     return { content: formattedHtml };
   } catch (error) {
     console.error('[Cron] Failed to fetch AI news:', error);
@@ -70,15 +192,27 @@ async function fetchAINews(): Promise<{ content: string; error?: string }> {
 }
 
 /**
- * Fetch content based on a custom prompt using web search
+ * Fetch content based on a custom prompt using Perplexity (primary) or Tavily (fallback)
  */
 async function fetchCustomContent(prompt: string): Promise<{ content: string; error?: string }> {
+  // Clean up the prompt for search
+  const searchQuery = prompt
+    .replace(/^(remind me to|send me|tell me about|update me on)/i, '')
+    .trim();
+
+  // Try Perplexity first
+  if (PERPLEXITY_API_KEY) {
+    try {
+      const { content, citations } = await queryPerplexity(searchQuery);
+      const formattedHtml = formatPerplexityForEmail(content, citations);
+      return { content: formattedHtml };
+    } catch (error) {
+      console.error('[Cron] Perplexity failed for custom content, falling back to Tavily:', error);
+    }
+  }
+
+  // Fallback to Tavily
   try {
-    // Clean up the prompt for search
-    const searchQuery = prompt
-      .replace(/^(remind me to|send me|tell me about|update me on)/i, '')
-      .trim();
-    
     const response = await searchWeb(searchQuery, {
       maxResults: 5,
       searchDepth: 'basic',
@@ -86,7 +220,6 @@ async function fetchCustomContent(prompt: string): Promise<{ content: string; er
     });
     
     if (!response.results.length) {
-      // No search results - provide a helpful response
       return {
         content: `<p>I searched for "<em>${searchQuery}</em>" but didn't find any specific results.</p>
           <p>Here's your original request: <strong>${prompt}</strong></p>
@@ -95,7 +228,7 @@ async function fetchCustomContent(prompt: string): Promise<{ content: string; er
     }
     
     let html = `<p style="margin-bottom: 16px;">Here's what I found for: <strong>${searchQuery}</strong></p>`;
-    html += formatNewsForEmail(response.results, response.answer);
+    html += formatTavilyForEmail(response.results, response.answer);
     
     return { content: html };
   } catch (error) {

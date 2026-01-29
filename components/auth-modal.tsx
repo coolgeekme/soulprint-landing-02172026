@@ -13,6 +13,12 @@ interface AuthModalProps {
 
 export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'signup'>(defaultMode);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   
   // Sync mode when defaultMode changes (e.g., Login vs Enter SoulPrint button)
   // Also reset form state when modal opens
@@ -26,12 +32,6 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
       setSuccess(false);
     }
   }, [defaultMode, isOpen]);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
