@@ -6,12 +6,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, ArrowLeft, Mail, CheckCircle2, Loader2 } from 'lucide-react';
 
-// Referral codes from ArcheForge team
+// Referral codes from ArcheForge team - one per person
 const VALID_CODES: Record<string, string> = {
   // Team codes
   'NINETEEN19': 'Layla Ghafarri',
   'ACE1': 'Ben Woodard',
-  'ACE!1': 'Ben Woodard',
   'FLOYD': 'Adrian Floyd',
   'WHITEBOYNICK': 'Nicholas Hill',
   'BLANCHE': 'Lisa Quible',
