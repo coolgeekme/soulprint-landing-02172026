@@ -160,24 +160,51 @@ export default function ImportPage() {
         let storagePath: string;
         
         if (isMobile) {
-          // Mobile: Use proxy upload to avoid CORS issues with signed URLs
-          setProgressStage('Uploading (mobile mode)...');
-          const formData = new FormData();
-          formData.append('file', conversationsBlob, 'conversations.json');
+          // Mobile: Use signed URL but with fetch keepalive and better error handling
+          setProgressStage('Uploading (mobile)...');
           
-          const proxyRes = await fetch('/api/import/upload-proxy', {
+          const urlRes = await fetch('/api/import/get-upload-url', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: formData,
+            body: JSON.stringify({ filename: 'conversations.json' }),
           });
           
-          if (!proxyRes.ok) {
-            const err = await proxyRes.json().catch(() => ({ error: 'Upload failed' }));
-            throw new Error(err.error || 'Upload failed');
+          if (!urlRes.ok) {
+            const err = await urlRes.json().catch(() => ({ error: 'Failed to get upload URL' }));
+            throw new Error(err.error || 'Failed to get upload URL');
           }
           
-          const proxyResult = await proxyRes.json();
-          storagePath = proxyResult.path;
+          const { uploadUrl, path: urlPath } = await urlRes.json();
+          storagePath = urlPath;
+          
+          // Use XMLHttpRequest for better mobile compatibility
+          await new Promise<void>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('PUT', uploadUrl, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                resolve();
+              } else {
+                reject(new Error(`Upload failed: ${xhr.status}`));
+              }
+            };
+            
+            xhr.onerror = () => reject(new Error('Network error during upload'));
+            xhr.ontimeout = () => reject(new Error('Upload timed out'));
+            
+            xhr.upload.onprogress = (e) => {
+              if (e.lengthComputable) {
+                const pct = Math.round((e.loaded / e.total) * 25) + 25; // 25-50%
+                setProgress(pct);
+              }
+            };
+            
+            xhr.timeout = 300000; // 5 min timeout
+            xhr.send(conversationsBlob);
+          });
         } else {
           // Desktop: Use signed URL for faster direct upload
           const urlRes = await fetch('/api/import/get-upload-url', {
