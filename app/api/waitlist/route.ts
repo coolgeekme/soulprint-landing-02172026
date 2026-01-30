@@ -17,6 +17,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Valid email required' }, { status: 400 });
     }
 
+    const displayName = name?.trim() || email.split('@')[0];
+    const timestamp = new Date().toISOString();
+
     // Create a box (lead) in Streak pipeline using v2 API
     const boxResponse = await fetch(`https://api.streak.com/api/v2/pipelines/${STREAK_PIPELINE_KEY}/boxes`, {
       method: 'POST',
@@ -25,37 +28,26 @@ export async function POST(request: Request) {
         'Authorization': `Basic ${Buffer.from(STREAK_API_KEY + ':').toString('base64')}`,
       },
       body: JSON.stringify({
-        name: name || email.split('@')[0], // Use name or email prefix
-        notes: `Waitlist signup from soulprintengine.ai\nEmail: ${email}\nDate: ${new Date().toISOString()}`,
+        name: `${displayName} (${email})`, // Name with email for easy ID
+        notes: [
+          '📧 WAITLIST SIGNUP',
+          '─────────────────',
+          `Name: ${displayName}`,
+          `Email: ${email}`,
+          `Source: soulprintengine.ai`,
+          `Date: ${timestamp}`,
+        ].join('\n'),
       }),
     });
 
     if (!boxResponse.ok) {
       const errorText = await boxResponse.text();
       console.error('[Waitlist] Streak box creation failed:', errorText);
-      // Don't expose Streak errors to user
       return NextResponse.json({ error: 'Failed to join waitlist' }, { status: 500 });
     }
 
     const box = await boxResponse.json();
-
-    // Add email as a contact to the box
-    const contactResponse = await fetch(`https://api.streak.com/api/v1/boxes/${box.key}/contacts`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${Buffer.from(STREAK_API_KEY + ':').toString('base64')}`,
-      },
-      body: JSON.stringify({
-        email: email,
-      }),
-    });
-
-    if (!contactResponse.ok) {
-      console.warn('[Waitlist] Failed to add contact to box, but box was created');
-    }
-
-    console.log(`[Waitlist] Added ${email} to Streak pipeline`);
+    console.log(`[Waitlist] Added ${email} to Streak pipeline (box: ${box.boxKey})`);
 
     return NextResponse.json({ 
       success: true,
