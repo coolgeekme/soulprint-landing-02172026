@@ -1,6 +1,6 @@
 /**
  * Conversation Chunker
- * Splits conversations into ~500 token chunks for embedding
+ * Splits conversations into ~300 char chunks for precise semantic search
  */
 
 import { ParsedConversation, ParsedMessage } from './parser';
@@ -21,11 +21,9 @@ export interface ChunkMetadata {
   endTimestamp?: string;
 }
 
-// Approximate tokens per character ratio (English text averages ~4 chars per token)
-const CHARS_PER_TOKEN = 4;
-const TARGET_CHUNK_TOKENS = 400;
-const TARGET_CHUNK_CHARS = TARGET_CHUNK_TOKENS * CHARS_PER_TOKEN; // ~1600 chars
-const MAX_CHUNK_CHARS = TARGET_CHUNK_CHARS * 1.2; // Allow 20% overflow to avoid splitting mid-message
+// Ultra-granular chunking for better semantic search
+const TARGET_CHUNK_CHARS = 300; // Small chunks = precise retrieval
+const MAX_CHUNK_CHARS = 360; // Allow 20% overflow to avoid splitting mid-message
 
 /**
  * Chunk all conversations into embedding-ready segments
@@ -139,8 +137,8 @@ function createChunk(
 }
 
 /**
- * Estimate token count for a string
+ * Estimate token count for a string (~4 chars per token for English)
  */
 export function estimateTokens(text: string): number {
-  return Math.ceil(text.length / CHARS_PER_TOKEN);
+  return Math.ceil(text.length / 4);
 }
