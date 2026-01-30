@@ -155,29 +155,55 @@ export default function ImportPage() {
         setProgressStage('Uploading conversations...');
         setProgress(25);
         
-        // Get signed upload URL for the extracted JSON (much smaller!)
-        const urlRes = await fetch('/api/import/get-upload-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ filename: 'conversations.json' }),
-        });
+        // Upload via proxy (more reliable on mobile) or signed URL (faster on desktop)
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        let storagePath: string;
         
-        if (!urlRes.ok) {
-          throw new Error('Failed to get upload URL');
-        }
-        
-        const { uploadUrl, path: storagePath } = await urlRes.json();
-        
-        // Upload only conversations.json (typically 50-200MB instead of 1.8GB)
-        const uploadRes = await fetch(uploadUrl, {
-          method: 'PUT',
-          body: conversationsBlob,
-          headers: { 'Content-Type': 'application/json' },
-        });
-        
-        if (!uploadRes.ok) {
-          throw new Error('Upload failed');
+        if (isMobile) {
+          // Mobile: Use proxy upload to avoid CORS issues with signed URLs
+          setProgressStage('Uploading (mobile mode)...');
+          const formData = new FormData();
+          formData.append('file', conversationsBlob, 'conversations.json');
+          
+          const proxyRes = await fetch('/api/import/upload-proxy', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData,
+          });
+          
+          if (!proxyRes.ok) {
+            const err = await proxyRes.json().catch(() => ({ error: 'Upload failed' }));
+            throw new Error(err.error || 'Upload failed');
+          }
+          
+          const proxyResult = await proxyRes.json();
+          storagePath = proxyResult.path;
+        } else {
+          // Desktop: Use signed URL for faster direct upload
+          const urlRes = await fetch('/api/import/get-upload-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ filename: 'conversations.json' }),
+          });
+          
+          if (!urlRes.ok) {
+            throw new Error('Failed to get upload URL');
+          }
+          
+          const { uploadUrl, path: urlPath } = await urlRes.json();
+          storagePath = urlPath;
+          
+          // Upload only conversations.json (typically 50-200MB instead of 1.8GB)
+          const uploadRes = await fetch(uploadUrl, {
+            method: 'PUT',
+            body: conversationsBlob,
+            headers: { 'Content-Type': 'application/json' },
+          });
+          
+          if (!uploadRes.ok) {
+            throw new Error('Upload failed');
+          }
         }
         
         setProgressStage('Processing...');
