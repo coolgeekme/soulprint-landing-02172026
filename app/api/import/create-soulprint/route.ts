@@ -1,13 +1,14 @@
 /**
- * Create soulprint via RLM from conversation sample
- * Fast endpoint - only processes ~150 conversations
+ * Create soulprint via RLM - EXHAUSTIVE analysis
+ * Processes up to 500 conversations in batches
+ * Takes 1-3 minutes depending on data size
  */
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 300; // 5 minutes for exhaustive analysis
 
 export async function POST(request: Request) {
   try {
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
             conversations,
             stats,
           }),
-          signal: AbortSignal.timeout(55000),
+          signal: AbortSignal.timeout(280000), // 4.5 minutes for exhaustive analysis
         });
 
         if (response.ok) {

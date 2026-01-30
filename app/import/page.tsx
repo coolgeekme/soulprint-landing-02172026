@@ -133,7 +133,7 @@ export default function ImportPage() {
 
       setStatus('saving');
       setProgress(72);
-      setProgressStage('Creating your SoulPrint with RLM...');
+      setProgressStage('Deep analysis in progress (1-2 min)...');
 
       // Step 2: Send a SAMPLE to RLM for soulprint generation (fast!)
       // Sample: 50 recent + 50 oldest + 50 longest = 150 conversations max
@@ -143,18 +143,27 @@ export default function ImportPage() {
         .sort((a, b) => (b.messages?.length || 0) - (a.messages?.length || 0))
         .slice(0, 50);
       
-      // Dedupe and limit message size
-      const sampleSet = new Map();
-      [...recentConvos, ...oldestConvos, ...longestConvos].forEach(c => {
-        if (!sampleSet.has(c.id || c.title)) {
-          sampleSet.set(c.id || c.title, {
-            title: c.title,
-            messages: (c.messages || []).slice(0, 30), // First 30 messages per convo
-            createdAt: c.createdAt,
-          });
-        }
-      });
-      const conversationSample = Array.from(sampleSet.values()).slice(0, 150);
+      // EXHAUSTIVE: Send ALL conversations for comprehensive analysis
+      // Optimize payload by limiting message length, but include ALL conversations
+      const allConversations = rawConversations.map(c => ({
+        title: c.title,
+        messages: (c.messages || []).slice(0, 25).map((m: { role?: string; content?: string }) => ({
+          role: m.role || 'user',
+          content: (m.content || '').slice(0, 400), // Truncate long messages
+        })),
+        message_count: c.messages?.length || 0,
+        createdAt: c.createdAt,
+      }));
+      
+      // For very large exports (>1000), take strategic sample to fit request limits
+      // but much larger than before (500 vs 150)
+      const conversationSample = allConversations.length > 500 
+        ? [
+            ...allConversations.slice(0, 200),  // Recent
+            ...allConversations.slice(-100),     // Oldest  
+            ...allConversations.sort((a, b) => b.message_count - a.message_count).slice(0, 200), // Longest
+          ].filter((v, i, a) => a.findIndex(t => t.title === v.title) === i).slice(0, 500)
+        : allConversations;
 
       // Create soulprint via RLM (or fallback to client-generated)
       let finalSoulprint = result;
