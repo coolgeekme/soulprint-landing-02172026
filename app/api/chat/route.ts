@@ -39,8 +39,52 @@ interface UserProfile {
   ai_name: string | null;
 }
 
-// Search is user-triggered only via Deep Search toggle
-// No AI tool calling - keeps costs down and behavior predictable
+interface RLMResponse {
+  response: string;
+  chunks_used: number;
+  method: string;
+  latency_ms: number;
+}
+
+// RLM Service - handles memory retrieval and response generation
+async function tryRLMService(
+  userId: string,
+  message: string,
+  soulprintText: string | null,
+  history: ChatMessage[]
+): Promise<RLMResponse | null> {
+  const rlmUrl = process.env.RLM_SERVICE_URL;
+  if (!rlmUrl) return null;
+
+  try {
+    console.log('[Chat] Trying RLM service...');
+    const response = await fetch(`${rlmUrl}/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        message,
+        soulprint_text: soulprintText,
+        history,
+      }),
+      signal: AbortSignal.timeout(60000), // 60s timeout
+    });
+
+    if (!response.ok) {
+      console.log('[Chat] RLM service error:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log('[Chat] RLM success:', data.method, data.latency_ms + 'ms');
+    return data;
+  } catch (error) {
+    console.log('[Chat] RLM service unavailable:', error);
+    return null;
+  }
+}
+
+// Search is user-triggered only via Web Search toggle
 
 export async function POST(request: NextRequest) {
   try {
@@ -104,20 +148,57 @@ export async function POST(request: NextRequest) {
     }
 
     const aiName = userProfile?.ai_name || 'SoulPrint';
+
+    // If NOT using web search, try RLM service first (faster, cheaper)
+    if (!deepSearch) {
+      const rlmResponse = await tryRLMService(
+        user.id,
+        message,
+        userProfile?.soulprint_text || null,
+        history
+      );
+
+      if (rlmResponse) {
+        // RLM worked - learn and return
+        if (rlmResponse.response && rlmResponse.response.length > 0) {
+          learnFromChat(user.id, message, rlmResponse.response).catch(err => {
+            console.log('[Chat] Learning failed (non-blocking):', err);
+          });
+        }
+
+        // Return SSE format
+        const stream = new ReadableStream({
+          start(controller) {
+            const content = `data: ${JSON.stringify({ content: rlmResponse.response })}\n\n`;
+            controller.enqueue(new TextEncoder().encode(content));
+            const done = `data: [DONE]\n\n`;
+            controller.enqueue(new TextEncoder().encode(done));
+            controller.close();
+          },
+        });
+
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+          },
+        });
+      }
+    }
     
-    // If user triggered Deep Search, force Perplexity search upfront
-    let forcedSearchContext = '';
-    let forcedSearchCitations: string[] = [];
+    // If user triggered Web Search, call Perplexity
+    let webSearchContext = '';
+    let webSearchCitations: string[] = [];
     if (deepSearch && process.env.PERPLEXITY_API_KEY) {
       try {
-        console.log('[Chat] User triggered Deep Search - forcing Perplexity...');
-        const searchResult = await queryPerplexity(message, { model: 'sonar-deep-research' });
-        forcedSearchContext = `🔍 **Deep Search Results:**\n\n${searchResult.answer}`;
-        forcedSearchCitations = searchResult.citations;
-        console.log('[Chat] Deep Search returned', searchResult.citations.length, 'citations');
+        console.log('[Chat] User triggered Web Search - calling Perplexity...');
+        const searchResult = await queryPerplexity(message, { model: 'sonar' });
+        webSearchContext = `🔍 **Web Search Results:**\n\n${searchResult.answer}`;
+        webSearchCitations = searchResult.citations;
+        console.log('[Chat] Web Search returned', searchResult.citations.length, 'citations');
       } catch (error) {
-        console.error('[Chat] Deep Search failed:', error);
-        forcedSearchContext = '(Deep search failed - answering with available knowledge)';
+        console.error('[Chat] Web Search failed:', error);
+        webSearchContext = '(Web search failed - answering with available knowledge)';
       }
     }
     
@@ -126,8 +207,8 @@ export async function POST(request: NextRequest) {
       memoryContext,
       voiceVerified,
       aiName,
-      forcedSearchContext,
-      forcedSearchCitations
+      webSearchContext,
+      webSearchCitations
     );
 
     // Build messages for Bedrock Converse API
@@ -272,11 +353,11 @@ RELEVANT MEMORIES:
 ${memoryContext}`;
   }
 
-  // Add forced search results (user triggered Deep Search)
+  // Add web search results (user triggered Web Search)
   if (forcedSearchContext) {
     prompt += `
 
-DEEP SEARCH RESULTS (User requested comprehensive research):
+WEB SEARCH RESULTS (Real-time information):
 ${forcedSearchContext}`;
     
     if (forcedSearchCitations && forcedSearchCitations.length > 0) {
@@ -290,7 +371,7 @@ Sources to cite in your response:`;
     
     prompt += `
 
-IMPORTANT: The user triggered Deep Search mode. Use the search results above to provide a comprehensive, well-researched answer. Cite sources naturally.`;
+Use the web search results above to answer. Cite sources naturally in your response.`;
   }
 
   return prompt;
