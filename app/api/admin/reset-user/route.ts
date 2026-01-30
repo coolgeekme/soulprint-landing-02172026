@@ -30,21 +30,28 @@ export async function DELETE(request: Request) {
     // Delete in order (foreign key constraints)
     const results: Record<string, any> = {};
     
-    // 1. Delete conversation chunks
+    // 1. Delete chat messages
+    const { error: chatError, count: chatCount } = await adminSupabase
+      .from('chat_messages')
+      .delete({ count: 'exact' })
+      .eq('user_id', userId);
+    results.chat_messages = chatError ? chatError.message : `${chatCount ?? 0} deleted`;
+    
+    // 2. Delete conversation chunks
     const { error: chunksError, count: chunksCount } = await adminSupabase
       .from('conversation_chunks')
       .delete({ count: 'exact' })
       .eq('user_id', userId);
-    results.conversation_chunks = chunksError ? chunksError.message : `${chunksCount} deleted`;
+    results.conversation_chunks = chunksError ? chunksError.message : `${chunksCount ?? 0} deleted`;
     
-    // 2. Delete raw conversations
+    // 3. Delete raw conversations
     const { error: rawError, count: rawCount } = await adminSupabase
       .from('raw_conversations')
       .delete({ count: 'exact' })
       .eq('user_id', userId);
-    results.raw_conversations = rawError ? rawError.message : `${rawCount} deleted`;
+    results.raw_conversations = rawError ? rawError.message : `${rawCount ?? 0} deleted`;
     
-    // 3. Delete user profile
+    // 4. Delete user profile
     const { error: profileError, count: profileCount } = await adminSupabase
       .from('user_profiles')
       .delete({ count: 'exact' })
