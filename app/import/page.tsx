@@ -164,26 +164,36 @@ export default function ImportPage() {
           throw new Error('File upload failed');
         }
         
-        setProgressStage('Processing on server (1-3 minutes)...');
+        setProgressStage('Starting background processing...');
         setProgress(30);
         
-        // Trigger server-side processing (new mobile-friendly endpoint)
-        const processRes = await fetch('/api/import/process-server', {
+        // Start background job - user can close browser after this
+        const jobRes = await fetch('/api/import/start-job', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ storagePath }),
+          body: JSON.stringify({ 
+            storagePath,
+            filename: file.name,
+            fileSize: file.size,
+          }),
         });
         
-        if (!processRes.ok) {
-          const err = await processRes.json();
-          throw new Error(err.error || 'Server processing failed');
+        if (!jobRes.ok) {
+          const err = await jobRes.json();
+          throw new Error(err.error || 'Failed to start import');
         }
         
-        const processData = await processRes.json();
-        result = processData.soulprint;
-        conversationChunks = processData.chunks || [];
-        rawConversations = processData.conversations || [];
+        const { jobId } = await jobRes.json();
+        
+        // Show success message and redirect
+        setProgressStage('Upload complete! Processing in background...');
+        setProgress(100);
+        
+        // Brief pause to show success, then redirect to chat
+        await new Promise(r => setTimeout(r, 2000));
+        router.push('/chat?importing=true');
+        return; // Exit early - background job handles the rest
         
         setProgress(70);
       } else {
