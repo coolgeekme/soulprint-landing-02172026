@@ -1,13 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { AuthModal } from "@/components/auth-modal";
+import { AccessCodeModal } from "@/components/access-code-modal";
 
 export function Hero() {
     const [authModal, setAuthModal] = useState<{ open: boolean; mode: 'login' | 'signup' }>({ open: false, mode: 'login' });
+    const [accessCodeModal, setAccessCodeModal] = useState(false);
+    const [hasValidCode, setHasValidCode] = useState(false);
+
+    // Check for stored valid code on mount
+    useEffect(() => {
+        const stored = localStorage.getItem('hasValidCode') === 'true';
+        setHasValidCode(stored);
+    }, []);
+
+    // Handle CTA click - check if user has valid code
+    const handleEnterClick = () => {
+        if (hasValidCode) {
+            // Already has valid code - go straight to auth
+            setAuthModal({ open: true, mode: 'signup' });
+        } else {
+            // Need to enter access code first
+            setAccessCodeModal(true);
+        }
+    };
+
+    // Handle login click - always show auth modal (for existing users)
+    const handleLoginClick = () => {
+        setAuthModal({ open: true, mode: 'login' });
+    };
+
+    // Called when valid access code is entered
+    const handleCodeValid = () => {
+        setHasValidCode(true);
+        setAccessCodeModal(false);
+        // Show auth modal after short delay for smooth transition
+        setTimeout(() => {
+            setAuthModal({ open: true, mode: 'signup' });
+        }, 100);
+    };
 
     return (
         <>
@@ -35,7 +70,7 @@ export function Hero() {
                         <span className="text-white text-2xl font-koulen tracking-tight">SOULPRINT</span>
                     </div>
                     <button 
-                        onClick={() => setAuthModal({ open: true, mode: 'login' })}
+                        onClick={handleLoginClick}
                         className="text-white text-sm font-semibold uppercase tracking-wide hover:text-orange-500 transition-colors"
                     >
                         Login
@@ -61,7 +96,7 @@ export function Hero() {
                         </p>
 
                         <button 
-                            onClick={() => setAuthModal({ open: true, mode: 'login' })}
+                            onClick={handleEnterClick}
                             className="w-full max-w-xs mx-auto h-14 bg-orange-500 hover:bg-orange-400 active:scale-[0.98] transition-all flex items-center justify-center gap-3 rounded-lg shadow-lg shadow-orange-500/25"
                         >
                             <span className="text-black font-bold text-lg uppercase tracking-wide">Enter SoulPrint</span>
@@ -98,7 +133,7 @@ export function Hero() {
                         <span className="text-white text-3xl font-koulen tracking-tight">SOULPRINT</span>
                     </div>
                     <button 
-                        onClick={() => setAuthModal({ open: true, mode: 'login' })}
+                        onClick={handleLoginClick}
                         className="text-white text-sm font-semibold uppercase tracking-wide hover:text-orange-500 transition-colors"
                     >
                         Login
@@ -124,7 +159,7 @@ export function Hero() {
                         </p>
 
                         <button 
-                            onClick={() => setAuthModal({ open: true, mode: 'login' })}
+                            onClick={handleEnterClick}
                             className="mx-auto h-16 px-12 bg-orange-500 hover:bg-orange-400 active:scale-[0.98] transition-all flex items-center justify-center gap-4 rounded-lg shadow-lg shadow-orange-500/25"
                         >
                             <span className="text-black font-bold text-xl uppercase tracking-wide">Enter SoulPrint</span>
@@ -134,7 +169,14 @@ export function Hero() {
                 </div>
             </section>
 
-            {/* Auth Modal */}
+            {/* Access Code Modal - shown first if no valid code */}
+            <AccessCodeModal 
+                isOpen={accessCodeModal}
+                onClose={() => setAccessCodeModal(false)}
+                onCodeValid={handleCodeValid}
+            />
+
+            {/* Auth Modal - shown after valid code or for login */}
             <AuthModal 
                 isOpen={authModal.open} 
                 onClose={() => setAuthModal({ ...authModal, open: false })}
