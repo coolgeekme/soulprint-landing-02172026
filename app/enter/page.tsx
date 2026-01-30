@@ -19,6 +19,7 @@ const VALID_CODES: Record<string, string> = {
   'DREW2026': 'Drew',
   'GLENN2026': 'Glenn',
   'RONNIE2026': 'Ronnie',
+  'DAVID2026': 'David',
 };
 
 type Mode = 'code' | 'waitlist' | 'success';
