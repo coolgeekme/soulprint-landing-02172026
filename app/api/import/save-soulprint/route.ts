@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { soulprint, conversationChunks } = body;
+    const { soulprint, conversationChunks, rawExportPath } = body;
 
     if (!soulprint) {
       return NextResponse.json({ error: 'Soulprint data required' }, { status: 400 });
@@ -73,29 +73,37 @@ export async function POST(request: Request) {
     console.log(`[SaveSoulprint] Saving for user ${user.id}`);
     console.log(`[SaveSoulprint] Stats:`, soulprint.stats);
     console.log(`[SaveSoulprint] Chunks:`, conversationChunks?.length || 0);
+    console.log(`[SaveSoulprint] Raw export path:`, rawExportPath || 'none');
 
     // Generate soulprint text for chat context
     const soulprintText = generateSoulprintText(soulprint);
 
     // Upsert user profile with soulprint
     // Set embedding_status to 'importing' while we write chunks (prevents race with cron)
+    const profileData: Record<string, unknown> = {
+      user_id: user.id,
+      soulprint: soulprint,
+      soulprint_text: soulprintText,
+      import_status: 'processing', // Not 'complete' until all embeddings done
+      total_conversations: soulprint.stats.totalConversations,
+      total_messages: soulprint.stats.totalMessages,
+      soulprint_generated_at: new Date().toISOString(),
+      // 'importing' prevents embedding cron from running while we write chunks
+      embedding_status: 'importing',
+      embedding_progress: 0,
+      total_chunks: conversationChunks?.length || 0,
+      processed_chunks: 0,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Add raw export path if provided
+    if (rawExportPath) {
+      profileData.raw_export_path = rawExportPath;
+    }
+
     const { error: profileError } = await adminSupabase
       .from('user_profiles')
-      .upsert({
-        user_id: user.id,
-        soulprint: soulprint,
-        soulprint_text: soulprintText,
-        import_status: 'processing', // Not 'complete' until all embeddings done
-        total_conversations: soulprint.stats.totalConversations,
-        total_messages: soulprint.stats.totalMessages,
-        soulprint_generated_at: new Date().toISOString(),
-        // 'importing' prevents embedding cron from running while we write chunks
-        embedding_status: 'importing',
-        embedding_progress: 0,
-        total_chunks: conversationChunks?.length || 0,
-        processed_chunks: 0,
-        updated_at: new Date().toISOString(),
-      }, {
+      .upsert(profileData, {
         onConflict: 'user_id',
       });
 

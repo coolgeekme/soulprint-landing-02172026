@@ -57,20 +57,43 @@ export default function ImportPage() {
     setProgress(0);
 
     try {
-      const { soulprint: result, conversationChunks, rawConversations } = await generateClientSoulprint(file, (stage, percent) => {
+      const { soulprint: result, conversationChunks, rawConversations, rawConversationsJson } = await generateClientSoulprint(file, (stage, percent) => {
         setProgressStage(stage);
         setProgress(percent);
       });
 
       setStatus('saving');
+      setProgressStage('Backing up raw export...');
+      setProgress(82);
+
+      // Step 0: Upload raw conversations.json to storage for backup
+      let rawExportPath: string | undefined;
+      try {
+        const uploadResponse = await fetch('/api/import/upload-raw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conversationsJson: rawConversationsJson }),
+        });
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          rawExportPath = uploadResult.storagePath;
+          console.log('Raw export backed up to:', rawExportPath);
+        } else {
+          console.warn('Failed to backup raw export, continuing...');
+        }
+      } catch (uploadError) {
+        console.warn('Raw export backup error:', uploadError);
+        // Non-fatal - continue with import
+      }
+
       setProgressStage('Saving your profile...');
       setProgress(85);
 
-      // Step 1: Save soulprint metadata first (small payload)
+      // Step 1: Save soulprint metadata + chunks
       const response = await fetch('/api/import/save-soulprint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ soulprint: result }), // No chunks - sent separately
+        body: JSON.stringify({ soulprint: result, conversationChunks, rawExportPath }),
       });
 
       if (!response.ok) {

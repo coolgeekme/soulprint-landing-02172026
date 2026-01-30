@@ -28,6 +28,7 @@ export interface ClientSoulprintResult {
   soulprint: ClientSoulprint;
   conversationChunks: ConversationChunk[];
   rawConversations: RawConversation[]; // For re-chunking later
+  rawConversationsJson: string; // Original JSON for backup to storage
 }
 
 export interface ClientSoulprint {
@@ -93,6 +94,9 @@ export async function generateClientSoulprint(
   }
   
   const conversationsJson = await conversationsFile.async('string');
+  
+  // Store raw JSON for backup to storage
+  const rawConversationsJson = conversationsJson;
   
   onProgress?.('Parsing conversations...', 30);
   
@@ -203,7 +207,7 @@ export async function generateClientSoulprint(
     },
   };
   
-  return { soulprint, conversationChunks, rawConversations };
+  return { soulprint, conversationChunks, rawConversations, rawConversationsJson };
 }
 
 function extractMessages(convo: ChatGPTConversation): Array<{ role: string; content: string }> {
