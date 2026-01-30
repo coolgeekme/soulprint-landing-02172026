@@ -57,7 +57,7 @@ export default function ImportPage() {
     setProgress(0);
 
     try {
-      const { soulprint: result, conversationChunks } = await generateClientSoulprint(file, (stage, percent) => {
+      const { soulprint: result, conversationChunks, rawConversations } = await generateClientSoulprint(file, (stage, percent) => {
         setProgressStage(stage);
         setProgress(percent);
       });
@@ -106,6 +106,32 @@ export default function ImportPage() {
         if (!chunkResponse.ok) {
           const data = await chunkResponse.json();
           throw new Error(data.error || 'Failed to save memories');
+        }
+      }
+
+      // Step 3: Save raw conversations for future re-chunking
+      const RAW_BATCH_SIZE = 25; // Smaller batches - messages are larger
+      const totalRawBatches = Math.ceil(rawConversations.length / RAW_BATCH_SIZE);
+      
+      for (let i = 0; i < rawConversations.length; i += RAW_BATCH_SIZE) {
+        const batch = rawConversations.slice(i, i + RAW_BATCH_SIZE);
+        const batchIndex = Math.floor(i / RAW_BATCH_SIZE);
+        
+        setProgressStage(`Saving originals (${batchIndex + 1}/${totalRawBatches})...`);
+        
+        const rawResponse = await fetch('/api/import/save-raw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            conversations: batch, 
+            batchIndex, 
+            totalBatches: totalRawBatches,
+          }),
+        });
+
+        if (!rawResponse.ok) {
+          // Non-fatal - log but continue (raw save is for future re-chunking)
+          console.warn('Failed to save raw conversations batch', batchIndex);
         }
       }
 

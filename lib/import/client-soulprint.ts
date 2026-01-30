@@ -16,9 +16,18 @@ export interface ConversationChunk {
   totalChunks?: number;   // Total chunks for this conversation
 }
 
+export interface RawConversation {
+  id: string;
+  title: string;
+  messages: Array<{ role: string; content: string; timestamp?: string }>;
+  messageCount: number;
+  createdAt: string;
+}
+
 export interface ClientSoulprintResult {
   soulprint: ClientSoulprint;
   conversationChunks: ConversationChunk[];
+  rawConversations: RawConversation[]; // For re-chunking later
 }
 
 export interface ClientSoulprint {
@@ -87,12 +96,12 @@ export async function generateClientSoulprint(
   
   onProgress?.('Parsing conversations...', 30);
   
-  const rawConversations: ChatGPTConversation[] = JSON.parse(conversationsJson);
+  const parsedConversations: ChatGPTConversation[] = JSON.parse(conversationsJson);
   
   onProgress?.('Analyzing patterns...', 50);
   
   // Sort by date, take sample for soulprint analysis
-  const sorted = rawConversations.sort((a, b) => b.update_time - a.update_time);
+  const sorted = parsedConversations.sort((a, b) => b.update_time - a.update_time);
   const recent = sorted.slice(0, 100);
   const older = sorted.slice(100);
   const randomSample = sampleArray(older, 200);
@@ -126,6 +135,7 @@ export async function generateClientSoulprint(
   // Extract ALL conversation chunks with smart chunking for better recall
   // Smaller overlapping chunks enable more precise vector search
   const conversationChunks: ConversationChunk[] = [];
+  const rawConversations: RawConversation[] = [];
   const totalConvos = sorted.length;
   
   for (let i = 0; i < totalConvos; i++) {
@@ -135,6 +145,15 @@ export async function generateClientSoulprint(
     
     const createdAt = new Date(convo.create_time * 1000);
     const title = convo.title || 'Untitled';
+    
+    // Save raw conversation for future re-chunking
+    rawConversations.push({
+      id: convo.id,
+      title,
+      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      messageCount: messages.length,
+      createdAt: createdAt.toISOString(),
+    });
     
     // Use smart chunking for better vector search recall
     const chunks = chunkConversation(messages, title);
@@ -160,8 +179,8 @@ export async function generateClientSoulprint(
   }
   
   // Calculate stats
-  const allDates = rawConversations.map(c => c.create_time * 1000).filter(d => d > 0);
-  const totalMessages = rawConversations.reduce((sum, c) => {
+  const allDates = parsedConversations.map(c => c.create_time * 1000).filter(d => d > 0);
+  const totalMessages = parsedConversations.reduce((sum, c) => {
     return sum + Object.values(c.mapping).filter(n => n.message).length;
   }, 0);
   
@@ -175,7 +194,7 @@ export async function generateClientSoulprint(
     relationships,
     aiPersona,
     stats: {
-      totalConversations: rawConversations.length,
+      totalConversations: parsedConversations.length,
       totalMessages,
       dateRange: {
         earliest: allDates.length ? new Date(Math.min(...allDates)).toISOString() : new Date().toISOString(),
@@ -184,7 +203,7 @@ export async function generateClientSoulprint(
     },
   };
   
-  return { soulprint, conversationChunks };
+  return { soulprint, conversationChunks, rawConversations };
 }
 
 function extractMessages(convo: ChatGPTConversation): Array<{ role: string; content: string }> {
@@ -426,9 +445,9 @@ function chunkConversation(
   messages: Array<{ role: string; content: string }>,
   title: string
 ): Array<{ content: string; messageCount: number }> {
-  const MAX_CHUNK_SIZE = 500;       // Hard max - prioritize granularity
-  const OVERLAP_CHARS = 120;        // Context overlap between chunks
-  const SUBSTANTIAL_MSG = 200;      // Messages this long get their own chunk
+  const MAX_CHUNK_SIZE = 300;       // Ultra-small for precise retrieval
+  const OVERLAP_CHARS = 80;         // Context overlap between chunks
+  const SUBSTANTIAL_MSG = 150;      // Messages this long get their own chunk
   
   // Format all messages
   const formattedMessages = messages.map(m => ({
