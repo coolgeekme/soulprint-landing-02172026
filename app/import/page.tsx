@@ -133,105 +133,61 @@ export default function ImportPage() {
 
       // For large files (>100MB), use server-side processing
       if (file.size > FILE_SIZE_THRESHOLD) {
-        // FAST PATH: Extract only conversations.json from ZIP (not the whole file)
-        setProgressStage('Extracting conversations...');
+        // Upload raw ZIP directly - server will extract conversations.json
+        // This avoids mobile browser crashes from JSZip.loadAsync loading entire file into memory
+        setProgressStage('Preparing upload...');
         setProgress(5);
-        
-        // Load ZIP and extract just conversations.json
-        const JSZip = (await import('jszip')).default;
-        const zip = await JSZip.loadAsync(file);
-        const conversationsFile = zip.file('conversations.json');
-        
-        if (!conversationsFile) {
-          throw new Error('conversations.json not found in ZIP');
+
+        // Get signed upload URL
+        const urlRes = await fetch('/api/import/get-upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ filename: file.name }),
+        });
+
+        if (!urlRes.ok) {
+          const err = await urlRes.json().catch(() => ({ error: 'Failed to get upload URL' }));
+          throw new Error(err.error || 'Failed to get upload URL');
         }
-        
-        setProgressStage('Reading conversation data...');
-        setProgress(15);
-        
-        const conversationsJson = await conversationsFile.async('string');
-        const conversationsBlob = new Blob([conversationsJson], { type: 'application/json' });
-        
-        setProgressStage('Uploading conversations...');
-        setProgress(25);
-        
-        // Upload via proxy (more reliable on mobile) or signed URL (faster on desktop)
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        let storagePath: string;
-        
-        if (isMobile) {
-          // Mobile: Use signed URL but with fetch keepalive and better error handling
-          setProgressStage('Uploading (mobile)...');
-          
-          const urlRes = await fetch('/api/import/get-upload-url', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ filename: 'conversations.json' }),
-          });
-          
-          if (!urlRes.ok) {
-            const err = await urlRes.json().catch(() => ({ error: 'Failed to get upload URL' }));
-            throw new Error(err.error || 'Failed to get upload URL');
-          }
-          
-          const { uploadUrl, path: urlPath } = await urlRes.json();
-          storagePath = urlPath;
-          
-          // Use XMLHttpRequest for better mobile compatibility
-          await new Promise<void>((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('PUT', uploadUrl, true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            
-            xhr.onload = () => {
-              if (xhr.status >= 200 && xhr.status < 300) {
-                resolve();
-              } else {
-                reject(new Error(`Upload failed: ${xhr.status}`));
-              }
-            };
-            
-            xhr.onerror = () => reject(new Error('Network error during upload'));
-            xhr.ontimeout = () => reject(new Error('Upload timed out'));
-            
-            xhr.upload.onprogress = (e) => {
-              if (e.lengthComputable) {
-                const pct = Math.round((e.loaded / e.total) * 25) + 25; // 25-50%
-                setProgress(pct);
-              }
-            };
-            
-            xhr.timeout = 300000; // 5 min timeout
-            xhr.send(conversationsBlob);
-          });
-        } else {
-          // Desktop: Use signed URL for faster direct upload
-          const urlRes = await fetch('/api/import/get-upload-url', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ filename: 'conversations.json' }),
-          });
-          
-          if (!urlRes.ok) {
-            throw new Error('Failed to get upload URL');
-          }
-          
-          const { uploadUrl, path: urlPath } = await urlRes.json();
-          storagePath = urlPath;
-          
-          // Upload only conversations.json (typically 50-200MB instead of 1.8GB)
-          const uploadRes = await fetch(uploadUrl, {
-            method: 'PUT',
-            body: conversationsBlob,
-            headers: { 'Content-Type': 'application/json' },
-          });
-          
-          if (!uploadRes.ok) {
-            throw new Error('Upload failed');
-          }
-        }
+
+        const { uploadUrl, path: urlPath } = await urlRes.json();
+        const storagePath = urlPath;
+
+        setProgressStage('Uploading ZIP file...');
+        setProgress(10);
+
+        // Use XMLHttpRequest for progress tracking and mobile compatibility
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('PUT', uploadUrl, true);
+          xhr.setRequestHeader('Content-Type', 'application/zip');
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              reject(new Error(`Upload failed: ${xhr.status}`));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error('Network error during upload'));
+          xhr.ontimeout = () => reject(new Error('Upload timed out'));
+
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              // Upload progress: 10-50%
+              const pct = Math.round((e.loaded / e.total) * 40) + 10;
+              setProgress(pct);
+              const uploadedMB = (e.loaded / 1024 / 1024).toFixed(0);
+              const totalMB = (e.total / 1024 / 1024).toFixed(0);
+              setProgressStage(`Uploading... ${uploadedMB}/${totalMB} MB`);
+            }
+          };
+
+          xhr.timeout = 600000; // 10 min timeout for large files
+          xhr.send(file);
+        });
         
         setProgressStage('Processing...');
         setProgress(50);
