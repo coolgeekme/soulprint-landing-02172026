@@ -512,7 +512,7 @@ export function TelegramChatV2({
         }}
       >
         <form onSubmit={handleSubmit} className="flex items-center gap-2 px-3 py-2">
-          {/* Deep Search Toggle */}
+          {/* Web Search Toggle */}
           <button
             type="button"
             onClick={() => setDeepSearchEnabled(!deepSearchEnabled)}
@@ -523,7 +523,7 @@ export function TelegramChatV2({
               color: deepSearchEnabled ? '#EA580C' : theme.textSecondary,
               backgroundColor: deepSearchEnabled ? 'rgba(234, 88, 12, 0.15)' : 'transparent',
             }}
-            title={deepSearchEnabled ? 'Deep Search ON - Click to disable' : 'Enable Deep Search'}
+            title={deepSearchEnabled ? 'Web Search ON - Click to disable' : 'Enable Web Search'}
           >
             <Search className={`w-5 h-5 transition-all ${deepSearchEnabled ? 'stroke-[2.5px]' : ''}`} />
           </button>
@@ -547,7 +547,7 @@ export function TelegramChatV2({
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={deepSearchEnabled ? "Deep search..." : "Message"}
+              placeholder={deepSearchEnabled ? "Web search enabled..." : "Message"}
               className="flex-1 text-[16px] bg-transparent outline-none transition-colors placeholder:text-[#8E8E93]"
               style={{ color: theme.textPrimary }}
               enterKeyHint="send"
