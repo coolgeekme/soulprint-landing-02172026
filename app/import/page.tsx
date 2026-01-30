@@ -124,12 +124,78 @@ export default function ImportPage() {
     setCurrentStep('processing');
     setProgress(0);
 
+    const FILE_SIZE_THRESHOLD = 100 * 1024 * 1024; // 100MB threshold for server-side processing
+    
     try {
-      // Step 1: Parse ZIP and extract conversations (client-side)
-      const { soulprint: result, conversationChunks, rawConversations } = await generateClientSoulprint(file, (stage, percent) => {
-        setProgressStage(stage);
-        setProgress(Math.min(percent, 70)); // Cap at 70% for parsing phase
-      });
+      let result: ClientSoulprint;
+      let conversationChunks: Array<{ id?: string; content: string; conversationId?: string; title: string; messageCount: number; createdAt?: string; isRecent?: boolean }>;
+      let rawConversations: Array<{ id: string; title: string; messages: Array<{ role: string; content: string }>; createdAt: string }>;
+
+      // For large files (>100MB), use server-side processing
+      if (file.size > FILE_SIZE_THRESHOLD) {
+        setProgressStage('Uploading large file to server...');
+        setProgress(5);
+        
+        // Get signed upload URL
+        const urlRes = await fetch('/api/import/get-upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ filename: file.name }),
+        });
+        
+        if (!urlRes.ok) {
+          throw new Error('Failed to get upload URL');
+        }
+        
+        const { uploadUrl, path: storagePath } = await urlRes.json();
+        
+        // Upload file directly to storage (streaming, no memory issues)
+        setProgressStage('Uploading... (this may take a few minutes)');
+        setProgress(10);
+        
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: { 'Content-Type': 'application/zip' },
+        });
+        
+        if (!uploadRes.ok) {
+          throw new Error('File upload failed');
+        }
+        
+        setProgressStage('Processing on server (1-3 minutes)...');
+        setProgress(30);
+        
+        // Trigger server-side processing (new mobile-friendly endpoint)
+        const processRes = await fetch('/api/import/process-server', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ storagePath }),
+        });
+        
+        if (!processRes.ok) {
+          const err = await processRes.json();
+          throw new Error(err.error || 'Server processing failed');
+        }
+        
+        const processData = await processRes.json();
+        result = processData.soulprint;
+        conversationChunks = processData.chunks || [];
+        rawConversations = processData.conversations || [];
+        
+        setProgress(70);
+      } else {
+        // For smaller files, use client-side parsing (faster for small files)
+        const clientResult = await generateClientSoulprint(file, (stage, percent) => {
+          setProgressStage(stage);
+          setProgress(Math.min(percent, 70));
+        });
+        result = clientResult.soulprint;
+        conversationChunks = clientResult.conversationChunks;
+        rawConversations = clientResult.rawConversations;
+      }
 
       setStatus('saving');
       setProgress(72);
