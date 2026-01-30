@@ -8,6 +8,7 @@ import {
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { queryPerplexity, PerplexityModel } from '@/lib/search/perplexity';
+import { searchWeb, formatSearchContext } from '@/lib/search/tavily';
 import { getMemoryContext } from '@/lib/memory/query';
 import { learnFromChat } from '@/lib/memory/learning';
 
@@ -151,22 +152,38 @@ export async function POST(request: NextRequest) {
 
     const aiName = userProfile?.ai_name || 'SoulPrint';
 
-    // Step 1: If Web Search ON, call Perplexity FIRST
+    // Step 1: If Web Search ON, call Perplexity (with Tavily fallback)
     let webSearchContext = '';
     let webSearchCitations: string[] = [];
-    if (deepSearch && process.env.PERPLEXITY_API_KEY) {
-      try {
-        console.log('[Chat] Web Search ON - calling Perplexity...');
-        const searchResult = await queryPerplexity(message, { model: 'sonar' });
-        webSearchContext = `🔍 **Web Search Results:**\n\n${searchResult.answer}`;
-        if (searchResult.citations.length > 0) {
-          webSearchContext += '\n\nSources:\n' + searchResult.citations.slice(0, 5).map((url, i) => `${i + 1}. ${url}`).join('\n');
+    if (deepSearch) {
+      // Try Perplexity first
+      if (process.env.PERPLEXITY_API_KEY) {
+        try {
+          console.log('[Chat] Web Search ON - calling Perplexity...');
+          const searchResult = await queryPerplexity(message, { model: 'sonar' });
+          webSearchContext = `🔍 **Web Search Results:**\n\n${searchResult.answer}`;
+          if (searchResult.citations.length > 0) {
+            webSearchContext += '\n\nSources:\n' + searchResult.citations.slice(0, 5).map((url, i) => `${i + 1}. ${url}`).join('\n');
+          }
+          webSearchCitations = searchResult.citations;
+          console.log('[Chat] Perplexity returned', searchResult.citations.length, 'citations');
+        } catch (error) {
+          console.error('[Chat] Perplexity failed, trying Tavily fallback:', error);
         }
-        webSearchCitations = searchResult.citations;
-        console.log('[Chat] Perplexity returned', searchResult.citations.length, 'citations');
-      } catch (error) {
-        console.error('[Chat] Perplexity failed:', error);
-        // Continue without web search
+      }
+      
+      // Tavily fallback if Perplexity failed or unavailable
+      if (!webSearchContext && process.env.TAVILY_API_KEY) {
+        try {
+          console.log('[Chat] Using Tavily fallback...');
+          const tavilyResult = await searchWeb(message, { maxResults: 5, includeAnswer: true });
+          webSearchContext = formatSearchContext(tavilyResult);
+          webSearchCitations = tavilyResult.results.map(r => r.url);
+          console.log('[Chat] Tavily returned', tavilyResult.results.length, 'results');
+        } catch (error) {
+          console.error('[Chat] Tavily also failed:', error);
+          // Continue without web search
+        }
       }
     }
 
