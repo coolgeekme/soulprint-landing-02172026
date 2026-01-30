@@ -43,20 +43,30 @@ export async function POST(request: Request) {
     
     console.log(`[QueueProcessing] Queued for user ${user.id}, path: ${storagePath}`);
     
-    // Fire background processing - this continues even if user disconnects
-    // Using fetch with no await so it fires and forgets
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.soulprintengine.ai';
+    // Fire background processing on Render (no timeout limit)
+    // Render service handles large files better than Vercel's 60s limit
+    const renderUrl = process.env.RENDER_SERVICE_URL || 'https://soulprint-landing.onrender.com';
     
-    fetch(`${baseUrl}/api/import/process-server`, {
+    fetch(`${renderUrl}/api/import/process-server`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        // Pass auth via internal header since this is server-to-server
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
         'X-Internal-User-Id': user.id,
       },
-      body: JSON.stringify({ storagePath, userId: user.id }),
+      body: JSON.stringify({ storagePath, userId: user.id, filename }),
     }).catch(err => {
-      console.error('[QueueProcessing] Fire-and-forget error:', err);
+      console.error('[QueueProcessing] Render processing error:', err);
+      // Fallback to Vercel if Render fails
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.soulprintengine.ai';
+      fetch(`${baseUrl}/api/import/process-server`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Internal-User-Id': user.id,
+        },
+        body: JSON.stringify({ storagePath, userId: user.id }),
+      }).catch(e => console.error('[QueueProcessing] Fallback also failed:', e));
     });
     
     // Return immediately - user can close browser
