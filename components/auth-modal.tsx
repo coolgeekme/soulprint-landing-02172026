@@ -28,32 +28,6 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
   const [validatingCode, setValidatingCode] = useState(false);
   const [codeError, setCodeError] = useState('');
   
-  // Load referral from URL params or localStorage on mount
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    // Check URL params first
-    const params = new URLSearchParams(window.location.search);
-    const urlCode = params.get('ref') || params.get('referral');
-    
-    // Then check localStorage
-    const storedCode = localStorage.getItem('referralCode');
-    const storedReferrer = localStorage.getItem('referredBy');
-    
-    const code = urlCode || storedCode;
-    
-    if (code) {
-      setReferralCode(code.toUpperCase());
-      if (storedReferrer && !urlCode) {
-        // Use cached referrer name if we have it and no new URL code
-        setReferredBy(storedReferrer);
-      } else if (code) {
-        // Validate the code to get referrer name
-        validateCode(code);
-      }
-    }
-  }, []);
-  
   const validateCode = useCallback(async (code: string) => {
     if (!code.trim()) {
       setReferredBy(null);
@@ -81,6 +55,32 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
       setValidatingCode(false);
     }
   }, []);
+  
+  // Load referral from URL params or localStorage when modal opens
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isOpen) return;
+    
+    // Check URL params first
+    const params = new URLSearchParams(window.location.search);
+    const urlCode = params.get('ref') || params.get('referral');
+    
+    // Then check localStorage (fresh read every time modal opens)
+    const storedCode = localStorage.getItem('referralCode');
+    const storedReferrer = localStorage.getItem('referredBy');
+    
+    const code = urlCode || storedCode;
+    
+    if (code) {
+      setReferralCode(code.toUpperCase());
+      if (storedReferrer && !urlCode) {
+        // Use cached referrer name if we have it and no new URL code
+        setReferredBy(storedReferrer);
+      } else if (code) {
+        // Validate the code to get referrer name
+        validateCode(code);
+      }
+    }
+  }, [isOpen, validateCode]);
   
   // Sync mode when defaultMode changes (e.g., Login vs Enter SoulPrint button)
   // Also reset form state when modal opens
