@@ -33,21 +33,32 @@ interface ParsedConversation {
 
 export async function POST(request: Request) {
   try {
-    // Auth check
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Auth check - support both normal auth and internal server-to-server calls
+    let userId: string;
     
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    const internalUserId = request.headers.get('X-Internal-User-Id');
+    if (internalUserId) {
+      // Internal call from queue-processing
+      userId = internalUserId;
+    } else {
+      // Normal authenticated request
+      const supabase = await createClient();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      }
+      userId = user.id;
     }
 
-    const { storagePath } = await request.json();
+    const body = await request.json();
+    const storagePath = body.storagePath;
     
     if (!storagePath) {
       return NextResponse.json({ error: 'storagePath required' }, { status: 400 });
     }
 
-    console.log(`[ProcessServer] Starting for user ${user.id}, path: ${storagePath}`);
+    console.log(`[ProcessServer] Starting for user ${userId}, path: ${storagePath}`);
     
     const adminSupabase = getSupabaseAdmin();
     
@@ -149,7 +160,7 @@ export async function POST(request: Request) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            user_id: user.id,
+            user_id: userId,
             conversations: rlmConversations,
             stats,
           }),
@@ -177,7 +188,7 @@ export async function POST(request: Request) {
     
     // Save soulprint to user profile
     await adminSupabase.from('user_profiles').upsert({
-      user_id: user.id,
+      user_id: userId,
       soulprint: soulprint,
       soulprint_text: soulprint.soulprint_text || '',
       archetype,

@@ -164,28 +164,34 @@ export default function ImportPage() {
           throw new Error('File upload failed');
         }
         
-        setProgressStage('Processing on server (1-3 minutes)...');
-        setProgress(30);
+        setProgressStage('Starting processing...');
+        setProgress(50);
         
-        // Trigger server-side processing (new mobile-friendly endpoint)
-        const processRes = await fetch('/api/import/process-server', {
+        // Queue background processing - returns immediately
+        const queueRes = await fetch('/api/import/queue-processing', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ storagePath }),
+          body: JSON.stringify({ 
+            storagePath,
+            filename: file.name,
+            fileSize: file.size,
+          }),
         });
         
-        if (!processRes.ok) {
-          const err = await processRes.json();
-          throw new Error(err.error || 'Server processing failed');
+        if (!queueRes.ok) {
+          const err = await queueRes.json();
+          throw new Error(err.error || 'Failed to start processing');
         }
         
-        const processData = await processRes.json();
-        result = processData.soulprint;
-        conversationChunks = processData.chunks || [];
-        rawConversations = processData.conversations || [];
+        // Processing started in background - redirect to chat
+        setProgressStage('Upload complete! Processing in background...');
+        setProgress(100);
         
-        setProgress(70);
+        // Show success briefly, then redirect
+        await new Promise(r => setTimeout(r, 1500));
+        router.push('/chat?processing=true');
+        return; // Exit - background handles the rest
       } else {
         // For smaller files, use client-side parsing (faster for small files)
         const clientResult = await generateClientSoulprint(file, (stage, percent) => {
