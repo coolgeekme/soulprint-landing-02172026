@@ -171,27 +171,41 @@ export default function ImportPage() {
       setProgress(88);
       
       try {
-        // Sample conversations for personality analysis
-        const sampleForAnalysis = rawConversations
-          .slice(0, 300) // Max 300 conversations
-          .map(c => ({
-            title: c.title,
-            messages: c.messages.slice(0, 20), // Max 20 messages per convo
-            createdAt: c.createdAt,
-          }));
-
-        const personalityResponse = await fetch('/api/import/analyze-personality', {
+        // Try RLM deep analysis first (analyzes ALL conversations from DB)
+        console.log('Starting RLM deep analysis...');
+        const deepAnalysisResponse = await fetch('/api/import/analyze-deep', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversations: sampleForAnalysis }),
         });
 
-        const personalityParsed = await safeJsonParse(personalityResponse);
-        if (personalityParsed.ok && personalityParsed.data) {
-          console.log('Personality analysis complete:', personalityParsed.data.profile?.identity?.archetype);
-          setProgressStage(`You are "${personalityParsed.data.profile?.identity?.archetype || 'unique'}"...`);
+        const deepParsed = await safeJsonParse(deepAnalysisResponse);
+        if (deepParsed.ok && deepParsed.data?.success) {
+          console.log('RLM deep analysis complete:', deepParsed.data.personality?.archetype);
+          setProgressStage(`Deep analysis: ${deepParsed.data.personality?.archetype || 'unique'}...`);
+        } else if (deepParsed.data?.skipped) {
+          console.log('RLM service not configured, falling back to Bedrock analysis');
+          // Fallback: Use Bedrock-based personality analysis
+          const sampleForAnalysis = rawConversations
+            .slice(0, 300)
+            .map(c => ({
+              title: c.title,
+              messages: c.messages.slice(0, 20),
+              createdAt: c.createdAt,
+            }));
+
+          const personalityResponse = await fetch('/api/import/analyze-personality', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ conversations: sampleForAnalysis }),
+          });
+
+          const personalityParsed = await safeJsonParse(personalityResponse);
+          if (personalityParsed.ok && personalityParsed.data) {
+            console.log('Bedrock analysis complete:', personalityParsed.data.profile?.identity?.archetype);
+            setProgressStage(`You are "${personalityParsed.data.profile?.identity?.archetype || 'unique'}"...`);
+          }
         } else {
-          console.warn('Personality analysis failed, continuing...');
+          console.warn('Deep analysis failed:', deepParsed.data?.error);
         }
       } catch (personalityError) {
         console.warn('Personality analysis error:', personalityError);
