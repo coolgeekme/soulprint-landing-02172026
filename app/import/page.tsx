@@ -133,15 +133,34 @@ export default function ImportPage() {
 
       // For large files (>100MB), use server-side processing
       if (file.size > FILE_SIZE_THRESHOLD) {
-        setProgressStage('Uploading large file to server...');
+        // FAST PATH: Extract only conversations.json from ZIP (not the whole file)
+        setProgressStage('Extracting conversations...');
         setProgress(5);
         
-        // Get signed upload URL
+        // Load ZIP and extract just conversations.json
+        const JSZip = (await import('jszip')).default;
+        const zip = await JSZip.loadAsync(file);
+        const conversationsFile = zip.file('conversations.json');
+        
+        if (!conversationsFile) {
+          throw new Error('conversations.json not found in ZIP');
+        }
+        
+        setProgressStage('Reading conversation data...');
+        setProgress(15);
+        
+        const conversationsJson = await conversationsFile.async('string');
+        const conversationsBlob = new Blob([conversationsJson], { type: 'application/json' });
+        
+        setProgressStage('Uploading conversations...');
+        setProgress(25);
+        
+        // Get signed upload URL for the extracted JSON (much smaller!)
         const urlRes = await fetch('/api/import/get-upload-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ filename: file.name }),
+          body: JSON.stringify({ filename: 'conversations.json' }),
         });
         
         if (!urlRes.ok) {
@@ -150,24 +169,21 @@ export default function ImportPage() {
         
         const { uploadUrl, path: storagePath } = await urlRes.json();
         
-        // Upload file directly to storage (streaming, no memory issues)
-        setProgressStage('Uploading... (this may take a few minutes)');
-        setProgress(10);
-        
+        // Upload only conversations.json (typically 50-200MB instead of 1.8GB)
         const uploadRes = await fetch(uploadUrl, {
           method: 'PUT',
-          body: file,
-          headers: { 'Content-Type': 'application/zip' },
+          body: conversationsBlob,
+          headers: { 'Content-Type': 'application/json' },
         });
         
         if (!uploadRes.ok) {
-          throw new Error('File upload failed');
+          throw new Error('Upload failed');
         }
         
-        setProgressStage('Starting processing...');
+        setProgressStage('Processing...');
         setProgress(50);
         
-        // Queue background processing - returns immediately
+        // Queue background processing
         const queueRes = await fetch('/api/import/queue-processing', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

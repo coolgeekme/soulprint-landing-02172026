@@ -80,20 +80,30 @@ export async function POST(request: Request) {
     
     const arrayBuffer = await fileData.arrayBuffer();
     const sizeMB = (arrayBuffer.byteLength / 1024 / 1024).toFixed(1);
-    console.log(`[ProcessServer] Downloaded ${sizeMB}MB, parsing ZIP...`);
+    console.log(`[ProcessServer] Downloaded ${sizeMB}MB`);
     
-    // Parse ZIP
-    const zip = await JSZip.loadAsync(arrayBuffer);
-    const conversationsFile = zip.file('conversations.json');
+    let rawConversations: any[];
     
-    if (!conversationsFile) {
-      // Clean up storage
-      adminSupabase.storage.from(bucket).remove([filePath]);
-      return NextResponse.json({ error: 'conversations.json not found in ZIP' }, { status: 400 });
+    // Check if it's JSON directly or a ZIP
+    if (filePath.endsWith('.json')) {
+      // Direct JSON file (extracted on client)
+      console.log('[ProcessServer] Parsing JSON directly...');
+      const text = new TextDecoder().decode(arrayBuffer);
+      rawConversations = JSON.parse(text);
+    } else {
+      // ZIP file - extract conversations.json
+      console.log('[ProcessServer] Extracting from ZIP...');
+      const zip = await JSZip.loadAsync(arrayBuffer);
+      const conversationsFile = zip.file('conversations.json');
+      
+      if (!conversationsFile) {
+        adminSupabase.storage.from(bucket).remove([filePath]);
+        return NextResponse.json({ error: 'conversations.json not found in ZIP' }, { status: 400 });
+      }
+      
+      const conversationsJson = await conversationsFile.async('string');
+      rawConversations = JSON.parse(conversationsJson);
     }
-    
-    const conversationsJson = await conversationsFile.async('string');
-    const rawConversations = JSON.parse(conversationsJson);
     
     console.log(`[ProcessServer] Parsed ${rawConversations.length} conversations`);
     
