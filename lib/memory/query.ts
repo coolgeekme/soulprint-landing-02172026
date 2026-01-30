@@ -1,5 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import {
+  BedrockRuntimeClient,
+  InvokeModelCommand,
+} from '@aws-sdk/client-bedrock-runtime';
 
 export interface MemoryChunk {
   id: string;
@@ -15,6 +19,15 @@ export interface LearnedFactResult {
   similarity: number;
 }
 
+// Initialize Bedrock client for Cohere Embed v4
+const bedrockClient = new BedrockRuntimeClient({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
+
 function getSupabaseAdmin() {
   return createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,73 +37,69 @@ function getSupabaseAdmin() {
 }
 
 /**
- * Embed a query using OpenAI text-embedding-3-small
- * 1536 dimensions, fast and cheap
+ * Embed a query using Cohere Embed v4 on AWS Bedrock
+ * 1536 dimensions, enterprise-grade accuracy for pinpoint memory
+ * 128K context length, handles noisy real-world data
  */
 export async function embedQuery(text: string): Promise<number[]> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY not configured');
-  }
-
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
+  const command = new InvokeModelCommand({
+    modelId: 'cohere.embed-v4',
+    contentType: 'application/json',
+    accept: 'application/json',
     body: JSON.stringify({
-      model: 'text-embedding-3-small',
-      input: text.slice(0, 8000), // Truncate to safe limit
+      texts: [text.slice(0, 128000)], // Cohere v4 supports 128K context
+      input_type: 'search_query',
+      embedding_types: ['float'],
+      truncate: 'END',
     }),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI embedding error: ${error}`);
+  try {
+    const response = await bedrockClient.send(command);
+    const result = JSON.parse(new TextDecoder().decode(response.body));
+    return result.embeddings.float[0];
+  } catch (error) {
+    console.error('[Embed] Cohere v4 error:', error);
+    throw new Error(`Cohere embedding error: ${error}`);
   }
-
-  const data = await response.json();
-  return data.data[0].embedding;
 }
 
 /**
- * Batch embed multiple texts using OpenAI
+ * Batch embed multiple texts using Cohere Embed v4 on Bedrock
  * More efficient than one-by-one
  */
 export async function embedBatch(texts: string[]): Promise<number[][]> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY not configured');
+  // Cohere v4 supports batch embedding natively
+  // Process in chunks of 96 (Cohere batch limit)
+  const BATCH_SIZE = 96;
+  const allEmbeddings: number[][] = [];
+
+  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+    const batch = texts.slice(i, i + BATCH_SIZE).map(t => t.slice(0, 128000));
+    
+    const command = new InvokeModelCommand({
+      modelId: 'cohere.embed-v4',
+      contentType: 'application/json',
+      accept: 'application/json',
+      body: JSON.stringify({
+        texts: batch,
+        input_type: 'search_document', // Use 'search_document' for corpus
+        embedding_types: ['float'],
+        truncate: 'END',
+      }),
+    });
+
+    try {
+      const response = await bedrockClient.send(command);
+      const result = JSON.parse(new TextDecoder().decode(response.body));
+      allEmbeddings.push(...result.embeddings.float);
+    } catch (error) {
+      console.error('[Embed] Cohere v4 batch error:', error);
+      throw new Error(`Cohere batch embedding error: ${error}`);
+    }
   }
 
-  // Truncate each text and process in chunks of 100
-  const truncatedTexts = texts.map(t => t.slice(0, 8000));
-  
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'text-embedding-3-small',
-      input: truncatedTexts,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI embedding error: ${error}`);
-  }
-
-  const data = await response.json();
-  // Sort by index to maintain order
-  return data.data
-    .sort((a: { index: number }, b: { index: number }) => a.index - b.index)
-    .map((item: { embedding: number[] }) => item.embedding);
+  return allEmbeddings;
 }
 
 /**
