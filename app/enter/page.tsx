@@ -15,6 +15,7 @@ const VALID_CODES: Record<string, string> = {
   'FLOYD': 'Adrian Floyd',
   'WHITEBOYNICK': 'Nicholas Hill',
   'BLANCHE': 'Lisa Quible',
+  '!ARCHE!': 'ArcheForge',
   // Founders
   'DREW2026': 'Drew',
   'GLENN2026': 'Glenn',

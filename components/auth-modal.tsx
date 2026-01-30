@@ -193,57 +193,41 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
                 </motion.div>
               )}
 
-              {/* Referral Code Input - Collapsible, shows in signup mode when no valid code */}
+              {/* Referral Code Input - REQUIRED for signup */}
               {mode === 'signup' && !referredBy && (
                 <div className="mb-6">
-                  {!showReferralInput ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowReferralInput(true)}
-                      className="w-full flex items-center justify-center gap-2 text-white/40 hover:text-white/60 text-sm transition-colors py-2"
-                    >
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-2"
+                  >
+                    <label className="block text-white/60 text-sm mb-2 flex items-center gap-2">
                       <Ticket className="w-4 h-4" />
-                      <span>Have a referral code?</span>
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="space-y-2"
-                    >
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={referralCode}
-                          onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                          onBlur={() => validateCode(referralCode)}
-                          onKeyDown={(e) => e.key === 'Enter' && validateCode(referralCode)}
-                          placeholder="Enter code"
-                          className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-center uppercase tracking-wider placeholder:text-white/30 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:border-orange-500/50 transition-colors pr-10"
-                        />
-                        {validatingCode && (
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
-                          </div>
-                        )}
-                      </div>
-                      {codeError && (
-                        <p className="text-red-400 text-xs text-center">{codeError}</p>
+                      Access Code <span className="text-red-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={referralCode}
+                        onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                        onBlur={() => validateCode(referralCode)}
+                        onKeyDown={(e) => e.key === 'Enter' && validateCode(referralCode)}
+                        placeholder="Enter your invite code"
+                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-center uppercase tracking-wider placeholder:text-white/30 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:border-orange-500/50 transition-colors pr-10"
+                      />
+                      {validatingCode && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
+                        </div>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowReferralInput(false);
-                          setReferralCode('');
-                          setCodeError('');
-                        }}
-                        className="w-full text-white/30 hover:text-white/50 text-xs transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </motion.div>
-                  )}
+                    </div>
+                    {codeError && (
+                      <p className="text-red-400 text-xs text-center">{codeError}</p>
+                    )}
+                    <p className="text-white/30 text-xs text-center">
+                      SoulPrint is invite-only. Need a code? <a href="mailto:drew@archeforge.com" className="text-orange-500/70 hover:text-orange-500">Request access</a>
+                    </p>
+                  </motion.div>
                 </div>
               )}
 
@@ -257,8 +241,8 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                disabled={isLoading}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white text-black font-medium rounded-xl hover:bg-white/90 transition-colors disabled:opacity-50 mb-6"
+                disabled={isLoading || (mode === 'signup' && !referredBy)}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white text-black font-medium rounded-xl hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-6"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -318,8 +302,8 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
 
                 <button
                   type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+                  disabled={isLoading || (mode === 'signup' && !referredBy)}
+                  className="w-full py-3 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? 'Loading...' : mode === 'login' ? 'Sign in' : 'Create account'}
                 </button>
