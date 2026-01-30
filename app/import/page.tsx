@@ -212,41 +212,15 @@ export default function ImportPage() {
         // Non-fatal - continue with basic profile
       }
 
-      setProgressStage('Generating memory embeddings...');
-      setProgress(92);
+      setProgressStage('Starting memory embeddings...');
+      setProgress(95);
 
-      // Embed ALL chunks for full precision
-      let embeddingDone = false;
-      let batchStart = 0;
-      
-      while (!embeddingDone) {
-        try {
-          const embedResponse = await fetch('/api/import/embed-all', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ batchStart }),
-          });
-          
-          const embedParsed = await safeJsonParse(embedResponse);
-          const embedResult = embedParsed.data || {};
-          
-          if (!embedParsed.ok) {
-            console.warn('Embedding batch failed:', embedParsed.error);
-            embeddingDone = true; // Stop on error
-          } else if (embedResult.done) {
-            embeddingDone = true;
-          } else {
-            batchStart = embedResult.nextBatch || batchStart + 50;
-            // Progress from 92% to 100% based on embedding progress
-            const embedProgress = embedResult.progress || 0;
-            setProgress(92 + Math.round(embedProgress * 0.08));
-            setProgressStage(`Embedding memories (${embedResult.progress || 0}%)...`);
-          }
-        } catch (embedError) {
-          console.warn('Embedding batch error, continuing:', embedError);
-          batchStart += 50; // Skip failed batch and continue
-        }
-      }
+      // Kick off background embedding - don't wait for it
+      // Chat page will poll progress and show "still learning..." indicator
+      fetch('/api/import/embed-background', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      }).catch(err => console.warn('Background embed trigger failed:', err));
 
       setProgress(100);
       setProgressStage('Complete!');
