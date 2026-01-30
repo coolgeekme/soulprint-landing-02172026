@@ -216,16 +216,14 @@ export default function ImportPage() {
           clearTimeout(timeoutId);
         } catch (e) {
           clearTimeout(timeoutId);
-          // If queue-processing times out, still redirect - processing may have started
-          console.warn('[Import] queue-processing timeout, redirecting anyway:', e);
-          router.push('/chat?processing=true');
-          return;
+          console.error('[Import] queue-processing failed:', e);
+          throw new Error('Processing failed. Please try again.');
         }
         
         if (!queueRes.ok) {
           const err = await queueRes.json().catch(() => ({}));
-          // Don't throw - redirect anyway since upload succeeded
-          console.warn('[Import] queue-processing error:', err);
+          console.error('[Import] queue-processing error:', err);
+          throw new Error(err.error || 'Processing failed. Please try again.');
         }
         
         // Processing started in background - redirect to chat
