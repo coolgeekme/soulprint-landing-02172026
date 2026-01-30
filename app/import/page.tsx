@@ -98,11 +98,11 @@ export default function ImportPage() {
       setProgressStage('Saving your profile...');
       setProgress(85);
 
-      // Step 1: Save soulprint metadata + chunks
+      // Step 1: Save soulprint metadata (no chunks - they're sent separately to avoid payload size limits)
       const response = await fetch('/api/import/save-soulprint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ soulprint: result, conversationChunks, rawExportPath }),
+        body: JSON.stringify({ soulprint: result, rawExportPath }),
       });
 
       if (!response.ok) {
