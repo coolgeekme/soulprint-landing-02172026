@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { BackgroundBeams } from '@/components/ui/background-beams';
 import { RingProgress } from '@/components/ui/ring-progress';
 import { generateClientSoulprint, type ClientSoulprint } from '@/lib/import/client-soulprint';
+import { createClient } from '@/lib/supabase/client';
 
 type ImportStatus = 'idle' | 'processing' | 'saving' | 'success' | 'error';
 type Step = 'export' | 'upload' | 'processing' | 'done';
@@ -17,6 +18,7 @@ export default function ImportPage() {
   const router = useRouter();
   const [status, setStatus] = useState<ImportStatus>('idle');
   const [checkingExisting, setCheckingExisting] = useState(true);
+  const [isReturningUser, setIsReturningUser] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState('');
@@ -38,6 +40,13 @@ export default function ImportPage() {
         if (data.status === 'processing') {
           router.push('/chat');
           return;
+        }
+        // Check if this is a returning user (logged in but no soulprint)
+        // They'll see a friendly message about re-importing
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && !data.hasSoulprint) {
+          setIsReturningUser(true);
         }
       } catch {}
       setCheckingExisting(false);
@@ -317,6 +326,12 @@ export default function ImportPage() {
               exit={{ opacity: 0, x: -20 }}
               className="w-full max-w-sm flex flex-col justify-center"
             >
+              {isReturningUser && (
+                <div className="mb-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                  <p className="text-orange-400 text-sm text-center font-medium">Welcome back! 👋</p>
+                  <p className="text-white/70 text-xs text-center mt-1">We&apos;ve upgraded our memory system. Please re-import your data for the best experience.</p>
+                </div>
+              )}
               <h1 className="text-lg sm:text-xl font-bold text-white mb-0.5 text-center">Export Your ChatGPT Data</h1>
               <p className="text-white/50 text-xs md:text-sm mb-3 text-center">We&apos;ll guide you through it step by step</p>
 

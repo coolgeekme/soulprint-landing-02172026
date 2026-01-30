@@ -124,6 +124,13 @@ export default function ChatPage() {
         const res = await fetch('/api/memory/status');
         if (res.ok) {
           const data = await res.json();
+          
+          // If user has no soulprint, redirect to import
+          if (!data.hasSoulprint && data.status === 'none') {
+            router.push('/import');
+            return;
+          }
+          
           if (data.embeddingStatus === 'complete' || data.embeddingProgress >= 100) {
             setMemoryStatus('ready');
             setMemoryProgress(100);
