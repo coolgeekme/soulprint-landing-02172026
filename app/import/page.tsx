@@ -135,17 +135,42 @@ export default function ImportPage() {
         }
       }
 
-      setProgressStage('Starting embedding process...');
+      setProgressStage('Generating memory embeddings...');
       setProgress(95);
 
-      // Trigger background embedding process
-      await fetch('/api/embeddings/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: 100 }),
-      });
+      // Embed ALL chunks for full precision
+      let embeddingDone = false;
+      let batchStart = 0;
+      let lastProgress = 95;
+      
+      while (!embeddingDone) {
+        try {
+          const embedResponse = await fetch('/api/import/embed-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ batchStart }),
+          });
+          
+          const embedResult = await embedResponse.json();
+          
+          if (embedResult.done) {
+            embeddingDone = true;
+          } else {
+            batchStart = embedResult.nextBatch || batchStart + 50;
+            // Progress from 95% to 100% based on embedding progress
+            const embedProgress = embedResult.progress || 0;
+            lastProgress = 95 + Math.round(embedProgress * 0.05);
+            setProgress(lastProgress);
+            setProgressStage(`Embedding memories (${embedResult.progress || 0}%)...`);
+          }
+        } catch (embedError) {
+          console.warn('Embedding batch error, continuing:', embedError);
+          batchStart += 50; // Skip failed batch and continue
+        }
+      }
 
       setProgress(100);
+      setProgressStage('Complete!');
       setStatus('success');
       setCurrentStep('done');
     } catch (err) {
