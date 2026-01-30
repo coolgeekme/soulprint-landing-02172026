@@ -101,7 +101,7 @@ export async function searchMemory(
   userId: string,
   query: string,
   topK: number = 5,
-  minSimilarity: number = 0.5
+  minSimilarity: number = 0.3  // Lowered from 0.5 to catch more relevant memories
 ): Promise<MemoryChunk[]> {
   // Embed the query
   const queryEmbedding = await embedQuery(query);
@@ -245,7 +245,7 @@ export async function getMemoryContext(
       
       // Also search learned facts
       if (queryEmbedding) {
-        learnedFacts = await searchLearnedFacts(userId, queryEmbedding, 10, 0.5);
+        learnedFacts = await searchLearnedFacts(userId, queryEmbedding, 10, 0.35);
         console.log(`[Memory] Found ${learnedFacts.length} relevant learned facts`);
       }
     } catch (error) {
