@@ -450,22 +450,27 @@ function chunkConversation(
   messages: Array<{ role: string; content: string }>,
   title: string
 ): Array<{ content: string; messageCount: number }> {
-  // LAYER 1: Large chunks for context
-  const LARGE_CHUNK_SIZE = 6000;    // ~1500 tokens - full context
-  const LARGE_OVERLAP = 1200;       // ~300 tokens overlap
+  // MULTI-TIER PRECISION CHUNKING for RLM
+  // Smaller chunks = more precise retrieval for specific facts
+  // Larger chunks = more context for complex questions
   
-  // LAYER 2: Small chunks for precision  
-  const SMALL_CHUNK_SIZE = 500;     // ~125 tokens - pinpoint retrieval
-  const SMALL_OVERLAP = 100;        // ~25 tokens overlap
+  // Tier 1: Ultra-precise (100 chars) - pinpoint facts like "What is RoboNuggets?"
+  const tier1 = generateChunks(messages, title, 100, 20, 50, 'T1');
   
-  const SUBSTANTIAL_MSG = 2000;     // ~500 tokens - large msgs get own chunk
+  // Tier 2: Precise (300 chars) - short context
+  const tier2 = generateChunks(messages, title, 300, 60, 150, 'T2');
   
-  // Generate both layers
-  const largeChunks = generateChunks(messages, title, LARGE_CHUNK_SIZE, LARGE_OVERLAP, SUBSTANTIAL_MSG, 'L');
-  const smallChunks = generateChunks(messages, title, SMALL_CHUNK_SIZE, SMALL_OVERLAP, 300, 'S');
+  // Tier 3: Medium (500 chars) - standard retrieval
+  const tier3 = generateChunks(messages, title, 500, 100, 250, 'T3');
   
-  // Combine both layers - small chunks enable precision, large chunks provide context
-  return [...largeChunks, ...smallChunks];
+  // Tier 4: Context (1000 chars) - longer context
+  const tier4 = generateChunks(messages, title, 1000, 200, 500, 'T4');
+  
+  // Tier 5: Full context (2000 chars) - complete conversation context
+  const tier5 = generateChunks(messages, title, 2000, 400, 1000, 'T5');
+  
+  // Combine all tiers - RLM queries smallest first for precision, escalates as needed
+  return [...tier1, ...tier2, ...tier3, ...tier4, ...tier5];
 }
 
 /**
