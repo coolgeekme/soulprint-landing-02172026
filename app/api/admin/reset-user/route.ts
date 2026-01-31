@@ -113,10 +113,53 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const adminSupabase = getSupabaseAdmin();
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
     
+    if (userId) {
+      // Get detailed status for specific user
+      const { data: profile, error: profileError } = await adminSupabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      const { count: chunkCount } = await adminSupabase
+        .from('conversation_chunks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      
+      const { count: embeddedCount } = await adminSupabase
+        .from('conversation_chunks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .not('embedding', 'is', null);
+      
+      const { count: messageCount } = await adminSupabase
+        .from('chat_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      
+      const { data: files } = await adminSupabase.storage
+        .from('imports')
+        .list(userId);
+      
+      return NextResponse.json({
+        userId,
+        profile: profileError ? { error: profileError.message } : profile,
+        counts: {
+          chunks: chunkCount || 0,
+          embedded: embeddedCount || 0,
+          messages: messageCount || 0,
+          storageFiles: files?.length || 0,
+        },
+      });
+    }
+    
+    // List all users
     const { data, error } = await adminSupabase
       .from('user_profiles')
-      .select('user_id, import_status, updated_at')
+      .select('user_id, import_status, import_error, embedding_status, total_chunks, updated_at')
       .order('updated_at', { ascending: false })
       .limit(20);
 
