@@ -165,68 +165,17 @@ export async function POST(request: Request) {
       activeDays: Math.ceil((Date.now() - new Date(conversations[conversations.length - 1]?.createdAt || Date.now()).getTime()) / (1000 * 60 * 60 * 24)),
     };
     
-    // Call RLM for soulprint (send up to 500 conversations)
-    const rlmUrl = process.env.RLM_SERVICE_URL;
-    let soulprint: any = null;
-    let archetype = 'Unique Individual';
+    // ASYNC SOULPRINT: Skip RLM here, generate after embeddings complete
+    // Placeholder soulprint - will be replaced by /api/soulprint/generate
+    const soulprint = {
+      archetype: 'Analyzing...',
+      soulprint_text: `Analyzing ${totalMessages.toLocaleString()} messages across ${conversations.length.toLocaleString()} conversations. Your personalized SoulPrint is being created...`,
+      stats,
+      pending: true, // Flag for async generation
+    };
+    const archetype = 'Analyzing...';
     
-    if (rlmUrl) {
-      console.log(`[ProcessServer] Calling RLM for soulprint...`);
-      
-      // Prepare conversations for RLM (truncate messages)
-      const rlmConversations = conversations.slice(0, 500).map(c => ({
-        title: c.title,
-        messages: c.messages.slice(0, 25).map(m => ({
-          role: m.role,
-          content: m.content.slice(0, 400),
-        })),
-        message_count: c.messages.length,
-        createdAt: c.createdAt,
-      }));
-      
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for RLM
-        
-        const rlmResponse = await fetch(`${rlmUrl}/create-soulprint`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: userId,
-            conversations: rlmConversations,
-            stats,
-          }),
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (rlmResponse.ok) {
-          const rlmData = await rlmResponse.json();
-          soulprint = rlmData.soulprint;
-          archetype = rlmData.archetype || 'Unique Individual';
-          console.log(`[ProcessServer] RLM soulprint created: ${archetype}`);
-        } else {
-          console.warn(`[ProcessServer] RLM returned ${rlmResponse.status}`);
-        }
-      } catch (rlmError: any) {
-        if (rlmError.name === 'AbortError') {
-          console.warn('[ProcessServer] RLM timed out');
-        } else {
-          console.warn('[ProcessServer] RLM failed:', rlmError.message);
-        }
-      }
-    }
-    
-    // Generate fallback soulprint if RLM failed
-    if (!soulprint) {
-      soulprint = {
-        archetype: 'The Explorer',
-        soulprint_text: `You've had ${totalMessages.toLocaleString()} messages across ${conversations.length.toLocaleString()} conversations. Your SoulPrint will evolve as you continue chatting.`,
-        stats,
-      };
-      archetype = 'The Explorer';
-    }
+    console.log(`[ProcessServer] Placeholder soulprint set - async generation will follow after embeddings`);
     
     // Save soulprint to user profile
     await adminSupabase.from('user_profiles').upsert({

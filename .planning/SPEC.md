@@ -67,5 +67,14 @@ raw_conversations   - temp import data
 - RLM: https://soulprint-landing.onrender.com
 
 ---
+
+## TODO: Automation
+After manual flow is verified working:
+- [ ] Auto-trigger embeddings after import
+- [ ] Auto-trigger soulprint generation after embeddings
+- [ ] Cron job for any missed users
+- [ ] Error handling and retry logic
+
+---
 *Created: 2026-01-30*
 *Last verified: 2026-01-30*
