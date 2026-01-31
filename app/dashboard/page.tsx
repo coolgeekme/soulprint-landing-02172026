@@ -159,7 +159,7 @@ export default function DashboardPage() {
           </Link>
 
           <Link 
-            href="/import"
+            href="/import?reimport=true"
             className="flex items-center justify-between p-4 min-h-[60px] bg-white/[0.03] border border-white/[0.06] rounded-xl hover:bg-white/[0.05] active:bg-white/[0.08] transition-colors"
           >
             <div className="flex items-center gap-3">

@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Upload, Shield, CheckCircle2, AlertCircle, Loader2, Lock, ExternalLink, Settings, Mail, Download, FileArchive, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -81,8 +81,10 @@ async function storeRawInDB(db: IDBDatabase, conversations: any[]): Promise<void
   });
 }
 
-export default function ImportPage() {
+function ImportPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isReimport = searchParams.get('reimport') === 'true';
   const [status, setStatus] = useState<ImportStatus>('idle');
   const [checkingExisting, setCheckingExisting] = useState(true);
   const [isReturningUser, setIsReturningUser] = useState(false);
@@ -142,14 +144,21 @@ export default function ImportPage() {
         }
 
         // Check if user already has a soulprint (locked or complete)
-        if (data.status === 'ready' || data.hasSoulprint || data.locked) {
+        // Skip redirect if user explicitly wants to re-import
+        if (!isReimport && (data.status === 'ready' || data.hasSoulprint || data.locked)) {
           router.push('/chat');
           return;
         }
         // Also redirect if import is still processing (let them see progress in chat)
-        if (data.status === 'processing') {
+        // But allow re-import if explicitly requested
+        if (!isReimport && data.status === 'processing') {
           router.push('/chat');
           return;
+        }
+        
+        // If re-importing, mark as returning user to show appropriate UI
+        if (isReimport && (data.hasSoulprint || data.status === 'ready')) {
+          setIsReturningUser(true);
         }
         // Check if this is a returning user (logged in but no soulprint)
         // They'll see a friendly message about re-importing
@@ -164,7 +173,7 @@ export default function ImportPage() {
       setCheckingExisting(false);
     };
     checkExisting();
-  }, [router]);
+  }, [router, isReimport]);
 
   const handleFile = async (file: File) => {
     if (!file.name.endsWith('.zip')) {
@@ -759,5 +768,17 @@ export default function ImportPage() {
         </AnimatePresence>
       </div>
     </main>
+  );
+}
+
+export default function ImportPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-black flex items-center justify-center">
+        <div className="animate-pulse text-white/50">Loading...</div>
+      </main>
+    }>
+      <ImportPageContent />
+    </Suspense>
   );
 }
