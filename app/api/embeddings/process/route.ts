@@ -119,20 +119,42 @@ async function processUserChunks(userId: string, limit: number): Promise<{ proce
 
   if (!chunks || chunks.length === 0) {
     // All done! Update user status
-    // NOTE: soulprint_locked=true means "initial import complete", NOT "no more updates"
-    // The soulprint will continue to learn and evolve from conversations
+    // Check if soulprint needs generation
+    const { data: profile } = await getSupabase()
+      .from('user_profiles')
+      .select('soulprint_text')
+      .eq('user_id', userId)
+      .single();
+    
+    const needsSoulprint = !profile?.soulprint_text || 
+      profile.soulprint_text.includes('Your SoulPrint will evolve');
+    
     await getSupabase()
       .from('user_profiles')
       .update({ 
         embedding_status: 'complete',
         embedding_progress: 100,
         import_status: 'complete',
-        soulprint_locked: true, // Marks initial import as done (can't re-import)
+        soulprint_locked: true,
         locked_at: new Date().toISOString(),
+        // Flag for soulprint generation if needed
+        ...(needsSoulprint && { soulprint_pending: true }),
       })
       .eq('user_id', userId);
     
-    console.log(`[Embed] User ${userId} complete - all chunks embedded, soulprint will continue to evolve`);
+    // Trigger soulprint generation if needed (fire and forget)
+    if (needsSoulprint) {
+      console.log(`[Embed] User ${userId} complete - triggering soulprint generation`);
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.soulprintengine.ai'}/api/soulprint/generate`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Internal-User-Id': userId,
+        },
+      }).catch(e => console.warn('[Embed] Soulprint trigger failed:', e.message));
+    }
+    
+    console.log(`[Embed] User ${userId} complete - all chunks embedded`);
     return { processed: 0, failed: 0, total: 0 };
   }
 
