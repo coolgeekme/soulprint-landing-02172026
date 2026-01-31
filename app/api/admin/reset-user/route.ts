@@ -156,10 +156,10 @@ export async function GET(request: Request) {
       });
     }
     
-    // List all users
+    // List all users (import_error column may not exist in older schemas)
     const { data, error } = await adminSupabase
       .from('user_profiles')
-      .select('user_id, import_status, import_error, embedding_status, total_chunks, updated_at')
+      .select('user_id, import_status, embedding_status, total_chunks, updated_at')
       .order('updated_at', { ascending: false })
       .limit(20);
 
