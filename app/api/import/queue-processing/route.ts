@@ -124,11 +124,15 @@ export async function POST(request: Request) {
     
     // Try to mark as failed if we have userId
     if (userId) {
-      await adminSupabase.from('user_profiles').update({
-        import_status: 'failed',
-        import_error: error instanceof Error ? error.message : 'Processing failed',
-        updated_at: new Date().toISOString(),
-      }).eq('user_id', userId).catch(() => {});
+      try {
+        await adminSupabase.from('user_profiles').update({
+          import_status: 'failed',
+          import_error: error instanceof Error ? error.message : 'Processing failed',
+          updated_at: new Date().toISOString(),
+        }).eq('user_id', userId);
+      } catch (e) {
+        console.error('[QueueProcessing] Failed to mark as failed:', e);
+      }
     }
     
     return NextResponse.json({ 

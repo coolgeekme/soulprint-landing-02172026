@@ -273,26 +273,16 @@ export async function POST(request: Request) {
     
     console.log(`[ProcessServer] Inserted ${insertedCount}/${chunks.length} chunks`);
     
-    // Update profile to ready status
+    // Update profile to ready status with pending embeddings
+    // The cron job at /api/embeddings/process will pick this up every 5 minutes
     await adminSupabase.from('user_profiles').update({
       import_status: 'complete',
       total_chunks: insertedCount,
-      embedding_status: 'pending',
+      embedding_status: 'pending', // Cron will process this
       updated_at: new Date().toISOString(),
     }).eq('user_id', userId);
     
-    // Start background embedding - but don't await it
-    // This will run in a separate request
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.soulprintengine.ai';
-    fetch(`${baseUrl}/api/import/embed-background`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'X-Internal-User-Id': userId,
-      },
-    }).catch(err => console.error('[ProcessServer] Embed trigger error:', err.message));
-    
-    console.log(`[ProcessServer] Complete! ${insertedCount} chunks saved for user ${userId}`);
+    console.log(`[ProcessServer] Complete! ${insertedCount} chunks saved for user ${userId}. Embeddings will be processed by cron.`);
     
     return NextResponse.json({
       success: true,
@@ -316,7 +306,7 @@ export async function POST(request: Request) {
         import_status: 'failed',
         import_error: errorMessage,
         updated_at: new Date().toISOString(),
-      }).eq('user_id', userId).catch(e => console.error('[ProcessServer] Failed to update status:', e));
+      }).eq('user_id', userId); // catch(e => console.error('[ProcessServer] Failed to update status:', e));
     }
     
     return NextResponse.json({ error: errorMessage }, { status: 500 });

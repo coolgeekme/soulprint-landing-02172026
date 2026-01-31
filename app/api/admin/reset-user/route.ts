@@ -87,8 +87,30 @@ export async function DELETE(request: Request) {
   }
 }
 
-// Also support GET to list users
-export async function GET() {
+// POST for easier API testing (accepts body)
+export async function POST(request: Request) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const userId = body.userId || body.user_id;
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'userId required in body' }, { status: 400 });
+    }
+
+    // Reuse DELETE logic by creating a fake request with query param
+    const url = new URL(request.url);
+    url.searchParams.set('userId', userId);
+    
+    return DELETE(new Request(url.toString(), { method: 'DELETE' }));
+  } catch (error) {
+    return NextResponse.json({ 
+      error: error instanceof Error ? error.message : 'Reset failed' 
+    }, { status: 500 });
+  }
+}
+
+// GET to list users or get specific user status
+export async function GET(request: Request) {
   try {
     const adminSupabase = getSupabaseAdmin();
     
