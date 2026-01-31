@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import {
   BedrockRuntimeClient,
   ConverseCommand,
@@ -22,6 +23,14 @@ const bedrockClient = new BedrockRuntimeClient({
   },
 });
 
+function getSupabaseAdmin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -31,7 +40,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const { conversations, stats } = await request.json();
+    const { conversations, stats, saveToDb } = await request.json();
 
     if (!conversations || !Array.isArray(conversations)) {
       return NextResponse.json({ error: 'Conversations array required' }, { status: 400 });
@@ -39,6 +48,8 @@ export async function POST(request: Request) {
 
     const rlmUrl = process.env.RLM_SERVICE_URL;
     
+    let soulprintResult: { soulprint: any; archetype: string; method: string } | null = null;
+
     // Try RLM service first
     if (rlmUrl) {
       try {
@@ -52,18 +63,19 @@ export async function POST(request: Request) {
             conversations,
             stats,
           }),
-          signal: AbortSignal.timeout(280000), // 4.5 minutes for exhaustive analysis
+          signal: AbortSignal.timeout(280000),
         });
 
         if (response.ok) {
           const data = await response.json();
-          console.log(`[CreateSoulprint] RLM success - archetype: ${data.archetype}`);
-          return NextResponse.json({
-            success: true,
-            soulprint: data.soulprint,
-            archetype: data.archetype,
-            method: 'rlm',
-          });
+          if (data.soulprint?.soulprintText || data.soulprint?.aiPersona?.soulMd) {
+            console.log(`[CreateSoulprint] RLM success - archetype: ${data.archetype}`);
+            soulprintResult = {
+              soulprint: data.soulprint,
+              archetype: data.archetype || 'The Unique Individual',
+              method: 'rlm',
+            };
+          }
         }
       } catch (rlmError) {
         console.warn('[CreateSoulprint] RLM failed:', rlmError);
@@ -71,28 +83,54 @@ export async function POST(request: Request) {
     }
 
     // Fallback: Generate soulprint via Bedrock
-    console.log('[CreateSoulprint] Using Bedrock fallback');
-    
-    try {
-      const result = await generateSoulprintViaBedrock(conversations, stats);
-      return NextResponse.json({
-        success: true,
-        soulprint: result.soulprint,
-        archetype: result.archetype,
-        method: 'bedrock',
-      });
-    } catch (bedrockError) {
-      console.error('[CreateSoulprint] Bedrock fallback failed:', bedrockError);
-      
-      // Last resort: basic soulprint
-      const soulprintText = generateBasicSoulprint(conversations, stats);
-      return NextResponse.json({
-        success: true,
-        soulprint: { soulprintText, stats },
-        archetype: 'Unique Individual',
-        method: 'basic',
-      });
+    if (!soulprintResult) {
+      console.log('[CreateSoulprint] Using Bedrock fallback');
+      try {
+        const result = await generateSoulprintViaBedrock(conversations, stats);
+        soulprintResult = {
+          soulprint: result.soulprint,
+          archetype: result.archetype,
+          method: 'bedrock',
+        };
+      } catch (bedrockError) {
+        console.error('[CreateSoulprint] Bedrock fallback failed:', bedrockError);
+        
+        // Last resort: basic soulprint
+        const soulprintText = generateBasicSoulprint(conversations, stats);
+        soulprintResult = {
+          soulprint: { soulprintText, stats, aiPersona: { soulMd: soulprintText } },
+          archetype: 'Unique Individual',
+          method: 'basic',
+        };
+      }
     }
+
+    // If saveToDb flag is set, update the user's profile directly
+    if (saveToDb && soulprintResult) {
+      console.log(`[CreateSoulprint] Saving to DB for user ${user.id}`);
+      const adminSupabase = getSupabaseAdmin();
+      
+      const soulprintText = soulprintResult.soulprint.soulprintText 
+        || soulprintResult.soulprint.aiPersona?.soulMd 
+        || '';
+      
+      await adminSupabase
+        .from('user_profiles')
+        .update({
+          soulprint_text: soulprintText,
+          archetype: soulprintResult.archetype,
+          soulprint_generated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id);
+      
+      console.log(`[CreateSoulprint] Saved to DB - archetype: ${soulprintResult.archetype}`);
+    }
+
+    return NextResponse.json({
+      success: true,
+      ...soulprintResult,
+    });
 
   } catch (error) {
     console.error('[CreateSoulprint] Error:', error);

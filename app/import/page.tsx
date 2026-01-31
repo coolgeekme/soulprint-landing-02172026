@@ -382,30 +382,24 @@ export default function ImportPage() {
         ].filter((v, i, a) => a.findIndex(t => t.title === v.title) === i).slice(0, 500)
         : allConversations;
 
-      // Create soulprint via RLM (or fallback to client-generated)
-      let finalSoulprint = result;
-      try {
-        const rlmResponse = await fetch('/api/import/create-soulprint', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include', // Ensure auth cookies are sent
-          body: JSON.stringify({
-            conversations: conversationSample,
-            stats: result.stats, // Pass stats from client-side analysis
-          }),
-        });
-
-        const rlmResult = await safeJsonParse(rlmResponse);
-        if (rlmResult.ok && rlmResult.data?.soulprint) {
-          finalSoulprint = { ...result, ...rlmResult.data.soulprint };
-          setProgressStage(`You are "${rlmResult.data.archetype || 'unique'}"...`);
-        }
-      } catch (rlmError) {
-        console.warn('RLM soulprint generation failed, using client-generated:', rlmError);
-      }
-
+      // Use client-generated soulprint for now - full analysis happens in background
+      const finalSoulprint = result;
+      
       setProgress(85);
       setProgressStage('Saving your profile...');
+      
+      // Kick off background soulprint generation (fire & forget)
+      // This will update soulprint_text async while user chats
+      fetch('/api/import/create-soulprint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          conversations: conversationSample,
+          stats: result.stats,
+          saveToDb: true, // Tell API to save directly to DB when done
+        }),
+      }).catch(err => console.warn('[Import] Background soulprint generation started:', err));
 
       // Step 3: Save soulprint to DB (quick - just metadata)
       const response = await fetch('/api/import/save-soulprint', {
