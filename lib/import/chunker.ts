@@ -1,6 +1,6 @@
 /**
  * Conversation Chunker
- * Splits conversations into ~300 char chunks for precise semantic search
+ * Splits conversations into multi-scale layers for Hierarchical RAG (RLM)
  */
 
 import { ParsedConversation, ParsedMessage } from './parser';
@@ -19,82 +19,98 @@ export interface ChunkMetadata {
   messageIds: string[];
   startTimestamp?: string;
   endTimestamp?: string;
+  // RLM Fields
+  layerIndex: number; // 1-5
+  chunkSize: number;  // approx chars
 }
 
-// Ultra-granular chunking for better semantic search
-const TARGET_CHUNK_CHARS = 300; // Small chunks = precise retrieval
-const MAX_CHUNK_CHARS = 360; // Allow 20% overflow to avoid splitting mid-message
+// 5-Layer RLM Configuration
+const LAYERS = [
+  { index: 1, size: 200, label: 'Micro' },
+  { index: 2, size: 500, label: 'Flow' },
+  { index: 3, size: 1000, label: 'Thematic' },
+  { index: 4, size: 2000, label: 'Narrative' },
+  { index: 5, size: 5000, label: 'Macro' },
+];
 
 /**
- * Chunk all conversations into embedding-ready segments
+ * Chunk all conversations into hierarchical embedding-ready segments
  */
 export function chunkConversations(conversations: ParsedConversation[]): Chunk[] {
   const allChunks: Chunk[] = [];
-  
+
   for (const conversation of conversations) {
-    const chunks = chunkConversation(conversation);
-    allChunks.push(...chunks);
+    // Generate chunks for ALL layers
+    for (const layer of LAYERS) {
+      const layerChunks = chunkConversationForLayer(conversation, layer);
+      allChunks.push(...layerChunks);
+    }
   }
-  
+
   return allChunks;
 }
 
 /**
- * Chunk a single conversation
+ * Chunk a single conversation for a specific layer
  */
-export function chunkConversation(conversation: ParsedConversation): Chunk[] {
+function chunkConversationForLayer(
+  conversation: ParsedConversation,
+  layer: { index: number, size: number }
+): Chunk[] {
   const chunks: Chunk[] = [];
-  
+
   if (conversation.messages.length === 0) {
     return chunks;
   }
-  
+
   let currentChunkMessages: ParsedMessage[] = [];
   let currentChunkChars = 0;
   let chunkIndex = 0;
-  
-  // Add context header for each chunk
+  const OVERFLOW_LIMIT = layer.size * 1.2; // 20% overflow
+
+  // Add context header (standardized across layers)
   const contextHeader = `[Conversation: ${conversation.title}]\n[Date: ${conversation.createdAt.toISOString().split('T')[0]}]\n\n`;
   const headerChars = contextHeader.length;
-  
+
   for (const message of conversation.messages) {
     const formattedMessage = formatMessage(message);
     const messageChars = formattedMessage.length;
-    
+
     // If adding this message would exceed max, flush current chunk
-    if (currentChunkChars > 0 && currentChunkChars + messageChars + headerChars > MAX_CHUNK_CHARS) {
-      // Create chunk from accumulated messages
+    if (currentChunkChars > 0 && currentChunkChars + messageChars + headerChars > OVERFLOW_LIMIT) {
       chunks.push(createChunk(
         conversation,
         currentChunkMessages,
         chunkIndex,
-        contextHeader
+        contextHeader,
+        layer
       ));
-      
+
       chunkIndex++;
       currentChunkMessages = [];
       currentChunkChars = 0;
     }
-    
+
     currentChunkMessages.push(message);
-    currentChunkChars += messageChars + 1; // +1 for newline
+    currentChunkChars += messageChars + 1;
   }
-  
-  // Don't forget the last chunk
+
+  // Last chunk
   if (currentChunkMessages.length > 0) {
     chunks.push(createChunk(
       conversation,
       currentChunkMessages,
       chunkIndex,
-      contextHeader
+      contextHeader,
+      layer
     ));
   }
-  
-  // Update total chunks count in metadata
+
+  // Update total chunks count map
   for (const chunk of chunks) {
     chunk.metadata.totalChunks = chunks.length;
   }
-  
+
   return chunks;
 }
 
@@ -107,21 +123,22 @@ function formatMessage(message: ParsedMessage): string {
 }
 
 /**
- * Create a chunk from messages
+ * Create a chunk
  */
 function createChunk(
   conversation: ParsedConversation,
   messages: ParsedMessage[],
   chunkIndex: number,
-  contextHeader: string
+  contextHeader: string,
+  layer: { index: number, size: number }
 ): Chunk {
   const content = contextHeader + messages.map(formatMessage).join('\n\n');
-  
+
   const timestamps = messages
     .map(m => m.timestamp)
     .filter((t): t is Date => t !== undefined)
     .sort((a, b) => a.getTime() - b.getTime());
-  
+
   return {
     content,
     metadata: {
@@ -132,6 +149,9 @@ function createChunk(
       messageIds: messages.map(m => m.id),
       startTimestamp: timestamps[0]?.toISOString(),
       endTimestamp: timestamps[timestamps.length - 1]?.toISOString(),
+      // RLM Fields
+      layerIndex: layer.index,
+      chunkSize: layer.size
     },
   };
 }

@@ -1,0 +1,16 @@
+[dotenv@17.2.3] injecting env (5) from .env.local -- tip: ≡ƒæÑ sync secrets across teammates & machines: https://dotenvx.com/ops
+Testing embedding generation...
+[Embed] Cohere v4 error: Error: Resolved credential object is not valid
+    at SignatureV4.validateResolvedCredentials (C:\Users\drewp\soulprintfn\node_modules\@smithy\signature-v4\dist-cjs\index.js:374:19)
+    at SignatureV4.signRequest (C:\Users\drewp\soulprintfn\node_modules\@smithy\signature-v4\dist-cjs\index.js:481:14)
+    at async AwsSdkSigV4Signer.sign (C:\Users\drewp\soulprintfn\node_modules\@aws-sdk\core\dist-cjs\index.js:114:31)
+    at async C:\Users\drewp\soulprintfn\node_modules\@smithy\core\dist-cjs\index.js:123:18
+    at async C:\Users\drewp\soulprintfn\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\drewp\soulprintfn\node_modules\@aws-sdk\middleware-logger\dist-cjs\index.js:5:26
+    at async embedQuery (C:\Users\drewp\soulprintfn\lib\memory\query.ts:58:22)
+    at async testEmbedding (C:\Users\drewp\soulprintfn\test-embedding.ts:9:27) {
+  '$metadata': { attempts: 1, totalRetryDelay: 0 }
+}
+Embedding failed: Error: Cohere embedding error: Error: Resolved credential object is not valid
+    at embedQuery (C:\Users\drewp\soulprintfn\lib\memory\query.ts:63:11)
+    at async testEmbedding (C:\Users\drewp\soulprintfn\test-embedding.ts:9:27)

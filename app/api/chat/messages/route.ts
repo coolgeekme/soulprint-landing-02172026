@@ -66,10 +66,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { role, content } = await request.json();
+    const body = await request.json();
+    const { role, content } = body;
 
-    if (!role || !content) {
-      return NextResponse.json({ error: 'Role and content required' }, { status: 400 });
+    // Validate role is only 'user' or 'assistant'
+    const validRoles = ['user', 'assistant'] as const;
+    if (!role || !validRoles.includes(role)) {
+      return NextResponse.json({ error: 'Invalid role. Must be "user" or "assistant"' }, { status: 400 });
+    }
+
+    // Validate content exists and is a string
+    if (!content || typeof content !== 'string') {
+      return NextResponse.json({ error: 'Content is required and must be a string' }, { status: 400 });
+    }
+
+    // Validate content length (100KB max)
+    const MAX_MESSAGE_LENGTH = 100000;
+    if (content.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json({ error: `Message too long. Max ${MAX_MESSAGE_LENGTH} characters` }, { status: 400 });
     }
 
     const adminSupabase = getSupabaseAdmin();

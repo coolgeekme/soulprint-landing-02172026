@@ -1,5 +1,5 @@
 /**
- * Embedder - Uses AWS Bedrock Titan to create embeddings
+ * Embedder - Uses AWS Bedrock (Cohere v3) to create embeddings
  * and stores them in Supabase
  */
 
@@ -10,8 +10,8 @@ import {
 import { createClient } from '@supabase/supabase-js';
 import { Chunk } from './chunker';
 
-// Batch size for embedding requests (Titan supports up to ~8k tokens per request)
-const EMBEDDING_BATCH_SIZE = 10;
+// Batch size for embedding requests (Cohere supports up to 96 texts per batch)
+const EMBEDDING_BATCH_SIZE = 96;
 const STORE_BATCH_SIZE = 50;
 
 interface EmbeddedChunk extends Chunk {
@@ -48,30 +48,37 @@ function getSupabaseAdmin() {
 }
 
 /**
- * Embed a single text using Titan
+ * Embed a batch of texts using Cohere Embed v3
  */
-async function embedText(
+async function embedBatch(
   client: BedrockRuntimeClient,
-  text: string
-): Promise<number[]> {
-  const modelId = process.env.BEDROCK_EMBEDDING_MODEL_ID || 'amazon.titan-embed-text-v2:0';
-  
+  texts: string[]
+): Promise<number[][]> {
+  const modelId = 'cohere.embed-english-v3';
+
+  // Truncate to avoid token limits per string if needed (Cohere handles 512-ish well, allows large context)
+  // Ensure texts are not empty
+  const validTexts = texts.map(t => t || ' ');
+
   const command = new InvokeModelCommand({
     modelId,
     contentType: 'application/json',
     accept: 'application/json',
     body: JSON.stringify({
-      inputText: text,
-      // Titan v2 supports different dimensions: 256, 512, 1024
-      dimensions: 1024,
-      normalize: true,
+      texts: validTexts,
+      input_type: 'search_document', // Optimize for retrieval
+      embedding_types: ['float'],
     }),
   });
-  
-  const response = await client.send(command);
-  const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-  
-  return responseBody.embedding;
+
+  try {
+    const response = await client.send(command);
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+    return responseBody.embeddings.float;
+  } catch (error) {
+    console.error('Embedding error:', error);
+    throw error;
+  }
 }
 
 /**
@@ -83,31 +90,34 @@ export async function embedChunks(
 ): Promise<EmbeddedChunk[]> {
   const client = getBedrockClient();
   const embeddedChunks: EmbeddedChunk[] = [];
-  
-  // Process in batches to avoid rate limits
+
+  // Process in batches
   for (let i = 0; i < chunks.length; i += EMBEDDING_BATCH_SIZE) {
     const batch = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
-    
-    // Embed each chunk in the batch (could parallelize but being conservative)
-    const embeddings = await Promise.all(
-      batch.map(async (chunk) => {
-        const embedding = await embedText(client, chunk.content);
-        return { ...chunk, embedding };
-      })
-    );
-    
-    embeddedChunks.push(...embeddings);
-    
-    if (onProgress) {
-      onProgress(embeddedChunks.length, chunks.length);
+    const texts = batch.map(c => c.content);
+
+    try {
+      const embeddings = await embedBatch(client, texts);
+
+      batch.forEach((chunk, idx) => {
+        embeddedChunks.push({ ...chunk, embedding: embeddings[idx] });
+      });
+
+      if (onProgress) {
+        onProgress(embeddedChunks.length, chunks.length);
+      }
+    } catch (e) {
+      console.error(`Failed to embed batch ${i}:`, e);
+      // Continue? Or throw? Throwing is safer for data integrity.
+      throw e;
     }
-    
-    // Small delay between batches to avoid throttling
+
+    // Small delay to be nice to rate limits
     if (i + EMBEDDING_BATCH_SIZE < chunks.length) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
-  
+
   return embeddedChunks;
 }
 
@@ -121,27 +131,37 @@ export async function storeChunks(
   onProgress?: (stored: number, total: number) => void
 ): Promise<void> {
   const supabase = getSupabaseAdmin();
-  
+
   // Insert in batches for efficiency
   for (let i = 0; i < embeddedChunks.length; i += STORE_BATCH_SIZE) {
     const batch = embeddedChunks.slice(i, i + STORE_BATCH_SIZE);
-    
+
+    // Map to table columns
     const records = batch.map(chunk => ({
       user_id: userId,
-      import_job_id: importJobId,
+      // import_job_id: importJobId, // Check if conversation_chunks has this column?
+      // conversation_chunks schema usually: id, user_id, title, content, embedding, created_at, metadata
+      // We will put import info in metadata if column strictly missing
+      title: chunk.metadata.conversationTitle || 'Untitled',
       content: chunk.content,
-      embedding: JSON.stringify(chunk.embedding), // Supabase pgvector accepts JSON array
-      metadata: chunk.metadata,
+      embedding: JSON.stringify(chunk.embedding),
+      created_at: chunk.metadata.conversationCreatedAt,
+      is_recent: false, // Default
+      metadata: { ...chunk.metadata, importJobId }, // Store extra metadata here
+      // RLM Columns
+      layer_index: chunk.metadata.layerIndex,
+      chunk_size: chunk.metadata.chunkSize
     }));
-    
+
     const { error } = await supabase
-      .from('memory_chunks')
+      .from('conversation_chunks') // Fixed: Target the correct table!
       .insert(records);
-    
+
     if (error) {
+      console.error('Insert error:', error);
       throw new Error(`Failed to store chunks: ${error.message}`);
     }
-    
+
     if (onProgress) {
       onProgress(Math.min(i + STORE_BATCH_SIZE, embeddedChunks.length), embeddedChunks.length);
     }
@@ -149,40 +169,10 @@ export async function storeChunks(
 }
 
 /**
- * Create a query embedding for search
+ * Create a query embedding for search (Helper for other tools)
  */
 export async function createQueryEmbedding(text: string): Promise<number[]> {
   const client = getBedrockClient();
-  return embedText(client, text);
-}
-
-/**
- * Search memories by similarity
- */
-export async function searchMemories(
-  userId: string,
-  queryText: string,
-  limit: number = 10,
-  threshold: number = 0.7
-): Promise<Array<{
-  id: string;
-  content: string;
-  metadata: Record<string, unknown>;
-  similarity: number;
-}>> {
-  const supabase = getSupabaseAdmin();
-  const queryEmbedding = await createQueryEmbedding(queryText);
-  
-  const { data, error } = await supabase.rpc('search_memories', {
-    query_embedding: JSON.stringify(queryEmbedding),
-    match_user_id: userId,
-    match_count: limit,
-    match_threshold: threshold,
-  });
-  
-  if (error) {
-    throw new Error(`Memory search failed: ${error.message}`);
-  }
-  
-  return data || [];
+  const result = await embedBatch(client, [text]);
+  return result[0];
 }

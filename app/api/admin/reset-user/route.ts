@@ -5,8 +5,29 @@
 
 import { NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
+
+const ADMIN_EMAILS = [
+  'drew@archeforge.com',
+  'drewspatterson@gmail.com',
+];
+
+async function checkAdminAuth(): Promise<{ authorized: boolean; error?: NextResponse }> {
+  const supabase = await createServerClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { authorized: false, error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+  }
+
+  if (!ADMIN_EMAILS.includes(user.email || '')) {
+    return { authorized: false, error: NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 }) };
+  }
+
+  return { authorized: true };
+}
 
 function getSupabaseAdmin() {
   return createAdminClient(
@@ -18,9 +39,13 @@ function getSupabaseAdmin() {
 
 export async function DELETE(request: Request) {
   try {
+    // Auth check
+    const authResult = await checkAdminAuth();
+    if (!authResult.authorized) return authResult.error!;
+
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 });
     }
@@ -90,9 +115,13 @@ export async function DELETE(request: Request) {
 // POST for easier API testing (accepts body)
 export async function POST(request: Request) {
   try {
+    // Auth check
+    const authResult = await checkAdminAuth();
+    if (!authResult.authorized) return authResult.error!;
+
     const body = await request.json().catch(() => ({}));
     const userId = body.userId || body.user_id;
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'userId required in body' }, { status: 400 });
     }
@@ -100,11 +129,11 @@ export async function POST(request: Request) {
     // Reuse DELETE logic by creating a fake request with query param
     const url = new URL(request.url);
     url.searchParams.set('userId', userId);
-    
+
     return DELETE(new Request(url.toString(), { method: 'DELETE' }));
   } catch (error) {
-    return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'Reset failed' 
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : 'Reset failed'
     }, { status: 500 });
   }
 }
@@ -112,6 +141,10 @@ export async function POST(request: Request) {
 // GET to list users or get specific user status
 export async function GET(request: Request) {
   try {
+    // Auth check
+    const authResult = await checkAdminAuth();
+    if (!authResult.authorized) return authResult.error!;
+
     const adminSupabase = getSupabaseAdmin();
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');

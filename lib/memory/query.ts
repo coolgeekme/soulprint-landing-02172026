@@ -11,6 +11,7 @@ export interface MemoryChunk {
   content: string;
   created_at: string;
   similarity: number;
+  layer_index: number;
 }
 
 export interface LearnedFactResult {
@@ -19,14 +20,41 @@ export interface LearnedFactResult {
   similarity: number;
 }
 
-// Initialize Bedrock client for Cohere Embed v4
-const bedrockClient = new BedrockRuntimeClient({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+// Database row types for proper typing
+interface ChunkRpcRow {
+  id: string;
+  title: string | null;
+  content: string;
+  created_at: string;
+  similarity: number;
+  layer_index: number | null;
+}
+
+interface ChunkTableRow {
+  id: string;
+  title: string | null;
+  content: string;
+  created_at: string;
+  layer_index: number | null;
+}
+
+interface LearnedFactRow {
+  fact: string;
+  category: string;
+  similarity: number;
+}
+
+
+// Helper to get lazy client
+function getBedrockClient() {
+  return new BedrockRuntimeClient({
+    region: process.env.AWS_REGION || 'us-east-1',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    },
+  });
+}
 
 function getSupabaseAdmin() {
   return createAdminClient(
@@ -37,64 +65,62 @@ function getSupabaseAdmin() {
 }
 
 /**
- * Embed a query using Cohere Embed v4 on AWS Bedrock
- * 1536 dimensions, enterprise-grade accuracy for pinpoint memory
- * 128K context length, handles noisy real-world data
+ * Embed a query using Cohere Embed v3
  */
 export async function embedQuery(text: string): Promise<number[]> {
+  const client = getBedrockClient();
+
   const command = new InvokeModelCommand({
-    modelId: 'cohere.embed-v4',
+    modelId: 'cohere.embed-english-v3',
     contentType: 'application/json',
     accept: 'application/json',
     body: JSON.stringify({
-      texts: [text.slice(0, 128000)], // Cohere v4 supports 128K context
-      input_type: 'search_query',
+      texts: [text.slice(0, 128000)], // Cohere v3 supports context
+      input_type: 'search_query', // Critical for v3
       embedding_types: ['float'],
       truncate: 'END',
     }),
   });
 
   try {
-    const response = await bedrockClient.send(command);
+    const response = await client.send(command);
     const result = JSON.parse(new TextDecoder().decode(response.body));
     return result.embeddings.float[0];
   } catch (error) {
-    console.error('[Embed] Cohere v4 error:', error);
+    console.error('[Embed] Cohere v3 error:', error);
     throw new Error(`Cohere embedding error: ${error}`);
   }
 }
 
 /**
- * Batch embed multiple texts using Cohere Embed v4 on Bedrock
- * More efficient than one-by-one
+ * Batch embed multiple texts
  */
 export async function embedBatch(texts: string[]): Promise<number[][]> {
-  // Cohere v4 supports batch embedding natively
-  // Process in chunks of 96 (Cohere batch limit)
+  const client = getBedrockClient();
   const BATCH_SIZE = 96;
   const allEmbeddings: number[][] = [];
 
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
     const batch = texts.slice(i, i + BATCH_SIZE).map(t => t.slice(0, 128000));
-    
+
     const command = new InvokeModelCommand({
-      modelId: 'cohere.embed-v4',
+      modelId: 'cohere.embed-english-v3',
       contentType: 'application/json',
       accept: 'application/json',
       body: JSON.stringify({
         texts: batch,
-        input_type: 'search_document', // Use 'search_document' for corpus
+        input_type: 'search_document',
         embedding_types: ['float'],
         truncate: 'END',
       }),
     });
 
     try {
-      const response = await bedrockClient.send(command);
+      const response = await client.send(command);
       const result = JSON.parse(new TextDecoder().decode(response.body));
       allEmbeddings.push(...result.embeddings.float);
     } catch (error) {
-      console.error('[Embed] Cohere v4 batch error:', error);
+      console.error('[Embed] Cohere v3 batch error:', error);
       throw new Error(`Cohere batch embedding error: ${error}`);
     }
   }
@@ -103,51 +129,65 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
 }
 
 /**
- * Search conversation_chunks by vector similarity
- * Returns top-k relevant chunks filtered by user_id
+ * Search conversation_chunks by vector similarity with Layer Filtering
  */
-export async function searchMemory(
+export async function searchMemoryLayered(
   userId: string,
   query: string,
   topK: number = 5,
-  minSimilarity: number = 0.3  // Lowered from 0.5 to catch more relevant memories
+  minSimilarity: number = 0.3,
+  layerIndex?: number,  // New RLM param
+  queryEmbed?: number[] // Optimization: Reuse embedding if available
 ): Promise<MemoryChunk[]> {
-  // Embed the query
-  const queryEmbedding = await embedQuery(query);
-  
-  // Create Supabase client
+  // Embed the query if not provided
+  const queryEmbedding = queryEmbed || await embedQuery(query);
+
   const supabase = await createClient();
-  
-  // Call the vector similarity search function
-  const { data, error } = await supabase.rpc('match_conversation_chunks', {
+
+  // Call the NEW layered search function
+  // Note: We use match_conversation_chunks_layered which likely exists after migration
+  // If not, we might fall back to match_conversation_chunks (but losing layer filtering)
+  let rpcName = 'match_conversation_chunks_layered';
+
+  // Try the layered RPC first
+  let { data, error } = await supabase.rpc(rpcName, {
     query_embedding: queryEmbedding,
     match_user_id: userId,
     match_count: topK,
     match_threshold: minSimilarity,
+    match_layer: layerIndex || null // Pass null to search all layers
   });
 
   if (error) {
-    console.error('Memory search error:', error);
-    throw new Error(`Failed to search memory: ${error.message}`);
+    // If function doesn't exist, try the old one (fallback for safety)
+    if (error.code === '42883') { // Undefined function
+      console.warn('[Memory] Layered RPC missing, falling back to basic search');
+      const fallback = await supabase.rpc('match_conversation_chunks', {
+        query_embedding: queryEmbedding,
+        match_user_id: userId,
+        match_count: topK,
+        match_threshold: minSimilarity,
+      });
+      data = fallback.data;
+      error = fallback.error;
+    } else {
+      console.error('Memory search error:', error);
+      throw new Error(`Failed to search memory: ${error.message}`);
+    }
   }
 
-  return (data || []).map((row: {
-    id: string;
-    title: string;
-    content: string;
-    created_at: string;
-    similarity: number;
-  }) => ({
+  return (data || []).map((row: ChunkRpcRow) => ({
     id: row.id,
     title: row.title || 'Untitled',
     content: row.content,
     created_at: row.created_at,
     similarity: row.similarity,
+    layer_index: row.layer_index || 1, // Default to 1 if missing
   }));
 }
 
 /**
- * Fallback keyword search when embeddings not available
+ * Fallback keyword search
  */
 async function keywordSearch(
   userId: string,
@@ -155,43 +195,40 @@ async function keywordSearch(
   limit: number = 5
 ): Promise<MemoryChunk[]> {
   const supabase = await createClient();
-  
-  // Extract keywords
+
   const keywords = query
     .toLowerCase()
     .split(/\s+/)
     .filter(w => w.length > 3)
     .slice(0, 5);
-  
-  if (keywords.length === 0) {
-    return [];
-  }
-  
+
+  if (keywords.length === 0) return [];
+
   const { data, error } = await supabase
     .from('conversation_chunks')
-    .select('id, title, content, created_at')
+    .select('id, title, content, created_at, layer_index')
     .eq('user_id', userId)
     .or(keywords.map(k => `content.ilike.%${k}%`).join(','))
-    .order('is_recent', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit);
-  
+
   if (error) {
     console.log('[Memory] Keyword search error:', error.message);
     return [];
   }
-  
-  return (data || []).map((row, i) => ({
+
+  return (data || []).map((row: ChunkTableRow, i: number) => ({
     id: row.id,
     title: row.title || 'Untitled',
     content: row.content,
     created_at: row.created_at,
-    similarity: 0.5 - (i * 0.05), // Fake similarity for ordering
+    similarity: 0.5 - (i * 0.05),
+    layer_index: row.layer_index || 1,
   }));
 }
 
 /**
- * Search learned facts by vector similarity
+ * Search learned facts
  */
 async function searchLearnedFacts(
   userId: string,
@@ -200,7 +237,6 @@ async function searchLearnedFacts(
   threshold: number = 0.5
 ): Promise<LearnedFactResult[]> {
   const supabase = getSupabaseAdmin();
-
   try {
     const { data, error } = await supabase.rpc('match_learned_facts', {
       query_embedding: queryEmbedding,
@@ -208,95 +244,129 @@ async function searchLearnedFacts(
       match_count: limit,
       match_threshold: threshold,
     });
-
     if (error) {
-      console.log('[Memory] Learned facts search failed:', error.message);
+      console.log('[Memory] Learned facts retrieval failed:', error.message);
       return [];
     }
-
-    return (data || []).map((row: { fact: string; category: string; similarity: number }) => ({
+    return (data || []).map((row: LearnedFactRow) => ({
       fact: row.fact,
       category: row.category,
       similarity: row.similarity,
     }));
-  } catch (error) {
-    // Table might not exist yet
-    console.log('[Memory] Learned facts search unavailable');
+  } catch (e) {
+    console.log('Learned facts table access error');
     return [];
   }
 }
 
 /**
- * Get memory context formatted for chat
- * Uses vector search if available, falls back to keyword search
- * Also includes learned facts from ongoing conversations
+ * Get Hierarchical (RLM) Context
+ * Searches multiple layers to build a deep context window
  */
 export async function getMemoryContext(
   userId: string,
   query: string,
-  maxChunks: number = 5
+  maxChunks: number = 5 // Not strictly used for all layers, but as a base
 ): Promise<{ chunks: MemoryChunk[]; contextText: string; method: string; learnedFacts: LearnedFactResult[] }> {
   let chunks: MemoryChunk[] = [];
   let learnedFacts: LearnedFactResult[] = [];
   let method = 'none';
   let queryEmbedding: number[] | null = null;
-  
-  // Try vector search first
-  if (process.env.OPENAI_API_KEY) {
-    try {
-      // Get embedding for the query
-      queryEmbedding = await embedQuery(query);
-      
-      // Search conversation chunks
-      chunks = await searchMemory(userId, query, maxChunks);
-      method = 'vector';
-      console.log(`[Memory] Vector search found ${chunks.length} chunks`);
-      
-      // Also search learned facts
-      if (queryEmbedding) {
-        learnedFacts = await searchLearnedFacts(userId, queryEmbedding, 10, 0.35);
-        console.log(`[Memory] Found ${learnedFacts.length} relevant learned facts`);
+  const usedChunksIDs = new Set<string>();
+
+  try {
+    queryEmbedding = await embedQuery(query);
+
+    // 1. MACRO Layer (Layer 5) - Get high-level context
+    // Broad, thematic chunks (5000 chars) that set the scene
+    const macroChunks = await searchMemoryLayered(userId, query, 2, 0.25, 5, queryEmbedding);
+    macroChunks.forEach(c => {
+      if (!usedChunksIDs.has(c.id)) {
+        chunks.push(c);
+        usedChunksIDs.add(c.id);
       }
-    } catch (error) {
-      console.log('[Memory] Vector search failed, trying keyword fallback:', error);
+    });
+
+    // 2. THEMATIC Layer (Layer 3) - Mid-level details
+    // 1000 chars, standard chunks
+    const thematicChunks = await searchMemoryLayered(userId, query, 3, 0.35, 3, queryEmbedding);
+    thematicChunks.forEach(c => {
+      if (!usedChunksIDs.has(c.id)) {
+        chunks.push(c);
+        usedChunksIDs.add(c.id);
+      }
+    });
+
+    // 3. MICRO Layer (Layer 1) - Specific details
+    // 200 chars, very precise matching
+    const microChunks = await searchMemoryLayered(userId, query, 4, 0.45, 1, queryEmbedding);
+    microChunks.forEach(c => {
+      if (!usedChunksIDs.has(c.id)) {
+        chunks.push(c);
+        usedChunksIDs.add(c.id);
+      }
+    });
+
+    // 4. Also get general chunks if we missed stuff (optional, search all layers)
+    if (chunks.length < 3) {
+      const generalChunks = await searchMemoryLayered(userId, query, 3, 0.3, undefined, queryEmbedding); // All layers
+      generalChunks.forEach(c => {
+        if (!usedChunksIDs.has(c.id)) {
+          chunks.push(c);
+          usedChunksIDs.add(c.id);
+        }
+      });
     }
-  }
-  
-  // Fallback to keyword search
-  if (chunks.length === 0) {
-    try {
-      chunks = await keywordSearch(userId, query, maxChunks);
-      method = chunks.length > 0 ? 'keyword' : 'none';
-      console.log(`[Memory] Keyword search found ${chunks.length} chunks`);
-    } catch (error) {
-      console.log('[Memory] Keyword search failed:', error);
+
+    method = chunks.length > 0 ? 'hierarchical_vector' : 'none';
+    console.log(`[RLM] Found ${chunks.length} chunks across layers (Macro:${macroChunks.length}, Thematic:${thematicChunks.length}, Micro:${microChunks.length})`);
+
+    // Learned facts
+    if (queryEmbedding) {
+      learnedFacts = await searchLearnedFacts(userId, queryEmbedding, 10, 0.4);
     }
+
+  } catch (error) {
+    console.log('[RLM] Vector search failed:', error);
+    // Fallback
+    chunks = await keywordSearch(userId, query, 5);
+    method = chunks.length > 0 ? 'keyword' : 'none';
   }
-  
+
+  // Deduplicate again just in case
+  // Sort chunks by layer index (High to Low -> 5, then 3, then 1) to provide context from broad to narrow
+  chunks.sort((a, b) => b.layer_index - a.layer_index);
+
   if (chunks.length === 0 && learnedFacts.length === 0) {
     return { chunks: [], contextText: '', method, learnedFacts: [] };
   }
 
-  // Build context text from both sources
+  // Format Context
   const contextParts: string[] = [];
-  
-  // Add learned facts first (more recent/relevant)
+
+  // Facts first
   if (learnedFacts.length > 0) {
     const factsText = learnedFacts
-      .map(f => `• [${f.category}] ${f.fact}`)
+      .map(f => `• [Fact] ${f.fact}`)
       .join('\n');
     contextParts.push(`[Learned Facts]\n${factsText}`);
   }
-  
-  // Add conversation memories
+
+  // Memories organized by layer
   if (chunks.length > 0) {
-    const chunksText = chunks
-      .map((chunk, i) => `[Memory ${i + 1}: ${chunk.title}] ${chunk.content.slice(0, 1500)}`)
-      .join('\n\n');
-    contextParts.push(chunksText);
+    const formattedChunks = chunks.map(chunk => {
+      const layerName = chunk.layer_index === 5 ? 'MACRO' : chunk.layer_index === 3 ? 'THEME' : chunk.layer_index === 1 ? 'MICRO' : 'MEMORY';
+      // Truncate based on layer size slightly to ensure we don't blow context
+      const maxLen = chunk.layer_index === 5 ? 2000 : 1000;
+      return `[${layerName} Context: ${chunk.title}]\n${chunk.content.slice(0, maxLen)}...`;
+    }).join('\n\n');
+    contextParts.push(formattedChunks);
   }
 
-  const contextText = contextParts.join('\n\n---\n\n');
-
-  return { chunks, contextText, method, learnedFacts };
+  return {
+    chunks,
+    contextText: contextParts.join('\n\n---\n\n'),
+    method,
+    learnedFacts
+  };
 }

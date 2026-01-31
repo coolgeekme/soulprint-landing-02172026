@@ -93,22 +93,32 @@ export default function ImportPage() {
   const [currentStep, setCurrentStep] = useState<Step>('export');
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadProgressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup intervals on unmount
+  useEffect(() => {
+    return () => {
+      if (uploadProgressIntervalRef.current) clearInterval(uploadProgressIntervalRef.current);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    };
+  }, []);
 
   const handleReset = async () => {
     if (!confirm('This will delete all your imported data. Are you sure?')) return;
-    
+
     setIsResetting(true);
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not logged in');
-      
+
       const res = await fetch(`/api/admin/reset-user?userId=${user.id}`, {
         method: 'DELETE',
       });
-      
+
       if (!res.ok) throw new Error('Reset failed');
-      
+
       // Refresh the page to start fresh
       window.location.reload();
     } catch (err) {
@@ -123,14 +133,14 @@ export default function ImportPage() {
       try {
         const res = await fetch('/api/memory/status');
         const data = await res.json();
-        
+
         // Allow retry if import failed
         if (data.status === 'failed' || data.failed) {
           setIsReturningUser(true);
           setCheckingExisting(false);
           return;
         }
-        
+
         // Check if user already has a soulprint (locked or complete)
         if (data.status === 'ready' || data.hasSoulprint || data.locked) {
           router.push('/chat');
@@ -148,7 +158,9 @@ export default function ImportPage() {
         if (user && !data.hasSoulprint) {
           setIsReturningUser(true);
         }
-      } catch {}
+      } catch (error) {
+        console.error('[Import] Error checking existing status:', error);
+      }
       setCheckingExisting(false);
     };
     checkExisting();
@@ -167,7 +179,7 @@ export default function ImportPage() {
 
     const FILE_SIZE_THRESHOLD = 0; // ALL imports go server-side for consistency
     const isMobile = isMobileDevice();
-    
+
     try {
       let result: ClientSoulprint;
       let conversationChunks: Array<{ id?: string; content: string; conversationId?: string; title: string; messageCount: number; createdAt?: string; isRecent?: boolean }>;
@@ -177,26 +189,26 @@ export default function ImportPage() {
       if (file.size > FILE_SIZE_THRESHOLD) {
         let uploadBlob: Blob;
         let uploadFilename: string;
-        
+
         // DESKTOP: Extract conversations.json from ZIP client-side (much smaller upload!)
         // MOBILE: Upload full ZIP (JSZip crashes mobile browsers on large files)
         if (!isMobile) {
           setProgressStage('Extracting conversations...');
           setProgress(5);
-          
+
           try {
             console.log('[Import] Desktop: extracting conversations.json from ZIP...');
             const zip = await JSZip.loadAsync(file);
             const conversationsFile = zip.file('conversations.json');
-            
+
             if (!conversationsFile) {
               throw new Error('No conversations.json found in ZIP. Make sure you uploaded the correct ChatGPT export.');
             }
-            
+
             const jsonContent = await conversationsFile.async('blob');
             uploadBlob = jsonContent;
             uploadFilename = 'conversations.json';
-            
+
             const originalMB = (file.size / 1024 / 1024).toFixed(1);
             const extractedMB = (jsonContent.size / 1024 / 1024).toFixed(1);
             console.log(`[Import] Extracted conversations.json: ${extractedMB}MB (original ZIP: ${originalMB}MB)`);
@@ -212,78 +224,66 @@ export default function ImportPage() {
           uploadBlob = file;
           uploadFilename = file.name;
         }
-        
-        setProgressStage('Preparing upload...');
-        setProgress(8);
 
-        // Get signed upload URL
-        const urlRes = await fetch('/api/import/get-upload-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ filename: uploadFilename }),
-        });
+        const isJson = uploadFilename.endsWith('.json');
 
-        const urlData = await urlRes.json().catch(() => ({ error: 'Failed to parse response' }));
-        
-        if (!urlRes.ok) {
-          throw new Error(urlData.error || 'Failed to get upload URL');
+        // Use Client-Side Upload (Standard Supabase) to bypass Vercel limits
+        // The 'imports' bucket must have RLS policies set for this to work
+        setProgressStage('Uploading securely to storage...');
+        setProgress(15);
+
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) throw new Error('You must be logged in to upload');
+
+        const timestamp = Date.now();
+        // Sanitize filename to avoid issues
+        const cleanName = uploadFilename.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const uploadPath = `${user.id}/${timestamp}-${cleanName}`;
+
+        console.log(`[Import] Starting client-side upload: ${uploadPath}`);
+
+        // Simulate progress since Supabase client doesn't provide callback for simple upload
+        uploadProgressIntervalRef.current = setInterval(() => {
+          setProgress(p => Math.min(p + 5, 50));
+        }, 500);
+
+        const { data, error } = await supabase.storage
+          .from('imports')
+          .upload(uploadPath, uploadBlob, {
+            upsert: true,
+            contentType: uploadFilename.endsWith('.json') ? 'application/json' : 'application/zip'
+          });
+
+        if (uploadProgressIntervalRef.current) clearInterval(uploadProgressIntervalRef.current);
+
+        if (error) {
+          console.error('[Import] Storage upload error:', error);
+          throw new Error(`Upload failed: ${error.message}`);
         }
 
-        const { uploadUrl, path: urlPath } = urlData;
-        const storagePath = urlPath;
+        if (!data?.path) {
+          throw new Error('Upload successful but returned no path');
+        }
 
-        setProgressStage('Uploading ZIP file...');
-        setProgress(10);
+        console.log('[Import] Upload success:', data);
+        const storagePath = `imports/${data.path}`; // Construct full path including bucket
 
-        // Use XMLHttpRequest for progress tracking and mobile compatibility
-        await new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open('PUT', uploadUrl, true);
-          // Set content type based on what we're uploading
-          const contentType = uploadFilename.endsWith('.json') ? 'application/json' : 'application/zip';
-          xhr.setRequestHeader('Content-Type', contentType);
 
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve();
-            } else {
-              reject(new Error(`Upload failed: ${xhr.status}`));
-            }
-          };
-
-          xhr.onerror = () => reject(new Error('Network error during upload'));
-          xhr.ontimeout = () => reject(new Error('Upload timed out'));
-
-          xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-              // Upload progress: 10-50%
-              const pct = Math.round((e.loaded / e.total) * 40) + 10;
-              setProgress(pct);
-              const uploadedMB = (e.loaded / 1024 / 1024).toFixed(0);
-              const totalMB = (e.total / 1024 / 1024).toFixed(0);
-              setProgressStage(`Uploading... ${uploadedMB}/${totalMB} MB`);
-            }
-          };
-
-          xhr.timeout = 600000; // 10 min timeout for large files
-          xhr.send(uploadBlob);
-        });
-        
         setProgressStage('Upload complete! Analyzing your conversations...');
         setProgress(55);
-        
+
         // Small delay to let browser settle after large upload
         await new Promise(r => setTimeout(r, 500));
-        
+
         // Start progress animation for server processing (55% -> 95%)
-        let progressInterval: NodeJS.Timeout | null = null;
         let currentProgress = 55;
-        progressInterval = setInterval(() => {
+        progressIntervalRef.current = setInterval(() => {
           // Slow progress that never quite reaches 100%
           currentProgress = Math.min(currentProgress + 0.5, 95);
           setProgress(Math.round(currentProgress));
-          
+
           // Update stage text based on progress
           if (currentProgress < 65) {
             setProgressStage('Downloading and extracting...');
@@ -295,7 +295,7 @@ export default function ImportPage() {
             setProgressStage('Almost done...');
           }
         }, 1000);
-        
+
         // Process on server - NO timeout, let it complete (up to 5 min)
         let queueRes;
         try {
@@ -303,7 +303,7 @@ export default function ImportPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ 
+            body: JSON.stringify({
               storagePath,
               filename: uploadFilename,
               fileSize: uploadBlob.size,
@@ -311,28 +311,28 @@ export default function ImportPage() {
             }),
           });
         } catch (e) {
-          if (progressInterval) clearInterval(progressInterval);
+          if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
           console.error('[Import] queue-processing failed:', e);
           throw new Error('Processing failed. Please try again.');
         }
-        
-        if (progressInterval) clearInterval(progressInterval);
-        
+
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+
         if (!queueRes.ok) {
           const err = await queueRes.json().catch(() => ({}));
           console.error('[Import] queue-processing error:', err);
           throw new Error(err.error || 'Processing failed. Please try again.');
         }
-        
+
         const result = await queueRes.json();
         console.log('[Import] Processing complete:', result);
-        
+
         // Success! Show completion
         setProgressStage('Complete! Starting chat...');
         setProgress(100);
         setStatus('success');
         setCurrentStep('done');
-        
+
         // Brief delay then redirect
         await new Promise(r => setTimeout(r, 1000));
         router.push('/chat');
@@ -359,7 +359,7 @@ export default function ImportPage() {
       const longestConvos = [...rawConversations]
         .sort((a, b) => (b.messages?.length || 0) - (a.messages?.length || 0))
         .slice(0, 50);
-      
+
       // EXHAUSTIVE: Send ALL conversations for comprehensive analysis
       // Optimize payload by limiting message length, but include ALL conversations
       const allConversations = rawConversations.map(c => ({
@@ -371,15 +371,15 @@ export default function ImportPage() {
         message_count: c.messages?.length || 0,
         createdAt: c.createdAt,
       }));
-      
+
       // For very large exports (>1000), take strategic sample to fit request limits
       // but much larger than before (500 vs 150)
-      const conversationSample = allConversations.length > 500 
+      const conversationSample = allConversations.length > 500
         ? [
-            ...allConversations.slice(0, 200),  // Recent
-            ...allConversations.slice(-100),     // Oldest  
-            ...allConversations.sort((a, b) => b.message_count - a.message_count).slice(0, 200), // Longest
-          ].filter((v, i, a) => a.findIndex(t => t.title === v.title) === i).slice(0, 500)
+          ...allConversations.slice(0, 200),  // Recent
+          ...allConversations.slice(-100),     // Oldest  
+          ...allConversations.sort((a, b) => b.message_count - a.message_count).slice(0, 200), // Longest
+        ].filter((v, i, a) => a.findIndex(t => t.title === v.title) === i).slice(0, 500)
         : allConversations;
 
       // Create soulprint via RLM (or fallback to client-generated)
@@ -389,12 +389,12 @@ export default function ImportPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include', // Ensure auth cookies are sent
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             conversations: conversationSample,
             stats: result.stats, // Pass stats from client-side analysis
           }),
         });
-        
+
         const rlmResult = await safeJsonParse(rlmResponse);
         if (rlmResult.ok && rlmResult.data?.soulprint) {
           finalSoulprint = { ...result, ...rlmResult.data.soulprint };
@@ -435,7 +435,7 @@ export default function ImportPage() {
           totalChunks: conversationChunks.length,
           totalRaw: rawConversations.length,
         }));
-        
+
         // Store actual data in IndexedDB for large datasets
         const db = await openImportDB();
         await storeChunksInDB(db, conversationChunks);
@@ -445,16 +445,20 @@ export default function ImportPage() {
         // Continue anyway - user can re-import if needed
       }
 
-      // Mark user as having pending sync
-      await fetch('/api/import/mark-pending', {
+      // Mark user as having pending sync (non-blocking)
+      fetch('/api/import/mark-pending', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Ensure auth cookies are sent
-        body: JSON.stringify({ 
+        credentials: 'include',
+        body: JSON.stringify({
           totalChunks: conversationChunks.length,
           totalRaw: rawConversations.length,
         }),
-      }).catch(err => console.warn('Mark pending failed:', err));
+      })
+        .then(res => {
+          if (!res.ok) console.warn('[Import] Mark pending returned:', res.status);
+        })
+        .catch(err => console.warn('[Import] Mark pending failed:', err));
 
       setProgress(100);
       setProgressStage('Complete! Starting chat...');
@@ -462,7 +466,25 @@ export default function ImportPage() {
       setCurrentStep('done');
     } catch (err) {
       console.error('Import error:', err);
-      setErrorMessage(err instanceof Error ? err.message : 'Processing failed');
+      // Map technical errors to user-friendly messages
+      let userMessage = 'Processing failed. Please try again.';
+      if (err instanceof Error) {
+        const msg = err.message.toLowerCase();
+        if (msg.includes('network') || msg.includes('fetch') || msg.includes('failed to fetch')) {
+          userMessage = 'Network error. Please check your connection and try again.';
+        } else if (msg.includes('timeout')) {
+          userMessage = 'Upload timed out. Try with a smaller file or better connection.';
+        } else if (msg.includes('size') || msg.includes('large') || msg.includes('entity too large')) {
+          userMessage = 'File is too large. Maximum size is 500MB.';
+        } else if (msg.includes('zip') || msg.includes('format') || msg.includes('conversations.json')) {
+          userMessage = 'Invalid file format. Please upload the original ZIP from ChatGPT.';
+        } else if (msg.includes('logged in') || msg.includes('unauthorized')) {
+          userMessage = 'Session expired. Please refresh the page and try again.';
+        } else {
+          userMessage = err.message;
+        }
+      }
+      setErrorMessage(userMessage);
       setStatus('error');
     }
   };
@@ -520,7 +542,7 @@ export default function ImportPage() {
           <img src="/logo.svg" alt="SoulPrint" className="w-5 h-5 sm:w-6 sm:h-6" />
           <span className="text-white font-semibold text-xs sm:text-sm">SoulPrint</span>
         </Link>
-        
+
         <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50 text-[10px] sm:text-xs">
           <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
           <span>Private</span>
@@ -531,16 +553,14 @@ export default function ImportPage() {
       <div className="relative z-10 flex items-center justify-center gap-2 py-2 sm:py-3 flex-shrink-0">
         {steps.map((step, i) => (
           <div key={step.id} className="flex items-center gap-2">
-            <div 
-              className={`w-2 h-2 rounded-full transition-colors ${
-                i < stepIndex ? 'bg-orange-500' : 
+            <div
+              className={`w-2 h-2 rounded-full transition-colors ${i < stepIndex ? 'bg-orange-500' :
                 i === stepIndex ? 'bg-orange-500' : 'bg-white/20'
-              }`}
+                }`}
             />
             {i < steps.length - 1 && (
-              <div className={`w-6 h-0.5 transition-colors ${
-                i < stepIndex ? 'bg-orange-500' : 'bg-white/10'
-              }`} />
+              <div className={`w-6 h-0.5 transition-colors ${i < stepIndex ? 'bg-orange-500' : 'bg-white/10'
+                }`} />
             )}
           </div>
         ))}
@@ -624,14 +644,14 @@ export default function ImportPage() {
                 </div>
               </div>
 
-              <Button 
+              <Button
                 onClick={() => setCurrentStep('upload')}
                 className="w-full bg-orange-500 hover:bg-orange-400 text-black font-semibold h-10"
               >
                 I have my ZIP file <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
 
-              <a 
+              <a
                 href="https://help.openai.com/en/articles/7260999-how-do-i-export-my-chatgpt-history-and-data"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -662,8 +682,8 @@ export default function ImportPage() {
                 onClick={() => fileInputRef.current?.click()}
                 className={`
                   cursor-pointer border-2 border-dashed rounded-xl sm:rounded-2xl p-5 sm:p-8 text-center transition-all
-                  ${dragActive 
-                    ? 'border-orange-500 bg-orange-500/10' 
+                  ${dragActive
+                    ? 'border-orange-500 bg-orange-500/10'
                     : 'border-white/15 bg-white/[0.02] hover:border-orange-500/40'
                   }
                 `}
@@ -691,7 +711,7 @@ export default function ImportPage() {
                 </p>
               </div>
 
-              <button 
+              <button
                 onClick={() => setCurrentStep('export')}
                 className="mt-3 sm:mt-4 text-white/40 text-xs hover:text-white/60"
               >
@@ -714,7 +734,7 @@ export default function ImportPage() {
               </div>
               <h2 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">Something went wrong</h2>
               <p className="text-white/50 text-xs sm:text-sm mb-4 sm:mb-6">{errorMessage}</p>
-              <Button 
+              <Button
                 onClick={handleRetry}
                 variant="outline"
                 className="border-white/20 text-white hover:bg-white/10 h-9 sm:h-10"
@@ -734,21 +754,21 @@ export default function ImportPage() {
               className="w-full max-w-sm flex flex-col justify-center text-center"
             >
               <div className="mb-3 sm:mb-4">
-                <RingProgress 
-                  progress={progress} 
-                  size={80} 
+                <RingProgress
+                  progress={progress}
+                  size={80}
                   strokeWidth={5}
                 />
               </div>
               <h2 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">Creating your SoulPrint</h2>
               <p className="text-white/50 text-xs sm:text-sm">{progressStage || 'Analyzing your conversations...'}</p>
-              
+
               {progress < 60 && (
                 <p className="text-orange-400/80 text-xs mt-2">
                   ⚠️ Don&apos;t close this page until upload completes
                 </p>
               )}
-              
+
               <div className="mt-4 sm:mt-6 w-full h-1 sm:h-1.5 bg-white/10 rounded-full overflow-hidden">
                 <motion.div
                   className="h-full bg-gradient-to-r from-orange-600 to-orange-400 rounded-full"
@@ -757,7 +777,7 @@ export default function ImportPage() {
                   transition={{ duration: 0.3 }}
                 />
               </div>
-              
+
               <button
                 onClick={handleCancel}
                 className="mt-6 text-white/40 text-sm hover:text-white/60 transition-colors"
@@ -786,7 +806,7 @@ export default function ImportPage() {
               </motion.div>
               <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 sm:mb-2">You&apos;re all set!</h2>
               <p className="text-white/50 text-xs sm:text-sm mb-4 sm:mb-6">Your AI now understands you</p>
-              <Button 
+              <Button
                 onClick={() => router.push('/chat')}
                 className="w-full bg-orange-500 hover:bg-orange-400 text-black font-semibold h-10 sm:h-11"
               >

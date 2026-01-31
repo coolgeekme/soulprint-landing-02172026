@@ -5,9 +5,15 @@
 
 import { NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 min for large re-chunks
+
+const ADMIN_EMAILS = [
+  'drew@archeforge.com',
+  'drewspatterson@gmail.com',
+];
 
 function getSupabaseAdmin() {
   return createAdminClient(
@@ -33,6 +39,18 @@ interface RawConversation {
 
 export async function POST(request: Request) {
   try {
+    // Auth check
+    const supabase = await createServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!ADMIN_EMAILS.includes(user.email || '')) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+    }
+
     const adminSupabase = getSupabaseAdmin();
     const body = await request.json();
     const { userId, all } = body;

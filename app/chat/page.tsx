@@ -39,7 +39,7 @@ export default function ChatPage() {
   
   // Message queue for handling multiple messages while AI is responding
   const messageQueueRef = useRef<QueuedMessage[]>([]);
-  const isProcessingRef = useRef(false);
+  const processingPromiseRef = useRef<Promise<void> | null>(null);
 
   // Load initial state
   useEffect(() => {
@@ -173,13 +173,16 @@ export default function ChatPage() {
 
   const saveMessage = async (role: string, content: string) => {
     try {
-      await fetch('/api/chat/messages', {
+      const response = await fetch('/api/chat/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role, content }),
       });
-    } catch {
-      // Silent fail
+      if (!response.ok) {
+        console.error('[Chat] Failed to save message:', response.status);
+      }
+    } catch (error) {
+      console.error('[Chat] Network error saving message:', error);
     }
   };
 
@@ -418,22 +421,31 @@ export default function ChatPage() {
     setIsDeepSearching(false);
   }, [isNamingMode, messages, aiName]);
 
-  // Process the message queue sequentially
+  // Process the message queue sequentially with mutex pattern
   const processQueue = useCallback(async () => {
-    if (isProcessingRef.current || messageQueueRef.current.length === 0) {
+    // If already processing, return existing promise to avoid race
+    if (processingPromiseRef.current) {
+      return processingPromiseRef.current;
+    }
+
+    if (messageQueueRef.current.length === 0) {
       return;
     }
 
-    isProcessingRef.current = true;
-    setIsLoading(true);
+    const processAll = async () => {
+      setIsLoading(true);
 
-    while (messageQueueRef.current.length > 0) {
-      const nextMessage = messageQueueRef.current.shift()!;
-      await processMessage(nextMessage.content, nextMessage.voiceVerified, nextMessage.deepSearch);
-    }
+      while (messageQueueRef.current.length > 0) {
+        const nextMessage = messageQueueRef.current.shift()!;
+        await processMessage(nextMessage.content, nextMessage.voiceVerified, nextMessage.deepSearch);
+      }
 
-    isProcessingRef.current = false;
-    setIsLoading(false);
+      setIsLoading(false);
+      processingPromiseRef.current = null;
+    };
+
+    processingPromiseRef.current = processAll();
+    return processingPromiseRef.current;
   }, [processMessage]);
 
   // Public handler - adds message to queue and starts processing
@@ -450,10 +462,8 @@ export default function ChatPage() {
     // Add to queue
     messageQueueRef.current.push({ content, voiceVerified, deepSearch });
 
-    // Start processing if not already running
-    if (!isProcessingRef.current) {
-      processQueue();
-    }
+    // Start processing (processQueue handles its own mutex)
+    processQueue();
   }, [processQueue]);
 
   const handleBack = () => {
