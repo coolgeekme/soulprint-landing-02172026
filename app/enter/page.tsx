@@ -5,22 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, ArrowLeft, Mail, CheckCircle2, Loader2 } from 'lucide-react';
-
-// Referral codes from ArcheForge team - one per person
-const VALID_CODES: Record<string, string> = {
-  // Team codes
-  'NINETEEN19': 'Layla Ghafarri',
-  'ACE1': 'Ben Woodard',
-  'FLOYD': 'Adrian Floyd',
-  'WHITEBOYNICK': 'Nicholas Hill',
-  'BLANCHE': 'Lisa Quible',
-  '!ARCHE!': 'ArcheForge',
-  // Founders
-  'DREW2026': 'Drew',
-  'GLENN2026': 'Glenn',
-  'RONNIE2026': 'Ronnie',
-  'DAVID2026': 'David',
-};
+import { validateReferralCode } from '@/app/actions/referral';
 
 type Mode = 'code' | 'waitlist' | 'success';
 
@@ -39,16 +24,23 @@ export default function EnterPage() {
     setIsLoading(true);
 
     const upperCode = code.toUpperCase().trim();
-    
-    if (VALID_CODES[upperCode]) {
-      localStorage.setItem('referralCode', upperCode);
-      localStorage.setItem('referredBy', VALID_CODES[upperCode]);
-      router.push('/signup');
-    } else {
-      setError('Invalid code');
+
+    try {
+      const result = await validateReferralCode(upperCode);
+
+      if (result.valid && result.teamMember) {
+        localStorage.setItem('referralCode', upperCode);
+        localStorage.setItem('referredBy', result.teamMember);
+        localStorage.setItem('hasValidCode', 'true');
+        router.push('/signup');
+      } else {
+        setError('Invalid access code');
+      }
+    } catch {
+      setError('Failed to validate code');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
