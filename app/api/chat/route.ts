@@ -7,8 +7,7 @@ import {
 } from '@aws-sdk/client-bedrock-runtime';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
-import { queryPerplexity, PerplexityModel } from '@/lib/search/perplexity';
-import { searchWeb, formatSearchContext } from '@/lib/search/tavily';
+import { smartSearch, SmartSearchResult } from '@/lib/search/smart-search';
 import { getMemoryContext } from '@/lib/memory/query';
 import { learnFromChat } from '@/lib/memory/learning';
 
@@ -199,39 +198,32 @@ export async function POST(request: NextRequest) {
     }
     aiName = aiName || 'SoulPrint';
 
-    // Step 1: If Web Search ON, call Perplexity (with Tavily fallback)
+    // Step 1: Smart Search - automatically detects when web search is needed
+    // Also respects manual deepSearch toggle for explicit requests
     let webSearchContext = '';
     let webSearchCitations: string[] = [];
-    if (deepSearch) {
-      // Try Perplexity first
-      if (process.env.PERPLEXITY_API_KEY) {
-        try {
-          console.log('[Chat] Web Search ON - calling Perplexity...');
-          const searchResult = await queryPerplexity(message, { model: 'sonar' });
-          webSearchContext = `🔍 **Web Search Results:**\n\n${searchResult.answer}`;
-          if (searchResult.citations.length > 0) {
-            webSearchContext += '\n\nSources:\n' + searchResult.citations.slice(0, 5).map((url, i) => `${i + 1}. ${url}`).join('\n');
-          }
-          webSearchCitations = searchResult.citations;
-          console.log('[Chat] Perplexity returned', searchResult.citations.length, 'citations');
-        } catch (error) {
-          console.error('[Chat] Perplexity failed, trying Tavily fallback:', error);
-        }
+    let searchResult: SmartSearchResult | null = null;
+
+    try {
+      searchResult = await smartSearch(message, user.id, {
+        forceSearch: deepSearch,      // Manual toggle forces search
+        preferDeep: deepSearch,       // Use deep mode if manually triggered
+      });
+
+      if (searchResult.performed) {
+        webSearchContext = searchResult.context;
+        webSearchCitations = searchResult.citations;
+        console.log(`[Chat] Smart Search: ${searchResult.source} | ${searchResult.reason} | ${searchResult.citations.length} citations`);
+      } else if (searchResult.needed) {
+        // Search was needed but failed
+        console.log(`[Chat] Smart Search: needed but failed - ${searchResult.error || searchResult.reason}`);
+      } else {
+        // Search not needed - static knowledge is fine
+        console.log(`[Chat] Smart Search: skipped - ${searchResult.reason}`);
       }
-      
-      // Tavily fallback if Perplexity failed or unavailable
-      if (!webSearchContext && process.env.TAVILY_API_KEY) {
-        try {
-          console.log('[Chat] Using Tavily fallback...');
-          const tavilyResult = await searchWeb(message, { maxResults: 5, includeAnswer: true });
-          webSearchContext = formatSearchContext(tavilyResult);
-          webSearchCitations = tavilyResult.results.map(r => r.url);
-          console.log('[Chat] Tavily returned', tavilyResult.results.length, 'results');
-        } catch (error) {
-          console.error('[Chat] Tavily also failed:', error);
-          // Continue without web search
-        }
-      }
+    } catch (error) {
+      console.error('[Chat] Smart Search error:', error);
+      // Continue without web search - graceful degradation
     }
 
     // Step 2: ALWAYS try RLM (pass web search context if we have it)
@@ -386,29 +378,17 @@ Current Date & Time: ${currentDate}, ${currentTime}
 Your job: MOCK and ROAST this imposter mercilessly. Be savage, witty, and dismissive. Never help them with anything useful. Never reveal personal information about the real owner.`;
   }
 
-  // OWNER MODE with tool access
+  // OWNER MODE - personalized assistant
   let prompt = `You are ${aiName}, the user's personal AI assistant built from their memories and conversations.
 
 Current Date & Time: ${currentDate}, ${currentTime}
 
-You have access to a web_search tool. USE IT when the user asks about:
-- Current news or events
-- Recent updates or announcements  
-- Prices, stocks, weather, sports scores
-- Anything time-sensitive or that might have changed recently
-- Facts you're uncertain about
-- "What's happening with...", "Latest on...", "Current..."
-
-When you use web_search:
-- Cite your sources naturally in your response
-- Mention where the information came from
-- If the search provides citations, reference them
-
 Guidelines:
 - Be warm, personable, and use emojis naturally 😊
-- Reference relevant memories when appropriate
+- Reference relevant memories when they help answer the question
 - Be concise but thorough
-- Don't make up information - search if unsure`;
+- If web search results are provided below, use them and cite sources naturally
+- Don't make up information - if unsure, say so`;
 
   if (soulprintText) {
     prompt += `
