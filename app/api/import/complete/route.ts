@@ -15,9 +15,16 @@ function getSupabaseAdmin() {
   );
 }
 
-function generateSoulPrintReadyEmail(userName: string) {
+function generateSoulPrintReadyEmail(userName: string, memoryBuilding = false) {
   const displayName = userName || 'there';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.soulprintengine.ai';
+
+  // Add a note about memory improving if still building
+  const memoryNote = memoryBuilding
+    ? `<p style="margin: 0 0 24px; color: #EA580C; font-size: 14px; line-height: 1.6; text-align: center;">
+        🧠 Memory is still building in the background — the more you chat, the better it gets!
+       </p>`
+    : '';
 
   return {
     subject: '✨ Your SoulPrint is Ready!',
@@ -54,6 +61,8 @@ function generateSoulPrintReadyEmail(userName: string) {
               <p style="margin: 0 0 24px; color: #999; font-size: 15px; line-height: 1.6; text-align: center;">
                 Your AI now remembers your preferences, communication style, and the things that matter to you.
               </p>
+
+              ${memoryNote}
 
               <!-- CTA Button -->
               <table width="100%" cellpadding="0" cellspacing="0">
@@ -93,14 +102,23 @@ function generateSoulPrintReadyEmail(userName: string) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { user_id, chunks_embedded, processing_time } = body;
+    const {
+      user_id,
+      // Progressive availability: soulprint_ready comes first, memory_building continues
+      soulprint_ready,
+      memory_building,
+      // Legacy params (for backwards compatibility)
+      chunks_embedded,
+      processing_time
+    } = body;
 
     if (!user_id) {
       return NextResponse.json({ error: 'user_id required' }, { status: 400 });
     }
 
-    console.log(`[ImportComplete] Processing complete for user ${user_id}`);
-    console.log(`[ImportComplete] Chunks: ${chunks_embedded}, Time: ${processing_time?.toFixed(1)}s`);
+    const isProgressiveMode = soulprint_ready === true;
+    console.log(`[ImportComplete] ${isProgressiveMode ? 'SoulPrint ready' : 'Full processing complete'} for user ${user_id}`);
+    console.log(`[ImportComplete] Time: ${processing_time?.toFixed(1)}s${memory_building ? ' (memory still building)' : ''}`);
 
     const supabase = getSupabaseAdmin();
 
@@ -125,7 +143,7 @@ export async function POST(request: Request) {
 
     // Send email notification
     if (userEmail) {
-      const emailContent = generateSoulPrintReadyEmail(profile.display_name);
+      const emailContent = generateSoulPrintReadyEmail(profile.display_name, memory_building);
       const emailResult = await sendEmail({
         to: userEmail,
         subject: emailContent.subject,

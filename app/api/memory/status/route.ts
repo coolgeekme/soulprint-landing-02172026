@@ -19,7 +19,7 @@ export async function GET() {
     // Check user_profiles for soulprint
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
-      .select('import_status, import_error, total_conversations, total_messages, soulprint_generated_at, soulprint_locked, locked_at, embedding_status, embedding_progress, total_chunks, processed_chunks')
+      .select('import_status, import_error, total_conversations, total_messages, soulprint_generated_at, soulprint_locked, locked_at, embedding_status, embedding_progress, total_chunks, processed_chunks, memory_status')
       .eq('user_id', user.id)
       .single();
 
@@ -36,7 +36,7 @@ export async function GET() {
                    hasSoulprint ? 'ready' : 
                    profile?.import_status === 'processing' ? 'processing' : 'none';
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       status,
       hasSoulprint,
       locked: isLocked,
@@ -46,6 +46,10 @@ export async function GET() {
       embeddingProgress: profile?.embedding_progress || 0,
       totalChunks: profile?.total_chunks || 0,
       processedChunks: profile?.processed_chunks || 0,
+      // Progressive availability: memory_status shows if memory is still building
+      // "building" = SoulPrint ready, embeddings in progress (chat works, memory improving)
+      // "ready" = Full memory available (embeddings complete)
+      memoryStatus: profile?.memory_status || (profile?.embedding_status === 'complete' ? 'ready' : 'building'),
       stats: profile ? {
         totalConversations: profile.total_conversations,
         totalMessages: profile.total_messages,
