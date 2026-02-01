@@ -244,7 +244,7 @@ export async function POST(request: Request) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: userId,
-          conversations: conversations.slice(0, 500), // Send parsed conversations
+          conversations: conversations, // Send ALL parsed conversations
         }),
       });
 
