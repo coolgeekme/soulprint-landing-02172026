@@ -1,6 +1,0 @@
-Loading env from: C:\Users\drewp\soulprintfn\.env.local
-[dotenv@17.2.3] injecting env (9) from .env.local -- tip: ≡ƒæÑ sync secrets across teammates & machines: https://dotenvx.com/ops
-AWS_ACCESS_KEY_ID present: true
-Testing embedding generation...
-Embedding generated successfully.
-Dimension: 1024

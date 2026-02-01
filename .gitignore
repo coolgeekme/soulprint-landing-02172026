@@ -40,6 +40,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# test outputs
+test-output*.txt
+models-output.txt
+import_check.html
+build.log
+*.log
+nul
+
 # Drift: ignore caches and temporary data
 .drift/lake/
 .drift/cache/

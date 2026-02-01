@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { TelegramChatV2 } from '@/components/chat/telegram-chat-v2';
 import { AddToHomeScreen } from '@/components/ui/AddToHomeScreen';
-import { BackgroundSync } from '@/components/chat/BackgroundSync';
+// BackgroundSync removed - RLM handles all chunk processing server-side
 
 type Message = {
   id: string;
@@ -637,8 +637,7 @@ export default function ChatPage() {
         </div>
       )}
       
-      {/* Background sync for pending imports */}
-      <BackgroundSync onComplete={() => setMemoryStatus('ready')} />
+      {/* Background sync removed - RLM handles all processing server-side */}
     </>
   );
 }

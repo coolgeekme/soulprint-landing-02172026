@@ -8,7 +8,7 @@ import { Upload, Shield, CheckCircle2, AlertCircle, Loader2, Lock, ExternalLink,
 import { Button } from '@/components/ui/button';
 import { BackgroundBeams } from '@/components/ui/background-beams';
 import { RingProgress } from '@/components/ui/ring-progress';
-import { generateClientSoulprint, type ClientSoulprint } from '@/lib/import/client-soulprint';
+// Client-side soulprint generation removed - all imports now use server-side RLM
 import { createClient } from '@/lib/supabase/client';
 import JSZip from 'jszip';
 
@@ -186,17 +186,10 @@ function ImportPageContent() {
     setCurrentStep('processing');
     setProgress(0);
 
-    const FILE_SIZE_THRESHOLD = 0; // ALL imports go server-side for consistency
     const isMobile = isMobileDevice();
 
     try {
-      let result: ClientSoulprint;
-      let conversationChunks: Array<{ id?: string; content: string; conversationId?: string; title: string; messageCount: number; createdAt?: string; isRecent?: boolean }>;
-      let rawConversations: Array<{ id: string; title: string; messages: Array<{ role: string; content: string }>; createdAt: string }>;
-      let rawJson: string = '';
-
-      // For large files (>100MB), use server-side processing
-      if (file.size > FILE_SIZE_THRESHOLD) {
+      // All imports use server-side RLM processing
         let uploadBlob: Blob;
         let uploadFilename: string;
 
@@ -337,98 +330,9 @@ function ImportPageContent() {
         const result = await queueRes.json();
         console.log('[Import] Processing complete:', result);
 
-        // Success! Show completion - DO NOT redirect, user waits for email
-        setProgressStage('Complete! We\'ll email you when ready.');
-        setProgress(100);
-        setStatus('success');
-        setCurrentStep('done');
-        return;
-      } else {
-        // For smaller files, use client-side parsing (faster for small files)
-        const clientResult = await generateClientSoulprint(file, (stage, percent) => {
-          setProgressStage(stage);
-          setProgress(Math.min(percent, 70));
-        });
-        result = clientResult.soulprint;
-        conversationChunks = clientResult.conversationChunks;
-        rawConversations = clientResult.rawConversations;
-        rawJson = clientResult.rawConversationsJson;
-      }
-
-      setStatus('saving');
-      setProgress(75);
-      setProgressStage('Creating your SoulPrint (1-2 min)...');
-
-      // UNIFIED IMPORT: One API call does everything
-      // Prepare conversation sample for soulprint generation
-      const conversationSample = rawConversations.slice(0, 100).map(c => ({
-        title: c.title,
-        content: (c.messages || []).slice(0, 20).map((m: { role?: string; content?: string }) => 
-          `${m.role || 'user'}: ${(m.content || '').slice(0, 300)}`
-        ).join('\n'),
-        message_count: c.messages?.length || 0,
-      }));
-
-      setProgress(80);
-      
-      // Single API call handles: soulprint generation, AI naming, DB save, chunks
-      const response = await fetch('/api/import/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          conversations: conversationSample,
-          chunks: conversationChunks.slice(0, 500), // Limit chunks to avoid payload size issues
-          stats: result.stats,
-        }),
-      });
-
-      const importResult = await safeJsonParse(response);
-      
-      if (!importResult.ok) {
-        if (importResult.data?.code === 'ALREADY_IMPORTED') {
-          router.push('/chat');
-          return;
-        }
-        throw new Error(importResult.data?.error || importResult.error || 'Import failed');
-      }
-
-      setProgress(90);
-      setProgressStage(`Meet ${importResult.data?.aiName || 'your AI'}...`);
-
-      // Store original JSON (compressed) for future use
-      if (rawJson && rawJson.length > 0) {
-        setProgressStage('Backing up your data...');
-        try {
-          await fetch('/api/import/upload-raw', {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            credentials: 'include',
-            body: rawJson,
-          });
-          console.log('[Import] Raw JSON backed up');
-        } catch (e) {
-          console.warn('[Import] Raw JSON backup failed:', e);
-        }
-      }
-
-      setProgress(95);
-
-      // Store remaining chunks in IndexedDB for background sync (optional, non-blocking)
-      if (conversationChunks.length > 500) {
-        try {
-          const db = await openImportDB();
-          await storeChunksInDB(db, conversationChunks.slice(500));
-          sessionStorage.setItem('soulprint_pending_chunks', JSON.stringify({
-            totalChunks: conversationChunks.length - 500,
-          }));
-        } catch (e) {
-          console.warn('[Import] Extra chunk storage failed:', e);
-        }
-      }
-
-      setProgress(100);
+      // Success! Show completion - DO NOT redirect, user waits for email
       setProgressStage('Complete! We\'ll email you when ready.');
+      setProgress(100);
       setStatus('success');
       setCurrentStep('done');
     } catch (err) {
