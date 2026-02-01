@@ -107,26 +107,28 @@ export async function POST(request: NextRequest) {
     const rlmData = await rlmResponse.json();
     console.log(`[GenerateSoulprint] RLM returned archetype: ${rlmData.archetype}`);
 
-    // Extract soulprint text
-    const soulprintText = rlmData.soulprint?.soulprint_text || 
-                          rlmData.soulprint_text || 
-                          null;
+    // RLM returns structured soulprint object
+    const soulprint = rlmData.soulprint;
+    const archetype = rlmData.archetype || soulprint?.archetype || 'Unique Individual';
 
-    if (!soulprintText) {
-      console.error('[GenerateSoulprint] No soulprint_text in RLM response:', rlmData);
-      return NextResponse.json({ 
+    if (!soulprint) {
+      console.error('[GenerateSoulprint] No soulprint in RLM response:', rlmData);
+      return NextResponse.json({
         error: 'Invalid soulprint response',
-        details: 'No soulprint_text field' 
+        details: 'No soulprint object'
       }, { status: 500 });
     }
+
+    // Use core_essence as soulprint_text for display, fallback to archetype
+    const soulprintText = soulprint.core_essence || archetype;
 
     // Save to user profile
     const { error: updateError } = await adminSupabase
       .from('user_profiles')
       .update({
-        soulprint: rlmData.soulprint,
+        soulprint: soulprint,
         soulprint_text: soulprintText,
-        archetype: rlmData.archetype || 'Unique Individual',
+        archetype: archetype,
         soulprint_generated_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -134,17 +136,17 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.error('[GenerateSoulprint] DB update error:', updateError);
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Failed to save soulprint',
-        details: updateError.message 
+        details: updateError.message
       }, { status: 500 });
     }
 
-    console.log(`[GenerateSoulprint] Saved soulprint for user ${userId}`);
+    console.log(`[GenerateSoulprint] Saved soulprint for user ${userId}: ${archetype}`);
 
     return NextResponse.json({
       success: true,
-      archetype: rlmData.archetype,
+      archetype,
       soulprint_preview: soulprintText.slice(0, 200) + '...',
     });
 
@@ -166,12 +168,12 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const adminSupabase = getSupabaseAdmin();
 
-  // Find users with embeddings complete but no soulprint
+  // Find users with embeddings complete but placeholder soulprint
   const { data: pendingUsers } = await adminSupabase
     .from('user_profiles')
-    .select('user_id')
+    .select('user_id, archetype')
     .eq('embedding_status', 'complete')
-    .is('soulprint_text', null)
+    .or('archetype.eq.Analyzing...,soulprint_text.is.null')
     .limit(5);
 
   if (!pendingUsers || pendingUsers.length === 0) {
