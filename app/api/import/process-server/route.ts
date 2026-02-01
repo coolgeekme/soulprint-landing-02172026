@@ -270,10 +270,10 @@ export async function POST(request: Request) {
       });
 
       if (!rlmResponse.ok) {
-        console.warn(`[ProcessServer] RLM returned ${rlmResponse.status}`);
-      } else {
-        console.log(`[ProcessServer] RLM full processing started for user ${userId}`);
+        console.error(`[ProcessServer] RLM returned ${rlmResponse.status}`);
+        throw new Error(`RLM processing failed with status ${rlmResponse.status}`);
       }
+      console.log(`[ProcessServer] RLM full processing started for user ${userId}`);
     } catch (e) {
       console.error(`[ProcessServer] Failed to call RLM:`, e);
       throw new Error('Failed to start background processing. Please try again.');
