@@ -1,10 +1,11 @@
 /**
  * Background Embedding Processor
- * Embeds conversation_chunks using OpenAI text-embedding-3-small
+ * Embeds conversation_chunks using AWS Bedrock Titan v2
  * Stores embeddings directly in the conversation_chunks table
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 
 // Lazy initialization to avoid build-time errors
 let _supabase: SupabaseClient | null = null;
@@ -18,9 +19,24 @@ function getSupabase(): SupabaseClient {
   return _supabase;
 }
 
+// AWS Bedrock client
+let _bedrock: BedrockRuntimeClient | null = null;
+function getBedrock(): BedrockRuntimeClient {
+  if (!_bedrock) {
+    _bedrock = new BedrockRuntimeClient({
+      region: process.env.AWS_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    });
+  }
+  return _bedrock;
+}
+
 // Configuration
-const BATCH_SIZE = 50;       // Chunks to embed per batch (OpenAI limit is 2048)
-const PARALLEL_BATCHES = 2;  // Number of parallel API calls
+const BATCH_SIZE = 10;       // Chunks per batch (Bedrock is slower, smaller batches)
+const PARALLEL_BATCHES = 3;  // Number of parallel API calls
 
 interface ConversationChunk {
   id: string;
@@ -29,42 +45,52 @@ interface ConversationChunk {
 }
 
 /**
- * Generate embeddings using OpenAI text-embedding-3-small
- * Returns array of embeddings in same order as input
+ * Generate single embedding using AWS Bedrock Titan v2
  */
-async function generateEmbeddings(texts: string[]): Promise<number[][]> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY not configured');
-  }
+async function generateSingleEmbedding(text: string): Promise<number[]> {
+  const bedrock = getBedrock();
 
-  // Truncate texts to safe limit
-  const truncated = texts.map(t => t.slice(0, 8000));
+  // Truncate text to safe limit
+  const truncated = text.slice(0, 8000);
 
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
+  const command = new InvokeModelCommand({
+    modelId: 'amazon.titan-embed-text-v2:0',
+    contentType: 'application/json',
+    accept: 'application/json',
     body: JSON.stringify({
-      model: 'text-embedding-3-small',
-      input: truncated,
+      inputText: truncated,
+      dimensions: 768,
+      normalize: true,
     }),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI embedding error: ${error}`);
+  const response = await bedrock.send(command);
+  const result = JSON.parse(new TextDecoder().decode(response.body));
+  return result.embedding;
+}
+
+/**
+ * Generate embeddings for multiple texts using Bedrock Titan v2
+ * Processes in parallel for speed
+ */
+async function generateEmbeddings(texts: string[]): Promise<number[][]> {
+  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+    throw new Error('AWS credentials not configured');
   }
 
-  const data = await response.json();
-  
-  // Sort by index to maintain order
-  return data.data
-    .sort((a: { index: number }, b: { index: number }) => a.index - b.index)
-    .map((item: { embedding: number[] }) => item.embedding);
+  // Process texts in parallel (Bedrock doesn't have batch API)
+  const embeddings = await Promise.all(
+    texts.map(async (text) => {
+      try {
+        return await generateSingleEmbedding(text);
+      } catch (e) {
+        console.error('[Embed] Single embedding failed:', e);
+        throw e;
+      }
+    })
+  );
+
+  return embeddings;
 }
 
 /**
