@@ -234,26 +234,27 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString(),
     }).eq('user_id', userId);
 
-    console.log(`[ProcessServer] Sending ${conversations.length} conversations to RLM for full processing...`);
+    console.log(`[ProcessServer] Sending ${rawConversations.length} raw conversations to RLM for full processing...`);
 
-    // Store parsed conversations to Supabase Storage (bypasses Vercel 4.5MB body limit)
-    const parsedJsonPath = `${userId}/parsed-${Date.now()}.json`;
-    const parsedJsonData = JSON.stringify(conversations);
-    console.log(`[ProcessServer] Storing parsed JSON (${(parsedJsonData.length / 1024 / 1024).toFixed(2)}MB) to storage...`);
+    // Store RAW ChatGPT JSON to Supabase Storage (bypasses Vercel 4.5MB body limit)
+    // RLM gets full data including timestamps, metadata - not the simplified version
+    const parsedJsonPath = `${userId}/raw-${Date.now()}.json`;
+    const rawJsonData = JSON.stringify(rawConversations);
+    console.log(`[ProcessServer] Storing raw JSON (${(rawJsonData.length / 1024 / 1024).toFixed(2)}MB) to storage...`);
 
-    const { error: parsedUploadError } = await adminSupabase.storage
+    const { error: rawUploadError } = await adminSupabase.storage
       .from('user-imports')
-      .upload(parsedJsonPath, parsedJsonData, {
+      .upload(parsedJsonPath, rawJsonData, {
         contentType: 'application/json',
         upsert: true,
       });
 
-    if (parsedUploadError) {
-      console.error('[ProcessServer] Failed to store parsed JSON:', parsedUploadError);
-      throw new Error('Failed to store parsed conversations for processing.');
+    if (rawUploadError) {
+      console.error('[ProcessServer] Failed to store raw JSON:', rawUploadError);
+      throw new Error('Failed to store raw conversations for processing.');
     }
 
-    console.log(`[ProcessServer] Parsed JSON stored at: user-imports/${parsedJsonPath}`);
+    console.log(`[ProcessServer] Raw JSON stored at: user-imports/${parsedJsonPath}`);
 
     // Call RLM with storage path (not full conversations - handles 10,000+ conversations)
     const rlmUrl = process.env.RLM_API_URL || 'https://soulprint-rlm.onrender.com';
