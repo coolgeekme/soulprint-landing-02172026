@@ -1,26 +1,49 @@
 # Codebase Concerns
 
 **Analysis Date:** 2026-02-01
+**Last Updated:** 2026-02-01 (reliability hardening session)
 
-## Critical Issues
+## Recently Fixed ✓
 
-### Silent Failures in Database Updates
+### Silent Failures - FIXED
+- **Storage cleanup logging** - All `.catch(() => {})` blocks now log errors
+- **Database update validation** - Error checking added on all upsert/update calls
+- Files: `app/api/import/process-server/route.ts`
 
-**Issue: Missing Response Validation in Storage Cleanup**
-- Files: `app/api/import/process-server/route.ts` (lines 101, 120, 136, 142, 152, 193)
-- Problem: `.catch(() => {})` silently swallows storage deletion errors without logging
-- Impact: Failed cleanup could leave orphaned files in Supabase Storage, wasting quota and leaving sensitive data accessible
-- Safe modification: Add explicit error logging to catch blocks:
-  ```typescript
-  adminSupabase.storage.from(bucket).remove([filePath])
-    .catch(e => console.warn('[ProcessServer] Cleanup failed:', e))
-  ```
+### Memory Search Timeouts - FIXED
+- **10s timeout per layer search** - Prevents hanging on slow queries
+- **15s timeout for embeddings** - AWS Bedrock won't block forever
+- **30s overall timeout** - getMemoryContext returns empty rather than hanging
+- Files: `lib/memory/query.ts`
 
-**Issue: Unvalidated Supabase Updates**
-- Files: `app/api/import/process-server/route.ts` (line 340)
-- Problem: Database update status missing error check - `await adminSupabase.from('user_profiles').update(...).eq(...)` doesn't validate response
-- Impact: User import_status might not update to 'failed' even when error occurs, leaving users in stuck state
-- Safe modification: Add response validation and error handling
+### RLM Circuit Breaker - FIXED
+- **Fast-fail when RLM is down** - Skips RLM calls for 30s after 2 failures
+- **Auto-recovery** - Circuit closes when RLM responds again
+- **Monitoring** - Circuit status exposed in admin health endpoint
+- Files: `lib/rlm/health.ts`, `app/api/chat/route.ts`
+
+### Email Retry - FIXED
+- **3 retries with exponential backoff** - 1s, 2s, 4s delays
+- **Logged failures** - Each attempt logged for debugging
+- Files: `lib/email.ts`
+
+### User Profile Validation - FIXED
+- **Runtime validation** - Safely extracts profile data from DB
+- **Defensive defaults** - Handles null/undefined/malformed data
+- Files: `app/api/chat/route.ts`
+
+### ChatGPT Format Validation - FIXED
+- **Array check** - Rejects non-array uploads
+- **Mapping structure check** - Validates ChatGPT export format
+- **Clear error messages** - User-friendly guidance on correct format
+- Files: `app/api/import/process-server/route.ts`
+
+### Stuck Import Detection - FIXED
+- **processing_started_at timestamp** - Tracks when import started
+- **15-minute stuck detection** - UI shows retry option if import stalls
+- Files: `app/api/import/process-server/route.ts`, `app/import/page.tsx`
+
+---
 
 ## Tech Debt
 
@@ -57,19 +80,7 @@
 - Current mitigation: This is server-side only (Vercel environment)
 - Recommendation: Validate internal header with shared secret if called from external services
 
-**Unvalidated User Profile Data**
-- Files: `app/api/chat/route.ts` (line 167)
-- Risk: `profile` cast to `UserProfile` type without runtime validation of required fields
-- Impact: Could crash if database returns unexpected schema
-- Safe modification: Add explicit field validation before use
-
 ## Performance Bottlenecks
-
-**Memory Search Blocking Chat Response**
-- Files: `app/api/chat/route.ts` (lines 174-182)
-- Problem: Vector search for memory context happens synchronously, blocking response
-- Impact: If memory search is slow (network lag, vector DB issues), user sees delayed chat response
-- Improvement path: Consider parallel execution with timeout fallback or async queue
 
 **Smart Search Creates Cascading Requests**
 - Files: `app/api/chat/route.ts` (lines 207-227)
@@ -93,20 +104,6 @@
 - Safe modification: Add strict validation of status transitions, implement state machine with guards
 - Test coverage gap: No tests for concurrent import completion + UI polling scenarios
 
-**RLM Service Dependency**
-- Files: `app/api/chat/route.ts` (lines 83-120), `app/api/import/process-server/route.ts` (lines 294-315)
-- Why fragile: Entire chat and import pipeline depends on RLM availability
-- Complexity: RLM URL hardcoded via environment, no fallback strategy
-- Safe modification: Implement circuit breaker pattern, graceful degradation when RLM unavailable
-- Monitoring gap: No alerts if RLM becomes unhealthy - users get silent failures
-
-**Async Email Notifications**
-- Files: `app/api/import/complete/route.ts` (lines 145-161)
-- Why fragile: Email sending is best-effort, no retry mechanism if Resend fails
-- Complexity: No notification to admin if email fails - users never know import completed
-- Safe modification: Implement email retry queue with exponential backoff
-- Test coverage gap: No tests for email failure scenarios
-
 ## Known Bugs
 
 **Pending Soulprint Display**
@@ -123,11 +120,6 @@
 - Workaround: Users can refresh page to see latest status
 
 ## Scaling Limits
-
-**Storage Cleanup is Fire-and-Forget**
-- Current: Imported ZIP files deleted via `.catch(() => {})` without validation
-- Limit: If cleanup fails at scale, Supabase storage fills up and costs increase
-- Scaling path: Implement cleanup queue with retries, monitor failed deletions
 
 **Vector Search at Large Scale**
 - Current: Single RPC call for hierarchical search of all chunks
@@ -158,29 +150,11 @@
 
 ## Test Coverage Gaps
 
-**RLM Service Failure Scenarios**
-- What's not tested: RLM timeout (60s), RLM returns 500, RLM returns invalid JSON
-- Files: `app/api/chat/route.ts` (lines 83-120)
-- Risk: Fallback behavior untested - could crash if response parsing fails
-- Priority: High
-
 **Import Status Transitions**
 - What's not tested: Status changes during concurrent operations (user retries while processing)
 - Files: `app/api/import/process-server/route.ts`, `app/api/import/complete/route.ts`
 - Risk: Race conditions leave users in stuck state
 - Priority: High
-
-**Email Delivery**
-- What's not tested: Resend API errors, timeout, bounced emails
-- Files: `lib/email/send.ts`
-- Risk: Users don't know import completed, support inquiries spike
-- Priority: Medium
-
-**Memory Search Graceful Degradation**
-- What's not tested: Memory search timeout (no timeout set in query)
-- Files: `app/api/chat/route.ts` (line 175)
-- Risk: Chat response hangs indefinitely if vector DB is slow
-- Priority: Medium
 
 **Web Search Cascading Failures**
 - What's not tested: Perplexity timeout, Tavily timeout, both search providers down
@@ -208,3 +182,4 @@
 ---
 
 *Concerns audit: 2026-02-01*
+*Reliability fixes applied: 2026-02-01*
