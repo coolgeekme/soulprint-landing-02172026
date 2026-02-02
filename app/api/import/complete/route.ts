@@ -122,10 +122,10 @@ export async function POST(request: Request) {
 
     const supabase = getSupabaseAdmin();
 
-    // Get user profile for email
+    // Get user profile (email/display_name/push_subscription columns may not exist in some deployments)
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
-      .select('email, display_name, push_subscription')
+      .select('user_id, archetype')
       .eq('user_id', user_id)
       .single();
 
@@ -134,16 +134,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
-    // Also get email from auth.users if not in profile
-    let userEmail = profile.email;
-    if (!userEmail) {
-      const { data: authUser } = await supabase.auth.admin.getUserById(user_id);
-      userEmail = authUser?.user?.email;
+    // Get email from auth.users (the source of truth for user email)
+    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(user_id);
+    if (authError) {
+      console.error('[ImportComplete] Auth user fetch failed:', authError);
     }
+    const userEmail = authUser?.user?.email;
+    const displayName = authUser?.user?.user_metadata?.display_name || authUser?.user?.user_metadata?.name || null;
 
     // Send email notification
     if (userEmail) {
-      const emailContent = generateSoulPrintReadyEmail(profile.display_name, memory_building);
+      const emailContent = generateSoulPrintReadyEmail(displayName, memory_building);
       const emailResult = await sendEmail({
         to: userEmail,
         subject: emailContent.subject,
@@ -159,24 +160,25 @@ export async function POST(request: Request) {
       console.warn(`[ImportComplete] No email found for user ${user_id}`);
     }
 
-    // Send Web Push notification if subscription exists
-    if (profile.push_subscription) {
-      try {
-        await sendPushNotification(profile.push_subscription, {
-          title: '✨ Your SoulPrint is Ready!',
-          body: 'Your AI now understands you. Start chatting!',
-          url: '/chat',
-        });
-        console.log(`[ImportComplete] Push notification sent`);
-      } catch (e) {
-        console.error(`[ImportComplete] Push failed:`, e);
-      }
-    }
+    // Web Push disabled - push_subscription column doesn't exist in current schema
+    // TODO: Add push_subscription column to user_profiles and re-enable
+    // if (profile.push_subscription) {
+    //   try {
+    //     await sendPushNotification(profile.push_subscription, {
+    //       title: '✨ Your SoulPrint is Ready!',
+    //       body: 'Your AI now understands you. Start chatting!',
+    //       url: '/chat',
+    //     });
+    //     console.log(`[ImportComplete] Push notification sent`);
+    //   } catch (e) {
+    //     console.error(`[ImportComplete] Push failed:`, e);
+    //   }
+    // }
 
     return NextResponse.json({
       success: true,
       email_sent: !!userEmail,
-      push_sent: !!profile.push_subscription,
+      push_sent: false, // Disabled until push_subscription column exists
     });
 
   } catch (error) {
