@@ -136,11 +136,34 @@ function ImportPageContent() {
         const res = await fetch('/api/memory/status');
         const data = await res.json();
 
-        // Allow retry if import failed
+        // Allow retry if import failed - show the error message
         if (data.status === 'failed' || data.failed) {
           setIsReturningUser(true);
+          if (data.import_error) {
+            setErrorMessage(data.import_error);
+            setStatus('error');
+          }
           setCheckingExisting(false);
           return;
+        }
+
+        // Check for STUCK imports (processing for >15 minutes)
+        if (data.status === 'processing' && data.processing_started_at) {
+          const startedAt = new Date(data.processing_started_at).getTime();
+          const minutesElapsed = (Date.now() - startedAt) / 1000 / 60;
+
+          if (minutesElapsed > 15) {
+            // Import appears stuck - let user retry
+            console.log(`[Import] Stuck detected: processing for ${minutesElapsed.toFixed(0)} minutes`);
+            setIsReturningUser(true);
+            setErrorMessage(
+              `Your import has been processing for ${Math.round(minutesElapsed)} minutes. ` +
+              `This is longer than expected. You can try again or contact support.`
+            );
+            setStatus('error');
+            setCheckingExisting(false);
+            return;
+          }
         }
 
         // Check if user already has a soulprint (locked or complete)
@@ -155,7 +178,7 @@ function ImportPageContent() {
           router.push('/chat');
           return;
         }
-        
+
         // If re-importing, mark as returning user to show appropriate UI
         if (isReimport && (data.hasSoulprint || data.status === 'ready')) {
           setIsReturningUser(true);
@@ -347,11 +370,17 @@ function ImportPageContent() {
           userMessage = 'Upload timed out. Try with a smaller file or better connection.';
         } else if (msg.includes('size') || msg.includes('large') || msg.includes('entity too large')) {
           userMessage = 'File is too large. Maximum size is 500MB.';
+        } else if (msg.includes('chatgpt export') || msg.includes("doesn't look like")) {
+          // New validation error - pass through as-is (it's already user-friendly)
+          userMessage = err.message;
         } else if (msg.includes('zip') || msg.includes('format') || msg.includes('conversations.json')) {
           userMessage = 'Invalid file format. Please upload the original ZIP from ChatGPT.';
         } else if (msg.includes('logged in') || msg.includes('unauthorized')) {
           userMessage = 'Session expired. Please refresh the page and try again.';
+        } else if (msg.includes('no conversations') || msg.includes('empty')) {
+          userMessage = 'No conversations found in your export. Make sure you have ChatGPT history before exporting.';
         } else {
+          // Pass through server error messages (they're user-friendly now)
           userMessage = err.message;
         }
       }

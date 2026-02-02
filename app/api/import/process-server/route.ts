@@ -65,12 +65,14 @@ export async function POST(request: Request) {
 
     console.log(`[ProcessServer] Starting for user ${userId}, path: ${storagePath}`);
     
-    // Update status to processing
+    // Update status to processing with timestamp (for stuck detection)
+    const processingStartedAt = new Date().toISOString();
     await adminSupabase.from('user_profiles').upsert({
       user_id: userId,
       import_status: 'processing',
       import_error: null,
-      updated_at: new Date().toISOString(),
+      processing_started_at: processingStartedAt,
+      updated_at: processingStartedAt,
     }, { onConflict: 'user_id' });
     
     // Download from storage
@@ -124,7 +126,39 @@ export async function POST(request: Request) {
     }
     
     console.log(`[ProcessServer] Parsed ${rawConversations.length} conversations`);
-    
+
+    // ============================================================
+    // VALIDATION: Ensure this is a valid ChatGPT export
+    // ============================================================
+
+    // Check 1: Must be an array
+    if (!Array.isArray(rawConversations)) {
+      adminSupabase.storage.from(bucket).remove([filePath]).catch(() => {});
+      throw new Error('Invalid file format. Expected a ChatGPT export (array of conversations).');
+    }
+
+    // Check 2: Must have at least one conversation
+    if (rawConversations.length === 0) {
+      adminSupabase.storage.from(bucket).remove([filePath]).catch(() => {});
+      throw new Error('No conversations found in file. Please export your ChatGPT data and try again.');
+    }
+
+    // Check 3: At least one conversation should have ChatGPT's 'mapping' structure
+    const hasValidChatGPTFormat = rawConversations.some((conv: any) =>
+      conv && typeof conv === 'object' && conv.mapping && typeof conv.mapping === 'object'
+    );
+
+    if (!hasValidChatGPTFormat) {
+      adminSupabase.storage.from(bucket).remove([filePath]).catch(() => {});
+      throw new Error(
+        "This doesn't look like a ChatGPT export. " +
+        "Please go to ChatGPT → Settings → Data Controls → Export Data, " +
+        "then upload the ZIP file you receive via email."
+      );
+    }
+
+    console.log(`[ProcessServer] ✓ Valid ChatGPT format detected`);
+
     // Store raw JSON (compressed) to user-exports before deleting from imports
     let rawExportPath: string | null = null;
     if (rawJsonString && userId) {

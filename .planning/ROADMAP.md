@@ -20,14 +20,23 @@
 
 ---
 
-## Phase 2: Polish ← CURRENT
-**Goal:** Smooth UX, handle edge cases
+## Phase 2: Hardening ← CURRENT
+**Goal:** Reliability for real users — validate inputs, recover from failures, clear errors
 
-### Milestones
-- [ ] Progress indicator during upload
-- [ ] Error handling with clear messages
+### Priority 1: Reliability
+- [ ] Validate ChatGPT ZIP format (reject invalid files with clear message)
+- [ ] Detect stuck imports (>10 min processing → show retry option)
+- [ ] User-friendly error messages for each failure mode
+- [ ] Allow retry after failure (reset import_status)
+
+### Priority 2: Visibility (after reliability)
+- [ ] Progress indicator during processing
+- [ ] Embedding status in UI
+- [ ] "Still working..." indicator for long imports
+
+### Priority 3: Scale (after visibility)
+- [ ] Test 5 concurrent users
 - [ ] Large file handling (>500MB)
-- [ ] Embedding status visibility
 
 ---
 
