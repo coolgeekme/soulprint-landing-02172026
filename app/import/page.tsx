@@ -528,13 +528,6 @@ function ImportPageContent() {
                 <div className="mb-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
                   <p className="text-orange-400 text-sm text-center font-medium">Welcome back! 👋</p>
                   <p className="text-white/70 text-xs text-center mt-1">We&apos;ve upgraded our memory system. Please re-import your data for the best experience.</p>
-                  <button
-                    onClick={handleReset}
-                    disabled={isResetting}
-                    className="mt-2 w-full text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
-                  >
-                    {isResetting ? 'Resetting...' : '🗑️ Start Fresh (Clear All Data)'}
-                  </button>
                 </div>
               )}
               <h1 className="text-lg sm:text-xl font-bold text-white mb-0.5 text-center">Export Your ChatGPT Data</h1>
