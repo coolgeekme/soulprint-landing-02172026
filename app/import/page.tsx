@@ -206,11 +206,22 @@ function ImportPageContent() {
       return;
     }
 
+    const isMobile = isMobileDevice();
+    const fileSizeMB = file.size / 1024 / 1024;
+
+    // Mobile can't handle large files - warn early
+    if (isMobile && fileSizeMB > 100) {
+      setErrorMessage(
+        `Your export is ${fileSizeMB.toFixed(0)}MB — too large for mobile upload. ` +
+        `Please use a desktop/laptop browser for files over 100MB.`
+      );
+      setStatus('error');
+      return;
+    }
+
     setStatus('processing');
     setCurrentStep('processing');
     setProgress(0);
-
-    const isMobile = isMobileDevice();
 
     try {
       // All imports use server-side RLM processing
@@ -269,7 +280,9 @@ function ImportPageContent() {
         const cleanName = uploadFilename.replace(/[^a-zA-Z0-9.-]/g, '_');
         const uploadPath = `${user.id}/${timestamp}-${cleanName}`;
 
-        console.log(`[Import] Starting client-side upload: ${uploadPath} (${(uploadBlob.size / 1024 / 1024).toFixed(1)}MB)`);
+        const uploadSizeMB = (uploadBlob.size / 1024 / 1024).toFixed(1);
+        console.log(`[Import] Starting client-side upload: ${uploadPath} (${uploadSizeMB}MB) mobile=${isMobile}`);
+        setProgressStage(`Uploading ${uploadSizeMB}MB...`);
 
         // Simulate progress since Supabase client doesn't provide callback for simple upload
         // Slower progress for larger files
@@ -278,8 +291,10 @@ function ImportPageContent() {
           setProgress(p => Math.min(p + 2, 50));
         }, uploadIntervalMs);
 
-        // Wrap upload in timeout (5 min for large files, 2 min for small)
-        const uploadTimeoutMs = uploadBlob.size > 100 * 1024 * 1024 ? 5 * 60 * 1000 : 2 * 60 * 1000;
+        // Wrap upload in timeout (shorter on mobile)
+        const uploadTimeoutMs = isMobile 
+          ? 60 * 1000  // 1 min for mobile
+          : (uploadBlob.size > 100 * 1024 * 1024 ? 5 * 60 * 1000 : 2 * 60 * 1000);
         
         const uploadPromise = supabase.storage
           .from('imports')
