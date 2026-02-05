@@ -107,19 +107,20 @@ function ImportPageContent() {
   }, []);
 
   const handleReset = async () => {
-    if (!confirm('This will delete all your imported data. Are you sure?')) return;
+    if (!confirm('This will delete all your imported data and let you start fresh. Are you sure?')) return;
 
     setIsResetting(true);
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not logged in');
-
-      const res = await fetch(`/api/admin/reset-user?userId=${user.id}`, {
+      // Use user self-reset endpoint (works for any logged-in user)
+      const res = await fetch('/api/user/reset', {
         method: 'DELETE',
       });
 
-      if (!res.ok) throw new Error('Reset failed');
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Reset failed');
+      }
 
       // Refresh the page to start fresh
       window.location.reload();
