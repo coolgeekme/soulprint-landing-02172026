@@ -1,84 +1,126 @@
-# SoulPrint
+# PROJECT: SoulPrint V2
 
-## What This Is
-
-SoulPrint is a privacy-first AI personalization platform. Users upload their ChatGPT export, we analyze it to create a "SoulPrint" (personality profile), and they get a personalized AI assistant that actually remembers them. No more repeating yourself — your AI knows your history, preferences, and context.
-
-## Core Value
-
-**Your AI should know you.** Import once, never repeat yourself again. The ONE thing that matters: seamless import → personalized chat that references your actual history.
-
-## Requirements
-
-### Validated
-
-- ✓ Email/password authentication — v1.0
-- ✓ Google OAuth — v1.0
-- ✓ Client-side ChatGPT ZIP parsing (handles 10GB+) — v1.0
-- ✓ Multi-tier memory chunking (100/500/2000 chars) — v1.0
-- ✓ RLM-powered embeddings via Bedrock — v1.0
-- ✓ Streaming chat responses — v1.0
-- ✓ Memory-enhanced chat (context injection) — v1.0
-- ✓ AI naming flow — v1.0
-- ✓ Gamification (XP, achievements) — v1.0
-
-### Active
-
-- [ ] Full production deployment with monitoring
-- [ ] User acceptance testing with real exports
-- [ ] Error recovery and retry mechanisms
-- [ ] Analytics and user tracking
-- [ ] Email notifications (import complete)
-- [ ] Voice enrollment/verification
-- [ ] AI avatar generation
-
-### Out of Scope
-
-- Multi-user/team accounts — focus on individual users first
-- Claude/other AI import — ChatGPT only for v1
-- Mobile native app — PWA web only
-- Self-hosted option — SaaS only
-- Real-time collaboration — single-user experience
-
-## Context
-
-**Technical Stack:**
-- Next.js 16 + React 19 + Tailwind
-- Supabase (Postgres + pgvector) for data
-- AWS Bedrock (Claude) via RLM service on Render
-- Vercel for hosting
-- Cloudinary for avatars
-- Resend for email
-
-**Current State (Feb 2026):**
-- v1.0 MVP completed
-- Build passing, deployed to Vercel
-- RLM service healthy on Render
-- 5 test users in database
-- Bug audit complete, fixes applied
-
-**User Feedback Themes:**
-- Import process needs better progress indication
-- Chat responses should reference more specific memories
-- Need mobile-friendly experience
-
-## Constraints
-
-- **Tech Stack**: Next.js + Supabase + Bedrock — established, don't switch
-- **Privacy**: No raw conversation storage long-term — embeddings only
-- **Performance**: Chat response start < 2s
-- **Cost**: Bedrock usage must stay within budget
-- **Security**: Service role key never exposed client-side
-
-## Key Decisions
-
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| Client-side ZIP parsing | Handle 10GB+ files without upload limits | ✓ Good |
-| Multi-tier chunking | Different granularities for different queries | ✓ Good |
-| RLM on Render (not Lambda) | Persistent connections, lower cold start | ✓ Good |
-| Bedrock over OpenAI | AWS credits, better pricing | — Pending |
-| Gamification | Increase engagement, retention | — Pending |
+**Started:** 2026-02-05  
+**Status:** 🔴 Discovery  
+**Team:** Drew (owner), Asset (builder)
 
 ---
-*Last updated: 2026-02-05 after Asset initial setup*
+
+## Vision
+
+**One sentence:** An AI that truly knows you — your best friend with perfect memory.
+
+**The problem:** Current AI chatbots forget everything. You repeat yourself constantly.
+
+**The solution:** SoulPrint imports your history, learns who you are, and remembers everything forever.
+
+---
+
+## Core Requirements
+
+### Must Have (V2)
+1. **Robust import** — Handle 1-5GB exports without failing
+2. **Unbreakable memory** — Never lose data, always recall relevant context
+3. **Natural AI** — Acts like a best friend, not a robot
+4. **Great mobile UX** — Chat feels native, not janky
+
+### Nice to Have
+- Voice input/output
+- Proactive check-ins
+- Multi-platform (SMS, web, app)
+
+---
+
+## Technical Stack
+
+### Current (V1)
+| Layer | Tech | Status |
+|-------|------|--------|
+| Frontend | Next.js 16 | Keep |
+| Auth | Supabase Auth | Keep |
+| Database | Supabase Postgres | Keep |
+| Storage | Supabase Storage | Keep |
+| Memory | RLM (Render) | **REPLACE** |
+| Embeddings | AWS Bedrock Cohere | TBD |
+| LLM | AWS Bedrock Claude | Keep |
+
+### Proposed (V2)
+| Layer | Tech | Status |
+|-------|------|--------|
+| Frontend | Next.js + shadcn | Upgrade |
+| Auth | Supabase Auth | Keep |
+| Database | Supabase Postgres | Keep |
+| Storage | Supabase Storage | Keep |
+| Memory | **NEW SYSTEM** | 🔴 Waiting for repo |
+| Embeddings | TBD | Depends on memory choice |
+| LLM | AWS Bedrock Claude | Keep |
+
+---
+
+## Key Decisions Needed
+
+### 1. Memory System
+**Question:** Which repo/system for memory?  
+**Options:** (waiting for Drew's link)  
+**Decision:** TBD
+
+### 2. Embedding Provider
+**Question:** Keep Bedrock Cohere or switch?  
+**Options:** OpenAI, Cohere, Voyage, local  
+**Decision:** TBD (depends on memory system)
+
+### 3. Mobile UX Approach
+**Question:** Fix current chat or rebuild?  
+**Options:** Patch telegram-chat-v2 vs. rebuild with shadcn  
+**Decision:** TBD
+
+### 4. AI Personality
+**Question:** How should SoulPrint behave?  
+**Status:** Spec started at `specs/SOULPRINT-INSTRUCTIONS.md`  
+**Decision:** TBD (6 questions pending)
+
+---
+
+## Success Metrics
+
+1. **Import success rate:** 99%+ (currently failing)
+2. **Memory recall accuracy:** Relevant context in 95%+ of responses
+3. **Response latency:** <3s for most queries
+4. **Mobile UX score:** No complaints from Drew 😅
+
+---
+
+## Timeline
+
+| Phase | Duration | Status |
+|-------|----------|--------|
+| Discovery | 1-2 days | 🔴 Now |
+| Specs | 1-2 days | Pending |
+| Build | TBD | Pending |
+| Test | TBD | Pending |
+| Launch | TBD | Pending |
+
+---
+
+## Open Questions
+
+1. **Memory repo link?** — BLOCKING
+2. **Budget constraints?** — Affects provider choices
+3. **Figma designs?** — For mobile UX
+4. **Timeline pressure?** — How fast do we need this?
+
+---
+
+## Files
+
+```
+.planning/
+├── PROJECT.md      # This file
+├── GSD-MAP.md      # System audit
+├── STATE.md        # Current progress
+├── ROADMAP.md      # Phases & milestones
+└── specs/
+    ├── MEMORY-V2.md
+    ├── SOULPRINT-AI.md
+    └── MOBILE-UX.md
+```

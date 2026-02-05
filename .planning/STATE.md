@@ -52,10 +52,19 @@ Full log: PROJECT.md Key Decisions
 
 ### Pending Todos
 
-- [ ] Test with Drew's 1.8GB ChatGPT export
-- [ ] Add upload progress indicator
+- [x] Test with Drew's 1.8GB ChatGPT export ✅ (fixed import freeze)
+- [x] Add upload progress indicator ✅ (XHR real progress)
 - [ ] Improve error toasts for user feedback
 - [ ] Add network timeout handling to /api/chat
+
+### Open Specs (need Drew input)
+
+- [ ] **SOULPRINT-INSTRUCTIONS** — Base AI personality/behavior (`.planning/specs/SOULPRINT-INSTRUCTIONS.md`)
+  - Waiting on answers to 6 questions
+
+- [ ] **MOBILE-UX-REDESIGN** — Fix bad mobile UX + UI (`.planning/specs/MOBILE-UX-REDESIGN.md`)
+  - Need Drew to identify worst screens
+  - Check if Figma designs exist to match
 
 ### Blockers/Concerns
 
