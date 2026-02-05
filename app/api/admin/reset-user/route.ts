@@ -120,7 +120,7 @@ export async function POST(request: Request) {
     const authResult = await checkAdminAuth();
     if (!authResult.authorized) return authResult.error!;
 
-    const body = await request.json().catch(() => ({}));
+    const body = await request.json().catch((e) => { console.warn("[JSON parse]", e); return {}; });
     const userId = body.userId || body.user_id;
 
     if (!userId) {

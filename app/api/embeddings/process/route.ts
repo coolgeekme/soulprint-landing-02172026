@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json().catch(() => ({}));
+    const body = await request.json().catch((e) => { console.warn("[JSON parse]", e); return {}; });
     const { userId, limit = BATCH_SIZE * 2 } = body;
 
     if (userId) {

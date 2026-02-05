@@ -169,7 +169,7 @@ async function synthesizeUserSoulprint(userId: string): Promise<{ updated: boole
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json().catch(() => ({}));
+    const body = await request.json().catch((e) => { console.warn("[JSON parse]", e); return {}; });
     const { userId } = body;
 
     if (userId) {

@@ -346,7 +346,7 @@ function ImportPageContent() {
         if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
 
         if (!queueRes.ok) {
-          const err = await queueRes.json().catch(() => ({}));
+          const err = await queueRes.json().catch((e) => { console.warn("[JSON parse]", e); return {}; });
           console.error('[Import] queue-processing error:', err);
           throw new Error(err.error || 'Processing failed. Please try again.');
         }
