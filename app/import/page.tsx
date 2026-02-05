@@ -249,8 +249,15 @@ function ImportPageContent() {
 
             const originalMB = (file.size / 1024 / 1024).toFixed(1);
             const extractedMB = (jsonContent.size / 1024 / 1024).toFixed(1);
+            const extractedSizeNum = jsonContent.size / 1024 / 1024;
             console.log(`[Import] Extracted conversations.json: ${extractedMB}MB (original ZIP: ${originalMB}MB)`);
-            setProgressStage(`Extracted ${extractedMB}MB (was ${originalMB}MB ZIP)`);
+            
+            // Warn for very large JSON files
+            if (extractedSizeNum > 500) {
+              setProgressStage(`Large file (${extractedMB}MB) — this may take several minutes...`);
+            } else {
+              setProgressStage(`Extracted ${extractedMB}MB (was ${originalMB}MB ZIP)`);
+            }
           } catch (extractErr) {
             console.error('[Import] Desktop extraction failed, falling back to ZIP upload:', extractErr);
             // Fall back to ZIP upload if extraction fails
@@ -285,16 +292,36 @@ function ImportPageContent() {
         setProgressStage(`Uploading ${uploadSizeMB}MB...`);
 
         // Simulate progress since Supabase client doesn't provide callback for simple upload
-        // Slower progress for larger files
-        const uploadIntervalMs = uploadBlob.size > 100 * 1024 * 1024 ? 2000 : 500; // 2s for >100MB
+        // Slower progress for larger files to match expected upload time
+        let uploadIntervalMs: number;
+        let progressIncrement: number;
+        if (blobSizeMB > 500) {
+          uploadIntervalMs = 5000; // 5s intervals for huge files
+          progressIncrement = 1;
+        } else if (blobSizeMB > 100) {
+          uploadIntervalMs = 2000; // 2s intervals
+          progressIncrement = 1;
+        } else {
+          uploadIntervalMs = 500;
+          progressIncrement = 2;
+        }
         uploadProgressIntervalRef.current = setInterval(() => {
-          setProgress(p => Math.min(p + 2, 50));
+          setProgress(p => Math.min(p + progressIncrement, 50));
         }, uploadIntervalMs);
 
-        // Wrap upload in timeout (shorter on mobile)
-        const uploadTimeoutMs = isMobile 
-          ? 60 * 1000  // 1 min for mobile
-          : (uploadBlob.size > 100 * 1024 * 1024 ? 5 * 60 * 1000 : 2 * 60 * 1000);
+        // Wrap upload in timeout (scaled by size)
+        const blobSizeMB = uploadBlob.size / 1024 / 1024;
+        let uploadTimeoutMs: number;
+        if (isMobile) {
+          uploadTimeoutMs = 60 * 1000; // 1 min for mobile
+        } else if (blobSizeMB > 500) {
+          uploadTimeoutMs = 10 * 60 * 1000; // 10 min for >500MB
+        } else if (blobSizeMB > 100) {
+          uploadTimeoutMs = 5 * 60 * 1000; // 5 min for >100MB
+        } else {
+          uploadTimeoutMs = 2 * 60 * 1000; // 2 min for smaller files
+        }
+        console.log(`[Import] Upload timeout: ${uploadTimeoutMs / 1000}s for ${blobSizeMB.toFixed(1)}MB`);
         
         const uploadPromise = supabase.storage
           .from('imports')
