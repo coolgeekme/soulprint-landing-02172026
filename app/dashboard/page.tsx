@@ -57,7 +57,10 @@ export default function DashboardPage() {
         setShowRenameModal(false);
         setRenameInput('');
       }
-    } catch {}
+    } catch (error) {
+      console.error('[Dashboard] Failed to rename AI:', error);
+      alert('Failed to save name. Please try again.');
+    }
   };
 
   const handleSignOut = async () => {
