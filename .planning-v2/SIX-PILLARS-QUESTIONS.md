@@ -254,12 +254,21 @@ These sit at the very end as the **meta-calibration layer**:
 
 ## Micro-Story Prompts (For Emotional Signature Curve™)
 
-After completing all 36 questions, users are given these prompts to record aloud:
+After completing all 36 questions, we **generate 6 micro-stories** (one per pillar) based on their answers. Each story embodies the emotional core, tone, and decision style of that pillar.
 
+User reads each story aloud — no performance, just presence.
+
+### Generated Stories (One Per Pillar):
+1. **Communication Story** — Written in their speaking style
+2. **Emotional Story** — Written with their emotional range
+3. **Decision Story** — Written with their risk/instinct balance
+4. **Social/Cultural Story** — Written with their identity lens
+5. **Cognitive Story** — Written at their processing speed
+6. **Conflict Story** — Written with their boundary style
+
+### Fallback Prompts (If Generation Fails):
 1. **Describe:** A moment that you felt fully yourself.
-
 2. **Describe:** A moment that you were deeply misunderstood.
-
 3. **Describe:** A moment that you chose action over hesitation.
 
 ---
