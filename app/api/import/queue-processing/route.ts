@@ -1,13 +1,18 @@
 /**
- * Queue processing after upload - calls process-server synchronously
+ * Queue processing after upload - calls process-server or Motia backend
  * The client can navigate away; the request will complete in the background
  * 
  * Key insight: We MUST await process-server because Vercel kills fire-and-forget
+ * With Motia: Fire-and-forget IS allowed - Motia handles the pipeline
  */
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { startMotiaImport } from '@/lib/motia-client';
+
+// Feature flag for Motia backend
+const USE_MOTIA = process.env.USE_MOTIA_BACKEND === 'true';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 min max - must be enough for process-server
@@ -39,7 +44,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'storagePath required' }, { status: 400 });
     }
     
-    console.log(`[QueueProcessing] isExtracted: ${isExtracted}, filename: ${filename}`);
+    console.log(`[QueueProcessing] isExtracted: ${isExtracted}, filename: ${filename}, useMotia: ${USE_MOTIA}`);
 
     // Update user profile to show processing started
     await adminSupabase.from('user_profiles').upsert({
@@ -49,6 +54,46 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
     
+    // === MOTIA BACKEND PATH ===
+    // Event-driven pipeline with built-in observability
+    if (USE_MOTIA) {
+      console.log(`[QueueProcessing] Using Motia backend for user ${user.id}`);
+      
+      // Get public URL for the uploaded file
+      const { data: urlData } = adminSupabase.storage
+        .from('imports')
+        .getPublicUrl(storagePath.replace('imports/', ''));
+      
+      const fileUrl = urlData?.publicUrl;
+      if (!fileUrl) {
+        return NextResponse.json({ error: 'Could not get file URL' }, { status: 500 });
+      }
+      
+      // Fire-and-forget to Motia - it handles the pipeline
+      const motiaResult = await startMotiaImport(user.id, fileUrl, filename);
+      
+      if (!motiaResult.success) {
+        await adminSupabase.from('user_profiles').update({
+          import_status: 'failed',
+          import_error: motiaResult.error,
+          updated_at: new Date().toISOString(),
+        }).eq('user_id', user.id);
+        
+        return NextResponse.json({ 
+          success: false, 
+          error: motiaResult.error 
+        }, { status: 500 });
+      }
+      
+      // Motia accepted the job - return immediately
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Import started (Motia)',
+        backend: 'motia'
+      });
+    }
+    
+    // === LEGACY PATH (process-server) ===
     console.log(`[QueueProcessing] Starting for user ${user.id}, path: ${storagePath}, size: ${fileSize}`);
     
     // IMPORTANT: We MUST await this. Fire-and-forget does NOT work on Vercel.
