@@ -1,146 +1,76 @@
-# SoulPrint — Current State
+# Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-01)
+See: .planning/PROJECT.md (updated 2026-02-05)
 
-**Core value:** Import your ChatGPT history → Get an AI that knows you
-**Current focus:** v1.1 Phase 2 — Hardening (reliability, errors, reset)
+**Core value:** Your AI should know you — import once, never repeat yourself.
+**Current focus:** Phase 2 - Production Hardening
 
----
+## Current Position
 
-## Milestone Status
+Phase: 2 of 5 (Production Hardening)
+Plan: 1 of 3 in current phase
+Status: Ready to execute
+Last activity: 2026-02-05 — Bug fixes applied, architecture docs created
 
-**v1.0 MVP** — SHIPPED 2026-02-01
-- Phase 1: Mobile MVP (4/4 UAT tests passed)
+Progress: [████░░░░░░] 40%
 
-**v1.1 Polish** — IN PROGRESS
-- **Phase 2: Hardening** ← ACTIVE
-- Phase 3: Retention (planned)
-- Phase 4: Growth (planned)
+## Performance Metrics
 
----
+**Velocity:**
+- Total plans completed: 4 (Phase 1)
+- Average duration: ~45 min
+- Total execution time: ~3 hours
 
-## Current Phase: Hardening
+**By Phase:**
 
-### Status: PLANNING → READY TO EXECUTE
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| 1. Core MVP | 4/4 | 3h | 45min |
+| 2. Hardening | 0/3 | - | - |
 
-**Objective:** Make it work reliably for real users
+**Recent Trend:**
+- Last 5 plans: 30m, 45m, 60m, 45m
+- Trend: Stable
 
-### Issues Found (2026-02-04)
+## Accumulated Context
 
-| # | Issue | Severity | File |
-|---|-------|----------|------|
-| 1 | Reset button only works for admin emails | 🔴 CRITICAL | `api/admin/reset-user/route.ts` |
-| 2 | Users can't retry after failed import | 🔴 CRITICAL | `app/import/page.tsx` |
-| 3 | Error messages not shown to users | 🟡 HIGH | Multiple |
-| 4 | No progress indicator during import | 🟡 HIGH | `app/import/page.tsx` |
-| 5 | No progress indicator during embedding | 🟡 HIGH | `app/chat/page.tsx` |
-| 6 | "Analyzing..." placeholder soulprint | 🟡 HIGH | `process-server/route.ts` |
-| 7 | Large files (>500MB) hit memory limits | 🟢 MEDIUM | Vercel limits |
+### Decisions
 
-### Completed (Phase 2)
-- [x] Issue audit complete
-- [x] Created TASKS.md with full map
-- [ ] Fix reset button for users
-- [ ] Add error handling
-- [ ] Add progress indicators
+Recent decisions affecting current work:
+- Phase 1: Client-side parsing for large files (10GB+)
+- Phase 1: Multi-tier chunking (100/500/2000 chars)
+- Phase 2: Added logging to silent catch blocks
 
-### Next Actions
-1. **Add user self-reset** (not just admin)
-2. **Surface error messages in UI**
-3. **Add progress indicators**
+Full log: PROJECT.md Key Decisions
 
----
+### Pending Todos
 
-## Fix Plan (Phase 2)
+- [ ] Test with Drew's 1.8GB ChatGPT export
+- [ ] Add upload progress indicator
+- [ ] Improve error toasts for user feedback
+- [ ] Add network timeout handling to /api/chat
 
-See: `.planning/milestones/v1.1-PHASE2-SPEC.md` (to be created)
+### Blockers/Concerns
 
-### Sprint 1: Critical Fixes (Today)
-```
-[ ] 1. User self-reset button (any logged-in user can reset their own data)
-[ ] 2. Add Google account email to admin list (Drew's kidquick360)
-[ ] 3. Show error messages on import page
-[ ] 4. Show error messages on chat page
-```
+- RLM cold start on Render can be slow (~10s after idle)
+- Large imports may timeout on slower connections
 
-### Sprint 2: Progress UX (This Week)
-```
-[ ] 5. Progress bar during ZIP upload
-[ ] 6. Processing status with stages
-[ ] 7. Embedding progress indicator
-[ ] 8. Soulprint generation status
-```
+## Session Continuity
 
-### Sprint 3: Edge Cases (Next Week)
-```
-[ ] 9. Large file chunked upload
-[ ] 10. Import retry after partial failure
-[ ] 11. Stuck import detection + auto-recovery
-```
-
----
-
-## Key Technical Specs (LOCKED)
-
-| Spec | Value | Notes |
-|------|-------|-------|
-| **Embeddings** | Cohere Embed v3 via Bedrock | 1024 dimensions, NOT OpenAI |
-| **LLM** | Claude 3.5 Haiku via Bedrock | Primary for chat & soulprint |
-| **Chunking** | 5-layer RLM | 200/500/1000/2000/5000 char |
-| **Vector DB** | Supabase pgvector | IVFFlat index |
-| **Schema** | 12 tables | See PROJECT.md |
+Last session: 2026-02-05 07:24 CST
+Stopped at: Bug fixes committed, deployed to Vercel
+Resume file: None (clean state)
 
 ---
 
 ## Session Log
 
-### 2026-02-04 22:30 CST
-**Focus:** Issue audit + planning
-- Drew reports Phase 1 broken, reset button not working
-- Discovered: Reset only works for 2 admin emails
-- Created TASKS.md with 23 tasks mapped
-- Generated Nano Banana Pro architecture visual
-- Dev server running locally
-- **Status:** Planning complete, ready to execute Sprint 1
-
-### 2026-01-31 00:00 CST
-**Focus:** GSD Discovery & Documentation
-- Created comprehensive `.planning/` documentation
-- Mapped entire codebase structure
-- **Status:** Discovery complete
-
----
-
-## Architecture Summary
-
-```
-User → Next.js (Vercel) → Supabase (DB/Auth/Storage)
-                      ↘
-                   RLM Service (Render) → Bedrock (Claude/Cohere)
-                      ↗
-         Perplexity/Tavily (Web Search)
-```
-
----
-
-## Environment
-
-- **Prod URL:** https://www.soulprintengine.ai
-- **Local:** http://localhost:3000 (running)
-- **Supabase:** swvljsixpvvcirjmflze
-- **Vercel Project:** soulprint-landing
-- **RLM Service:** soulprint-landing.onrender.com
-
----
-
-## Blockers
-
-| Blocker | Status | Resolution |
-|---------|--------|------------|
-| Reset button only for admins | ACTIVE | Sprint 1, Task 1 |
-| kidquick360 email not admin | ACTIVE | Need email from Drew |
-
----
-*Last updated: 2026-02-04 22:35 CST*
+### 2026-02-05 (Asset)
+- Cloned soulprint-landing repo
+- Analyzed full codebase structure
+- Fixed 5 silent catch blocks with logging
+- Created docs/ARCHITECTURE.md
+- Committed and pushed to GitHub → Vercel deploy triggered
+- Set up GSD planning structure
