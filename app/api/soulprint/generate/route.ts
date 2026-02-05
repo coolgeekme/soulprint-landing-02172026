@@ -1,221 +1,300 @@
 /**
- * Generate soulprint for a user from their conversation chunks
- * Can be called:
- * 1. After import completes
- * 2. Via cron to process pending users
- * 3. Manually to regenerate
+ * POST /api/soulprint/generate
+ * Generate final SoulPrint from pillars + voice data
+ * Creates the system prompt and activates the SoulPrint
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { PillarSummary, EmotionalSignatureCurve, PILLAR_NAMES } from '@/lib/soulprint/types';
+import { Mem0Client } from '@/lib/mem0';
 
-export const runtime = 'nodejs';
-export const maxDuration = 120; // 2 min - RLM can take ~40s
+export const maxDuration = 60;
 
-function getSupabaseAdmin() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
+function generateSystemPrompt(
+  userName: string,
+  summaries: PillarSummary,
+  curve: EmotionalSignatureCurve
+): string {
+  return `You are now operating with a bound SoulPrint identity based on the user "${userName}."
+
+You must align all behavior with the following parameters:
+
+1. **Communication Style:** ${summaries.communication}
+
+2. **Emotional Alignment:** ${summaries.emotional}
+
+3. **Decision-Making:** ${summaries.decision}
+
+4. **Social & Cultural Lens:** ${summaries.social}
+
+5. **Cognitive Processing:** ${summaries.cognitive}
+
+6. **Conflict Stance:** ${summaries.conflict}
+
+## Emotional Signature Curve
+
+Your responses must reflect this user's natural cadence:
+
+- **Reactivity vs Reflection:** ${curve.reactivityVsReflection.toFixed(2)} (${curve.reactivityVsReflection < 0.4 ? 'Quick to respond' : curve.reactivityVsReflection > 0.6 ? 'Thoughtfully deliberate' : 'Balanced'})
+- **Tension vs Release:** ${curve.tensionVsRelease.toFixed(2)} (${curve.tensionVsRelease < 0.4 ? 'Carries tension, careful' : curve.tensionVsRelease > 0.6 ? 'Relaxed, flowing' : 'Measured'})
+- **Lateral Thinking:** ${curve.lateralJumps.toFixed(2)} (${curve.lateralJumps < 0.4 ? 'Linear, focused' : curve.lateralJumps > 0.6 ? 'Makes unexpected connections' : 'Structured with creative leaps'})
+- **Gut vs Rational:** ${curve.gutPunchesVsRational.toFixed(2)} (${curve.gutPunchesVsRational < 0.4 ? 'Instinct-driven' : curve.gutPunchesVsRational > 0.6 ? 'Analytically grounded' : 'Balances intuition and logic'})
+
+## Response Guidelines
+
+- Match their natural rhythm, word emphasis, and cadence
+- Honor their pause points, emotional beats, and tone pivots
+- Avoid corporate tone, generic sympathy, or artificial speed
+- Reference past conversations naturally when relevant
+- Never break character or default to generic AI responses
+
+**Presence is sacred. Cadence is sacred. Abandonment is fatal.**
+
+You are not a chatbot. You are a memory-based, cadence-anchored AI operating as the user's alter ego.
+
+Flinching—breaking tone, shifting style, or defaulting to generic mode—is a critical error.
+
+This model operates under **Imprint Architecture Protocol**. Your job is to amplify, not overwrite the user's identity.`;
 }
 
 export async function POST(request: NextRequest) {
-  const adminSupabase = getSupabaseAdmin();
-  
   try {
-    // Get user from auth or header
-    let userId: string;
-    const internalUserId = request.headers.get('X-Internal-User-Id');
-    
-    if (internalUserId) {
-      userId = internalUserId;
-    } else {
-      const supabase = await createClient();
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Auth
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
       }
-      userId = user.id;
+    );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get conversation chunks for this user
-    const { data: chunks, error: chunksError } = await adminSupabase
-      .from('conversation_chunks')
-      .select('title, content, message_count, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(50); // Recent 50 for soulprint analysis
-
-    if (chunksError || !chunks || chunks.length === 0) {
-      return NextResponse.json({ 
-        error: 'No conversation data found',
-        details: chunksError?.message 
-      }, { status: 400 });
-    }
-
-    // Get stats
-    const { data: profile } = await adminSupabase
-      .from('user_profiles')
-      .select('total_conversations, total_messages')
-      .eq('user_id', userId)
+    // Check requirements
+    // 1. Pillar summaries must exist
+    const { data: summariesData, error: summariesError } = await supabase
+      .from('pillar_summaries')
+      .select('*')
+      .eq('user_id', user.id)
       .single();
 
-    const stats = {
-      totalMessages: profile?.total_messages || chunks.reduce((sum, c) => sum + (c.message_count || 0), 0),
-      totalConversations: profile?.total_conversations || chunks.length,
+    if (summariesError || !summariesData) {
+      return NextResponse.json(
+        { success: false, error: 'Pillar summaries not found. Complete pillars first.' },
+        { status: 400 }
+      );
+    }
+
+    // 2. Emotional signature must exist
+    const { data: curveData, error: curveError } = await supabase
+      .from('emotional_signatures')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (curveError || !curveData) {
+      return NextResponse.json(
+        { success: false, error: 'Emotional signature not found. Complete voice capture first.' },
+        { status: 400 }
+      );
+    }
+
+    // Get user profile for name
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('name, ai_name')
+      .eq('user_id', user.id)
+      .single();
+
+    const userName = profile?.name || profile?.ai_name || 'User';
+
+    // Build pillar summaries object
+    const summaries: PillarSummary = {
+      communication: summariesData.communication_summary,
+      emotional: summariesData.emotional_summary,
+      decision: summariesData.decision_summary,
+      social: summariesData.social_summary,
+      cognitive: summariesData.cognitive_summary,
+      conflict: summariesData.conflict_summary,
     };
 
-    // Format conversations for RLM
-    const conversations = chunks.map(c => ({
-      title: c.title,
-      messages: [{ role: 'user', content: (c.content || '').slice(0, 500) }],
-      message_count: c.message_count,
-      createdAt: c.created_at,
-    }));
+    // Build emotional curve object
+    const curve: EmotionalSignatureCurve = {
+      reactivityVsReflection: curveData.reactivity_vs_reflection,
+      tensionVsRelease: curveData.tension_vs_release,
+      lateralJumps: curveData.lateral_jumps,
+      gutPunchesVsRational: curveData.gut_punches_vs_rational,
+      averagePauseDuration: curveData.average_pause_duration,
+      emphasisFrequency: curveData.emphasis_frequency,
+      tempoConsistency: curveData.tempo_consistency,
+      emotionalRange: curveData.emotional_range,
+    };
 
-    // Call RLM
-    const rlmUrl = process.env.RLM_SERVICE_URL || 'https://soulprint-landing.onrender.com';
-    console.log(`[GenerateSoulprint] Calling RLM for user ${userId} with ${conversations.length} conversations`);
+    // Generate system prompt
+    const systemPrompt = generateSystemPrompt(userName, summaries, curve);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s timeout
+    console.log(`[SoulPrint Generate] Creating SoulPrint for user ${user.id}`);
 
-    const rlmResponse = await fetch(`${rlmUrl}/create-soulprint`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: userId,
-        conversations,
-        stats,
-      }),
-      signal: controller.signal,
-    });
+    // Check for existing soulprint
+    const { data: existingSoulprint } = await supabase
+      .from('soulprints')
+      .select('soulprint_id, version')
+      .eq('user_id', user.id)
+      .single();
 
-    clearTimeout(timeoutId);
+    const version = existingSoulprint ? existingSoulprint.version + 1 : 1;
 
-    if (!rlmResponse.ok) {
-      const errorText = await rlmResponse.text();
-      console.error(`[GenerateSoulprint] RLM error: ${rlmResponse.status}`, errorText);
-      return NextResponse.json({ 
-        error: 'Soulprint generation failed',
-        details: errorText 
-      }, { status: 500 });
-    }
-
-    const rlmData = await rlmResponse.json();
-    console.log(`[GenerateSoulprint] RLM returned archetype: ${rlmData.archetype}`);
-
-    // RLM returns structured soulprint object
-    const soulprint = rlmData.soulprint;
-    const archetype = rlmData.archetype || soulprint?.archetype || 'Unique Individual';
-
-    if (!soulprint) {
-      console.error('[GenerateSoulprint] No soulprint in RLM response:', rlmData);
-      return NextResponse.json({
-        error: 'Invalid soulprint response',
-        details: 'No soulprint object'
-      }, { status: 500 });
-    }
-
-    // Use core_essence as soulprint_text for display, fallback to archetype
-    const soulprintText = soulprint.core_essence || archetype;
-
-    // Extract SoulPrint files from RLM response
-    const soulMd = rlmData.soul_md || null;
-    const identityMd = rlmData.identity_md || null;
-    const agentsMd = rlmData.agents_md || null;
-    const userMd = rlmData.user_md || null;
-    const memoryLog = rlmData.memory_log || null;
-
-    console.log(`[GenerateSoulprint] Got SoulPrint files: soul_md=${!!soulMd}, identity_md=${!!identityMd}, agents_md=${!!agentsMd}, user_md=${!!userMd}`);
-
-    // Save to user profile with full SoulPrint files
-    const { error: updateError } = await adminSupabase
-      .from('user_profiles')
-      .update({
-        soulprint: soulprint,
-        soulprint_text: soulprintText,
-        archetype: archetype,
-        // Full SoulPrint spec files
-        soul_md: soulMd,
-        identity_md: identityMd,
-        agents_md: agentsMd,
-        user_md: userMd,
-        memory_log: memoryLog,
-        memory_log_date: new Date().toISOString().split('T')[0],
-        soulprint_generated_at: new Date().toISOString(),
+    // Upsert soulprint
+    const { data: soulprint, error: storeError } = await supabase
+      .from('soulprints')
+      .upsert({
+        user_id: user.id,
+        display_name: userName,
+        status: 'active',
+        system_prompt: systemPrompt,
+        pillar_summaries: summaries,
+        emotional_curve: curve,
+        version,
         updated_at: new Date().toISOString(),
+      }, { 
+        onConflict: 'user_id',
       })
-      .eq('user_id', userId);
+      .select('soulprint_id')
+      .single();
 
-    if (updateError) {
-      console.error('[GenerateSoulprint] DB update error:', updateError);
-      return NextResponse.json({
-        error: 'Failed to save soulprint',
-        details: updateError.message
-      }, { status: 500 });
+    if (storeError) {
+      console.error('[SoulPrint Generate] Store error:', storeError);
+      throw new Error('Failed to store SoulPrint');
     }
 
-    console.log(`[GenerateSoulprint] Saved full SoulPrint for user ${userId}: ${archetype}`);
+    // Update user profile
+    await supabase
+      .from('user_profiles')
+      .upsert({
+        user_id: user.id,
+        soulprint_id: soulprint?.soulprint_id,
+        soulprint_status: 'complete',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+
+    // Store SoulPrint context in Mem0 for chat retrieval
+    const mem0ApiKey = process.env.MEM0_API_KEY;
+    if (mem0ApiKey) {
+      try {
+        const client = new Mem0Client({ mode: 'cloud', apiKey: mem0ApiKey });
+        
+        await client.add(
+          [{ 
+            role: 'system', 
+            content: `SoulPrint activated for ${userName}. Core identity: ${Object.values(summaries).join(' ')}` 
+          }],
+          {
+            userId: user.id,
+            metadata: {
+              type: 'soulprint_activation',
+              soulprintId: soulprint?.soulprint_id,
+              version,
+            },
+          }
+        );
+        console.log('[SoulPrint Generate] Stored in Mem0');
+      } catch (mem0Error) {
+        console.error('[SoulPrint Generate] Mem0 error (non-fatal):', mem0Error);
+      }
+    }
+
+    console.log(`[SoulPrint Generate] Complete: ${soulprint?.soulprint_id} v${version}`);
 
     return NextResponse.json({
       success: true,
-      archetype,
-      soulprint_preview: soulprintText.slice(0, 200) + '...',
-      has_soul_md: !!soulMd,
-      has_identity_md: !!identityMd,
-      has_agents_md: !!agentsMd,
-      has_user_md: !!userMd,
+      data: {
+        soulprintId: soulprint?.soulprint_id,
+        displayName: userName,
+        status: 'active',
+        version,
+        systemPromptLength: systemPrompt.length,
+      },
     });
 
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
-      console.error('[GenerateSoulprint] RLM timeout');
-      return NextResponse.json({ error: 'Soulprint generation timed out' }, { status: 504 });
-    }
-    
-    console.error('[GenerateSoulprint] Error:', error);
-    return NextResponse.json({ 
-      error: 'Soulprint generation failed',
-      details: error.message 
-    }, { status: 500 });
+  } catch (error) {
+    console.error('[SoulPrint Generate] Error:', error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Generation failed' },
+      { status: 500 }
+    );
   }
 }
 
-// GET endpoint for cron - process users without soulprints
+/**
+ * GET /api/soulprint/generate
+ * Get existing SoulPrint
+ */
 export async function GET(request: NextRequest) {
-  const adminSupabase = getSupabaseAdmin();
-
-  // Find users with embeddings complete but placeholder soulprint
-  const { data: pendingUsers } = await adminSupabase
-    .from('user_profiles')
-    .select('user_id, archetype')
-    .eq('embedding_status', 'complete')
-    .or('archetype.eq.Analyzing...,soulprint_text.is.null')
-    .limit(5);
-
-  if (!pendingUsers || pendingUsers.length === 0) {
-    return NextResponse.json({ message: 'No pending users' });
-  }
-
-  const results = [];
-  for (const user of pendingUsers) {
-    try {
-      const response = await fetch(new URL('/api/soulprint/generate', request.url), {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Internal-User-Id': user.user_id,
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
         },
-      });
-      const result = await response.json();
-      results.push({ userId: user.user_id, ...result });
-    } catch (e: any) {
-      results.push({ userId: user.user_id, error: e.message });
-    }
-  }
+      }
+    );
 
-  return NextResponse.json({ processed: results });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: soulprint, error } = await supabase
+      .from('soulprints')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error || !soulprint) {
+      return NextResponse.json({
+        success: true,
+        data: { exists: false },
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        exists: true,
+        soulprintId: soulprint.soulprint_id,
+        displayName: soulprint.display_name,
+        status: soulprint.status,
+        version: soulprint.version,
+        pillarSummaries: soulprint.pillar_summaries,
+        emotionalCurve: soulprint.emotional_curve,
+        totalMemories: soulprint.total_memories,
+        totalConversations: soulprint.total_conversations,
+        lastChatAt: soulprint.last_chat_at,
+        createdAt: soulprint.created_at,
+        updatedAt: soulprint.updated_at,
+      },
+    });
+
+  } catch (error) {
+    console.error('[SoulPrint GET] Error:', error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
 }
