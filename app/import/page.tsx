@@ -11,6 +11,7 @@ import { RingProgress } from '@/components/ui/ring-progress';
 // Client-side soulprint generation removed - all imports now use server-side RLM
 import { createClient } from '@/lib/supabase/client';
 import JSZip from 'jszip';
+import { uploadWithProgress } from '@/lib/chunked-upload';
 
 // Detect mobile devices (conservative - if unsure, treat as mobile)
 function isMobileDevice(): boolean {
@@ -287,84 +288,50 @@ function ImportPageContent() {
         const cleanName = uploadFilename.replace(/[^a-zA-Z0-9.-]/g, '_');
         const uploadPath = `${user.id}/${timestamp}-${cleanName}`;
 
-        const uploadSizeMB = (uploadBlob.size / 1024 / 1024).toFixed(1);
-        console.log(`[Import] Starting client-side upload: ${uploadPath} (${uploadSizeMB}MB) mobile=${isMobile}`);
-        setProgressStage(`Uploading ${uploadSizeMB}MB...`);
-
-        // Simulate progress since Supabase client doesn't provide callback for simple upload
-        // Slower progress for larger files to match expected upload time
-        let uploadIntervalMs: number;
-        let progressIncrement: number;
-        if (blobSizeMB > 500) {
-          uploadIntervalMs = 5000; // 5s intervals for huge files
-          progressIncrement = 1;
-        } else if (blobSizeMB > 100) {
-          uploadIntervalMs = 2000; // 2s intervals
-          progressIncrement = 1;
-        } else {
-          uploadIntervalMs = 500;
-          progressIncrement = 2;
-        }
-        uploadProgressIntervalRef.current = setInterval(() => {
-          setProgress(p => Math.min(p + progressIncrement, 50));
-        }, uploadIntervalMs);
-
-        // Wrap upload in timeout (scaled by size)
         const blobSizeMB = uploadBlob.size / 1024 / 1024;
-        let uploadTimeoutMs: number;
-        if (isMobile) {
-          uploadTimeoutMs = 60 * 1000; // 1 min for mobile
-        } else if (blobSizeMB > 500) {
-          uploadTimeoutMs = 10 * 60 * 1000; // 10 min for >500MB
-        } else if (blobSizeMB > 100) {
-          uploadTimeoutMs = 5 * 60 * 1000; // 5 min for >100MB
-        } else {
-          uploadTimeoutMs = 2 * 60 * 1000; // 2 min for smaller files
-        }
-        console.log(`[Import] Upload timeout: ${uploadTimeoutMs / 1000}s for ${blobSizeMB.toFixed(1)}MB`);
-        
-        const uploadPromise = supabase.storage
-          .from('imports')
-          .upload(uploadPath, uploadBlob, {
-            upsert: true,
-            contentType: uploadFilename.endsWith('.json') ? 'application/json' : 'application/zip'
-          });
+        console.log(`[Import] Starting upload: ${uploadPath} (${blobSizeMB.toFixed(1)}MB) mobile=${isMobile}`);
+        setProgressStage(`Uploading ${blobSizeMB.toFixed(1)}MB...`);
 
-        const timeoutPromise = new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Upload timed out. Your file may be too large or your connection is slow.')), uploadTimeoutMs)
+        // Get Supabase storage URL and auth token for direct XHR upload
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token;
+        
+        if (!accessToken) {
+          throw new Error('Session expired. Please refresh and try again.');
+        }
+
+        // Supabase storage upload URL
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const uploadUrl = `${supabaseUrl}/storage/v1/object/imports/${uploadPath}`;
+        const contentType = uploadFilename.endsWith('.json') ? 'application/json' : 'application/zip';
+
+        console.log(`[Import] Using XHR upload to: ${uploadUrl}`);
+
+        // Use XHR for real progress tracking
+        const uploadResult = await uploadWithProgress(
+          uploadBlob,
+          uploadUrl,
+          accessToken,
+          contentType,
+          (percent) => {
+            // Map upload progress to 15-50% range
+            const mappedProgress = 15 + (percent * 0.35);
+            setProgress(Math.round(mappedProgress));
+            setProgressStage(`Uploading... ${percent}%`);
+          }
         );
 
-        let data, error;
-        try {
-          const result = await Promise.race([uploadPromise, timeoutPromise]);
-          data = result.data;
-          error = result.error;
-        } catch (timeoutErr) {
-          if (uploadProgressIntervalRef.current) clearInterval(uploadProgressIntervalRef.current);
-          throw timeoutErr;
+        if (!uploadResult.success) {
+          console.error('[Import] XHR upload failed:', uploadResult.error);
+          throw new Error(uploadResult.error || 'Upload failed');
         }
 
-        if (uploadProgressIntervalRef.current) clearInterval(uploadProgressIntervalRef.current);
-
-        console.log('[Import] Upload completed, checking result...');
-
-        if (error) {
-          console.error('[Import] Storage upload error:', error);
-          throw new Error(`Upload failed: ${error.message}`);
-        }
-
-        if (!data?.path) {
-          console.error('[Import] Upload returned no path:', data);
-          throw new Error('Upload successful but returned no path');
-        }
-
-        console.log('[Import] Upload success:', data);
+        console.log('[Import] Upload complete');
         setProgressStage('Upload complete! Starting processing...');
         setProgress(52);
-        const storagePath = `imports/${data.path}`; // Construct full path including bucket
+        const storagePath = `imports/${uploadPath}`; // Full path including bucket
 
-
-        setProgressStage('Upload complete! Analyzing your conversations...');
+        setProgressStage('Analyzing your conversations...');
         setProgress(55);
 
         // Small delay to let browser settle after large upload
