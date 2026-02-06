@@ -1,210 +1,206 @@
 # Architecture
 
-**Analysis Date:** 2026-02-01
+**Analysis Date:** 2026-02-06
 
 ## Pattern Overview
 
-**Overall:** Server-driven multi-tier import with memory-augmented LLM chat. The system follows a **Next.js App Router** pattern with client-side React for UI and server-side Node.js for heavy processing (file parsing, embeddings, chat).
+**Overall:** Monolithic Next.js app with server-side API routes, client components, and external service integration (RLM, AWS Bedrock, Supabase)
 
 **Key Characteristics:**
-- Client uploads ChatGPT ZIP/JSON → server downloads and parses → RLM generates personality (soulprint) → conversation chunks stored in Supabase for retrieval
-- Chat interface queries memory before generating responses (context-augmented generation via RLM service)
-- Import flow gates chat access until processing complete
-- Progressive memory availability: chat works on soulprint immediately, full memory enables as embeddings complete
-- External RLM service handles embeddings, soulprint generation, and query context retrieval
+- Next.js App Router with file-based routing
+- Server-side import processing with multi-tier chunking
+- RLM circuit breaker for fault tolerance
+- AWS Bedrock for LLM operations (Claude Sonnet/Haiku)
+- Supabase PostgreSQL for persistence and vector search
+- Memory-aware file upload with chunked transfer for large files
 
 ## Layers
 
 **Presentation Layer:**
-- Purpose: React client components for chat, import UI, authentication screens
-- Location: `app/page.tsx`, `app/chat/page.tsx`, `app/import/page.tsx`, `components/`
-- Contains: Next.js page files, React components (chat UI, import wizard, auth forms), client-side state management
-- Depends on: Auth service (Supabase), Chat API, Memory API, Profile API
-- Used by: End users via browser
+- Purpose: Client-side UI components and pages
+- Location: `app/` (pages), `components/`
+- Contains: Page components (`.tsx`), client-side state management, forms, animations
+- Depends on: Supabase client, API routes, local storage/IndexedDB
+- Used by: Browser/users
 
-**API Layer (Route Handlers):**
-- Purpose: Server-side logic exposed via REST endpoints
-- Location: `app/api/` (organized by feature: chat, import, memory, profile, auth)
-- Contains: Next.js route.ts files handling POST/GET requests, request validation, Supabase queries
-- Key routes:
-  - `app/api/chat/route.ts` - Chat message processing with RLM, memory queries, web search integration
-  - `app/api/import/queue-processing/route.ts` - Orchestrates import process (5-minute max)
-  - `app/api/import/process-server/route.ts` - Parses ZIP/JSON, validates ChatGPT format, calls RLM for soulprint
-  - `app/api/memory/status/route.ts` - Reports import progress and memory readiness
-  - `app/api/profile/ai-name/route.ts`, `app/api/profile/ai-avatar/route.ts` - AI personalization
-- Depends on: Supabase (database/auth/storage), AWS Bedrock (embeddings/LLM), RLM service, external APIs (Tavily, Perplexity)
-- Used by: Client components via fetch, internal server-to-server calls
+**API Layer:**
+- Purpose: HTTP endpoints for all server operations (import, chat, profile, memory)
+- Location: `app/api/`
+- Contains: 54+ route handlers, auth middleware, streaming responses
+- Depends on: Supabase admin client, AWS Bedrock, RLM service, external APIs
+- Used by: Frontend components, cron jobs, external services
 
-**Service/Library Layer:**
-- Purpose: Reusable business logic and external service integrations
-- Location: `lib/` (organized by concern: supabase, memory, search, email, gamification)
-- Key modules:
-  - `lib/supabase/client.ts` - Browser Supabase client with SSR support
-  - `lib/supabase/server.ts` - Server-side Supabase client with cookie handling
-  - `lib/memory/query.ts` - Embedding queries, memory context retrieval via Bedrock
-  - `lib/memory/learning.ts` - Extract and store facts from chat messages
-  - `lib/search/smart-search.ts` - Intelligent search dispatcher (web or memory)
-  - `lib/search/tavily.ts`, `lib/search/perplexity.ts` - Web search APIs
-  - `lib/email/send.ts` - Email notifications via Resend
-- Depends on: Supabase, AWS Bedrock, external APIs
-- Used by: API routes, server components
+**Service/Business Logic Layer:**
+- Purpose: Reusable logic for memory search, LLM calls, soulprint generation, embedding
+- Location: `lib/`
+- Contains: RLM health management, memory querying, chat utilities, email sending
+- Depends on: Supabase, AWS SDK, external service clients
+- Used by: API routes
 
-**Data Layer:**
-- Purpose: Database schema and queries
-- Location: Supabase (PostgreSQL) with RLS policies
-- Contains:
-  - `user_profiles` - User metadata, soulprint text, import status (none/processing/complete/failed)
-  - `conversation_chunks` - Searchable memory chunks with embeddings, layer_index (tier 1/2/3)
-  - `learned_facts` - Extracted facts for fast categorized recall
-  - `chat_messages` - User/assistant message history
-- Accessed via: Supabase JS client (app/web) and admin client (server)
+**Data Access Layer:**
+- Purpose: Database abstraction and authenticated client creation
+- Location: `lib/supabase/` (client.ts, server.ts, middleware.ts)
+- Contains: Supabase client factories with auth context
+- Depends on: @supabase/supabase-js
+- Used by: API routes, client components, middleware
 
-**External Services:**
-- RLM Service (`https://soulprint-landing.onrender.com`) - Soulprint generation, query context retrieval, response generation
-- AWS Bedrock - Claude 3.5 Haiku for naming, embeddings (Cohere v3)
-- Supabase - Auth, Storage (ZIP uploads), Database
-- Third-party search: Tavily API, Perplexity API
+**External Integrations:**
+- RLM Service: `https://soulprint-landing.onrender.com` - Remote memory with inference
+- AWS Bedrock: Claude models for LLM, Titan for embeddings
+- Supabase PostgreSQL: User profiles, memory chunks, chat history, learned facts
+- Gmail OAuth2: Email notifications via nodemailer
 
 ## Data Flow
 
-**Import Flow:**
+**User Import Flow:**
 
-1. User uploads ZIP on `app/import/page.tsx`
-2. Client extracts `conversations.json` (desktop) or uploads full ZIP (mobile)
-3. Uploads to Supabase Storage (`imports/` bucket) via client
-4. Calls `POST /api/import/queue-processing` with storage path
-5. Queue processor updates `user_profiles.import_status = 'processing'`
-6. Calls `POST /api/import/process-server` (internal)
-7. Process server:
-   - Downloads file from Supabase Storage
-   - Validates ChatGPT format (checks for `conversations.json`, `mapping` structure)
-   - Parses conversations into message arrays
-   - Stores raw JSON gzipped in Supabase Storage (user-exports bucket)
-   - Calls RLM `/create-soulprint` with conversation array
-   - RLM returns soulprint text and multi-tier chunks
-   - Inserts chunks into `conversation_chunks` table with layer_index (1/2/3)
-   - Updates `user_profiles`: soulprint_text, import_status='complete'
-   - Sends email notification (via background cron or sync)
-8. Client polls `GET /api/memory/status` to detect completion
-9. User redirected to chat
+1. User navigates to `/import` (client component)
+2. Uploads ChatGPT export (ZIP or JSON) via `uploadWithProgress()`
+3. File sent to `/api/import/chunked-upload` (handles large files)
+4. Raw storage path returned to client
+5. Client triggers `/api/import/process-server` with storage path
+6. Server downloads file from Supabase Storage
+7. Extracts conversations.json and validates structure
+8. Creates multi-tier chunks:
+   - Tier 1: 100 chars (facts, names, dates)
+   - Tier 2: 500 chars (context, topics)
+   - Tier 3: 2000 chars (full conversation flow)
+9. Sends chunks to RLM service: `POST /create-soulprint`
+10. RLM returns soulprint_text
+11. Store in `user_profiles.soulprint_text`
+12. Set `import_status = 'complete'`
+13. Send email notification
+14. User can now chat
 
 **Chat Flow:**
 
-1. User enters message on `app/chat/page.tsx`
-2. Message immediately added to local state (optimistic update)
-3. Calls `POST /api/chat` with message + history
-4. Chat route:
-   - Fetches user's soulprint and profile
-   - Calls `smartSearch()` if deep search enabled (web search via Tavily/Perplexity)
-   - Calls RLM `/query` with:
-     - user_id
-     - message
-     - soulprint_text
-     - chat history
-     - web_search_context (if applicable)
-   - RLM queries internal memory store, retrieves relevant chunks, generates response
-   - Streams response back via SSE (data: chunks)
-   - Saves message and response to `chat_messages` table
-   - Learns from chat: `learnFromChat()` extracts key facts → stored in `learned_facts`
-5. Component displays streaming response in real-time
+1. User enters message on `/chat` (client component)
+2. Sent to `/api/chat` (POST)
+3. Fetch user's soulprint_text from `user_profiles`
+4. Build memory context with `getMemoryContext()`:
+   - Query `conversation_chunks` for semantic similarity
+   - Combine top chunks with system prompt
+5. Try RLM service `/query` (with circuit breaker check):
+   - Pass user message, history, soulprint_text, memory context
+   - RLM returns response using user's memory + Claude
+6. If RLM fails or circuit open: fallback to direct Bedrock call
+   - Use Bedrock ConverseStream for streaming response
+7. Save message to `chat_messages` table
+8. Learn facts from conversation with `learnFromChat()`
+9. Stream response back to client (Server-Sent Events)
 
-**Memory Availability Model:**
+**Memory Learning Flow:**
 
-- **Immediate**: Soulprint generated = chat works (knows user personality)
-- **Progressive**: Conversation chunks stored as embeddings complete (memory enriches over time)
-- **Full**: All chunks processed = complete conversation context available
+1. After chat response completes
+2. Extract facts/names/topics from latest Q&A with `learnFromChat()`
+3. Store in `learned_facts` table
+4. Update `user_profiles.processed_chunks`
 
-## State Management
+**State Management:**
 
-**Import Status States:**
-- `none` - No import started
-- `processing` - File parsing/RLM soulprint in progress
-- `complete` - Soulprint ready, memory available
-- `failed` - Error during import (shows on import page + chat status bar)
-
-**Memory Status States (in `user_profiles`):**
-- `embedding_status`: 'processing' | 'complete' (background chunking)
-- `total_chunks`, `processed_chunks` - Progress tracking for UI
-- `memory_status`: 'building' | 'ready' (user-facing availability)
-
-**Chat State (client-side):**
-- Message queue with mutex to prevent overlapping requests
-- Message buffer + streaming parser for SSE responses
-- Poll interval for memory status (5s) to display progress bar
+- **User Profile:** Stored in `user_profiles` (soulprint, import_status, timestamps)
+- **Chat History:** Stored in `chat_messages` (user_id, content, role, created_at)
+- **Memory Chunks:** Stored in `memory_chunks` with pgvector embeddings
+- **Learned Facts:** Stored in `learned_facts` (fact, category, timestamps)
+- **Profile Customization:** `user_profiles` (ai_name, ai_avatar_url, settings)
 
 ## Key Abstractions
 
-**RLM Service Contract:**
-- `/create-soulprint` (POST): Converts conversations → personality profile + multi-tier chunks
-- `/query` (POST): Context retrieval + response generation
-- Internal: Manages embeddings, vector similarity search, chunk storage
+**RLM Circuit Breaker:**
+- Purpose: Fast-fail when RLM service is down (avoid 60s timeouts)
+- Examples: `lib/rlm/health.ts`
+- Pattern: Three states (CLOSED → OPEN → HALF_OPEN)
+- Tracks: Last failure time, consecutive failures, state transitions
+- Behavior: Opens after 2 failures, tests recovery every 30s
 
-**Multi-Tier Chunking:**
-- **Tier 1** (100 chars): Facts, names, dates ("User: What is X? Assistant: X is...")
-- **Tier 2** (500 chars): Topic understanding, context ("Full Q&A about topic")
-- **Tier 3** (2000 chars): Complex flows ("Multi-turn conversation")
-- Stored with `layer_index` in `conversation_chunks` table
+**Memory Query Interface:**
+- Purpose: Unified memory search supporting different chunk layers
+- Examples: `lib/memory/query.ts`, `lib/memory/learning.ts`
+- Pattern: Timeout-safe async operations with fallbacks
+- Layers: Can search different tier sizes depending on query complexity
 
-**Smart Search Dispatcher:**
-- `lib/search/smart-search.ts` routes to Tavily or Perplexity based on query
-- Returns `SmartSearchResult` with context text + sources
-- Passed to RLM for web-aware response generation
+**Bedrock LLM Wrapper:**
+- Purpose: Unified interface for Claude model calls (chat, JSON parsing, streaming)
+- Examples: `lib/bedrock.ts`
+- Pattern: Lazy client initialization, model abstraction (Sonnet/Haiku/Opus)
+- Features: Timeout handling, JSON extraction from markdown blocks, streaming support
+
+**Chunked Upload Manager:**
+- Purpose: Handle files >100MB on mobile with automatic chunking
+- Examples: `lib/chunked-upload.ts`
+- Pattern: Client-side chunking with progress callbacks
+- Handles: S3 multipart upload coordination, resume capability
 
 ## Entry Points
 
-**User-Facing:**
-- `app/page.tsx` - Landing page, auth redirect logic
-- `app/import/page.tsx` - Import wizard (multi-step: export → upload → processing → done)
-- `app/chat/page.tsx` - Main chat interface with memory polling
-- `app/login/page.tsx`, `app/signup/page.tsx` - Auth flows
+**Web Application Entry:**
+- Location: `app/page.tsx` (landing page)
+- Triggers: Page load in browser
+- Responsibilities: Auth check → redirect to dashboard if authenticated, show marketing sections
 
-**Administrative:**
-- `app/admin/page.tsx` - Admin dashboard
-- `app/api/admin/*` - Health checks, metrics, user reset, re-chunking
+**Import Entry:**
+- Location: `app/import/page.tsx`
+- Triggers: User navigates to /import
+- Responsibilities: File upload UI, progress tracking, status polling
 
-**Background:**
-- `app/api/cron/tasks/route.ts` - Scheduled tasks (email notifications, recurring reminders)
+**Chat Entry:**
+- Location: `app/chat/page.tsx`
+- Triggers: Authenticated user navigates to /chat
+- Responsibilities: Chat interface, message handling, streaming responses
+
+**API Import Processing:**
+- Location: `app/api/import/process-server/route.ts`
+- Triggers: Client calls after upload completes
+- Responsibilities: Download/extract/validate/chunk/embed/notify
+
+**API Chat:**
+- Location: `app/api/chat/route.ts`
+- Triggers: User submits chat message
+- Responsibilities: Fetch context, call RLM (or fallback), stream response, save history
+
+**Middleware:**
+- Location: `middleware.ts`
+- Triggers: Every request matching `/((?!_next|favicon|static|images|svg).*).*`
+- Responsibilities: Update Supabase auth session, refresh tokens
 
 ## Error Handling
 
-**Strategy:** Graceful degradation with user-friendly error messages.
+**Strategy:** Graceful degradation with circuit breakers and fallbacks
 
 **Patterns:**
-- File validation: Checks for `conversations.json` existence, `mapping` structure in ChatGPT export. Throws with clear message if invalid.
-- Size limits: 500MB max (Vercel memory constraint). Returns `"File too large... Maximum is 500MB"` if exceeded.
-- API failures: RLM unavailable → falls back to basic Bedrock response generation (no context)
-- Network errors: Automatic retry on client with exponential backoff (for chat messages only, not imports)
-- Stuck imports: Detects if processing >15 minutes, allows user to retry with `import?reimport=true`
-- Auth errors: Missing session → redirect to login
-- Supabase RLS violations: Caught and logged, surface generic error to user
+
+- **RLM Service Down:** Circuit breaker opens → fallback to direct Bedrock LLM
+- **Memory Search Timeout:** Returns null after 10s → uses soulprint_text directly
+- **Embedding Timeout:** Skips embedding tier, uses available memory
+- **Large File Upload:** Chunked multipart upload → resume on failure
+- **Chat Generation Failure:** Retry with exponential backoff → fallback response
+- **Email Send Failure:** 3 retry attempts with 1s/2s/4s delays
 
 ## Cross-Cutting Concerns
 
-**Logging:**
-- Console logs with [Module] prefix for tracing: `[Chat]`, `[ProcessServer]`, `[QueueProcessing]`
-- Used for debugging, not for production monitoring
+**Logging:** Console.log with `[ComponentName]` prefixes for easy grep/debugging
 
 **Validation:**
-- Upfront: File format, ChatGPT structure, auth status
-- Runtime: Chunk size, message length, vector dimensions
-- Use explicit error messages for user guidance
+- ZIP extraction: Checks for conversations.json existence
+- ChatGPT export: Validates array structure, presence of mapping field
+- User data: Type guards in profile validation (e.g., `validateProfile()`)
 
 **Authentication:**
-- Supabase Auth (PKCE flow for OAuth) with 30-day cookie persistence
-- Server components use `createClient()` from `lib/supabase/server.ts`
-- Client components use `createClient()` from `lib/supabase/client.ts`
-- Admin operations use service role key (limited to specific endpoints)
+- Supabase OAuth via client + server auth flows
+- Service role client for server operations (bypasses RLS)
+- Header-based auth for internal server-to-server calls (`X-Internal-User-Id`)
 
 **Rate Limiting:**
-- RLM timeout: 60s for `/query`, 290s for import processing
-- Vercel maxDuration: 300s (5 min) for import routes
-- Message queue prevents concurrent chat requests
+- Handled at API route level per endpoint need
+- RLM service manages its own rate limits
+- Bedrock API uses built-in quotas
 
-**Privacy:**
-- All file uploads to Supabase Storage (not sent to external LLM)
-- Soulprint text stored encrypted at rest (Supabase default)
-- RLM service holds only conversation data during processing (not persisted)
+**Security:**
+- Row-level security on all tables (user_id checks)
+- Service role client isolated to backend
+- Environment variables for secrets (API keys, URLs)
+- Chunked upload with validation before processing
 
 ---
 
-*Architecture analysis: 2026-02-01*
+*Architecture analysis: 2026-02-06*

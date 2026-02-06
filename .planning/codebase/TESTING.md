@@ -1,176 +1,315 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-02-01
+**Analysis Date:** 2026-02-06
 
 ## Test Framework
 
-**Status:** No formal testing framework configured
+**Current Status:**
+- No automated test framework configured
+- No Jest, Vitest, or other test runner installed
+- No test files found in codebase (*.test.ts, *.spec.ts)
 
-- No test runner found (Jest, Vitest not installed)
-- No test files in `src/` or `app/` directories (only node_modules contain specs from dependencies)
-- No test scripts in `package.json`
+**Available for Setup:**
+- ESLint for linting (configured)
+- TypeScript for type checking (enabled with strict mode)
+- Next.js built-in dev server for manual testing
 
-**Assertion Library:** Not applicable
+**Recommended Setup (if implementing):**
+- Vitest for unit testing (fast, ESM-native, TypeScript-first)
+- Testing Library for component testing
+- Jest as alternative if preferred
 
-**Run Commands:** Not applicable
+## Test Coverage Status
 
-## Test Organization
+**Gaps:**
+- API route handlers (`/app/api/**`) have no unit tests
+- Memory/search functions (`/lib/memory/query.ts`, `/lib/search/**`) untested
+- Email sending logic (`lib/email.ts`) untested
+- Supabase integration functions untested
+- AWS Bedrock integrations untested
+- React components untested
 
-**Current State:**
-- Testing is not part of the codebase development workflow
-- Quality assurance relies on manual testing, integration testing via live services, and type safety via TypeScript strict mode
+**Manual Testing Approach:**
+This codebase relies on:
+1. TypeScript strict mode for compile-time safety
+2. ESLint for code quality
+3. Manual browser testing via Next.js dev server
+4. Integration testing through live API endpoints
 
-## Testing Approach
+## Type-Driven Development (Current Approach)
 
-Instead of unit tests, the codebase relies on:
+**TypeScript as Validation:**
+- All data structures have explicit interfaces: `MemoryChunk`, `ChatMessage`, `UserProfile`
+- Function parameters typed with strict mode enabled
+- Return types explicitly declared: `Promise<MemoryChunk[]>`, `Promise<{ chunks: MemoryChunk[]; contextText: string; method: string; learnedFacts: LearnedFactResult[] }>`
 
-1. **TypeScript Strict Mode** (`tsconfig.json` has `"strict": true`)
-   - Type checking catches many errors at compile time
-   - Examples:
-     - `interface UserProfile { soulprint_text: string | null; }` enforces null-safety
-     - Function parameters require explicit types: `async function embedQuery(text: string): Promise<number[]>`
-     - Type unions enforce valid states: `import_status: 'none' | 'quick_ready' | 'processing' | 'complete' | 'failed'`
+**Example Type Safety in Place:**
+```typescript
+interface MemoryChunk {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  similarity: number;
+  layer_index: number;
+}
 
-2. **Runtime Logging & Monitoring** (console-based)
-   - Detailed console logs with scope prefixes track execution flow
-   - Errors are logged immediately for debugging
-   - Example from `lib/memory/query.ts`:
-     ```typescript
-     console.log(`[RLM] Found ${chunks.length} chunks across layers (Macro:${macroChunks.length}, Thematic:${thematicChunks.length}, Micro:${microChunks.length})`);
-     ```
-   - Search cache monitoring via `getSearchStats()` in `lib/search/smart-search.ts`
+interface ChunkRpcRow {
+  id: string;
+  title: string | null;
+  content: string;
+  created_at: string;
+  similarity: number;
+  layer_index: number | null;
+}
 
-3. **Integration Testing with Live Services**
-   - Code interacts directly with:
-     - Supabase (vector DB, auth, storage)
-     - AWS Bedrock (Claude model calls)
-     - Cohere Embed v3 (via Bedrock)
-     - Perplexity API (web search)
-     - Tavily API (web search fallback)
-   - Errors from these services are caught and logged
-   - Fallback chains ensure graceful degradation (e.g., Tavily if Perplexity fails)
+export async function searchMemoryLayered(
+  userId: string,
+  query: string,
+  topK: number = 5,
+  minSimilarity: number = 0.3,
+  layerIndex?: number,
+  queryEmbed?: number[]
+): Promise<MemoryChunk[]> {
+  // Implementation with strict type checking
+}
+```
 
-4. **Manual Testing Patterns**
-   - Import flow tested via `app/api/debug/test-import/route.ts`
-   - Chat endpoint tested with various message types
-   - Admin endpoints in `app/api/admin/` provide manual intervention tools
+## Manual Testing Patterns
 
-## Error Handling as Testing
+**API Route Testing:**
+- Use API client (curl, Postman, fetch) to test endpoints
+- Check response status codes and JSON structure
+- Verify authentication with auth header validation
+- Log request/response for debugging
 
-**Patterns in code that surface bugs:**
+**Example Routes Requiring Manual Testing:**
+- `POST /api/chat/messages` - Save and load chat history
+- `GET /api/memory/query` - Vector search with timeout
+- `POST /api/import/process-server` - Large file processing
+- `POST /api/soulprint/generate` - RLM integration
 
-1. **Validation with Early Returns**
-   ```typescript
-   // app/api/import/process-server/route.ts
-   if (!Array.isArray(rawConversations)) {
-     throw new Error('Invalid file format. Expected a ChatGPT export (array of conversations).');
-   }
-   if (rawConversations.length === 0) {
-     throw new Error('No conversations found in file.');
-   }
-   const hasValidChatGPTFormat = rawConversations.some((conv: any) =>
-     conv && typeof conv === 'object' && conv.mapping && typeof conv.mapping === 'object'
-   );
-   if (!hasValidChatGPTFormat) {
-     throw new Error("This doesn't look like a ChatGPT export...");
-   }
-   ```
+**Common Error Scenarios to Test:**
+- Missing authentication (should return 401)
+- Invalid request body (should return 400)
+- Service timeout (should return empty/fallback)
+- Database connection failure (should return 500)
 
-2. **Null Safety Checks**
-   ```typescript
-   // app/api/chat/route.ts
-   const { data: { user }, error: authError } = await supabase.auth.getUser();
-   if (authError || !user) {
-     return new Response(
-       JSON.stringify({ error: 'Unauthorized' }),
-       { status: 401, headers: { 'Content-Type': 'application/json' } }
-     );
-   }
-   ```
+## Error Handling Testing
 
-3. **Optional Chaining & Fallbacks**
-   ```typescript
-   // app/api/chat/route.ts
-   const textBlock = response.output?.message?.content?.find(
-     (block): block is ContentBlock.TextMember => 'text' in block
-   );
-   const name = textBlock?.text?.trim().replace(/['"]/g, '') || 'Echo';
-   ```
+**Current Patterns to Verify:**
+1. **Timeout Protection:** Functions wrapped with `withTimeout()` should return null on timeout
+   - `embedQuery()` - 15 second timeout
+   - `searchMemoryLayered()` - 10 second timeout
+   - `getMemoryContext()` - 30 second timeout
+   - Expected behavior: return empty array, not throw
 
-4. **Error Context Preservation**
-   ```typescript
-   // app/api/import/process-server/route.ts
-   } catch (error) {
-     const errorMessage = error instanceof Error ? error.message : 'Processing failed';
-     console.error('[ProcessServer] Error:', errorMessage);
-     if (userId) {
-       await adminSupabase.from('user_profiles').update({
-         import_status: 'failed',
-         import_error: errorMessage,
-         updated_at: new Date().toISOString(),
-       }).eq('user_id', userId);
-     }
-     return NextResponse.json({ error: errorMessage }, { status: 500 });
-   }
-   ```
+2. **Graceful Degradation:**
+   - Vector search fails → fallback to keyword search
+   - Example in `/lib/memory/query.ts` lines 387-391
+   - Test: verify fallback works when vector search unavailable
 
-## Test Scenarios (Manual)
+3. **Retry Logic:**
+   - Email sending retries 3 times with exponential backoff
+   - File uploads use chunked upload with retry
+   - Test: simulate failure, verify retry occurs
 
-**Import Flow:**
-- Small ChatGPT export (JSON directly)
-- Large ChatGPT export (ZIP with conversations.json)
-- Invalid format (wrong JSON structure)
-- Empty conversations
-- Oversized files (>500MB)
-- Network interruptions during download/upload
+4. **Fallback Values:**
+   - Missing AI name → defaults to "Echo"
+   - Missing chunk title → defaults to "Untitled"
+   - Missing layer index → defaults to 1
+   - Test: verify defaults applied when null
 
-**Chat Flow:**
-- First message (auto-generates AI name)
-- Message with memory context (RLM retrieves chunks)
-- Web search needed (Smart Search detects and performs)
-- RLM service unavailable (fallback to Bedrock)
-- Long conversation history (pagination)
-- Concurrent messages (queue handling)
+**Testing Error Paths:**
+```typescript
+// Pattern from lib/memory/query.ts:
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  operationName: string
+): Promise<T | null> {
+  const timeoutPromise = new Promise<null>((resolve) => {
+    setTimeout(() => {
+      console.warn(`[Memory] ${operationName} timed out after ${timeoutMs}ms`);
+      resolve(null);
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]);
+}
 
-**Memory/Embedding:**
-- Vector similarity search (returns top-k chunks)
-- Layered search (macro/thematic/micro chunks)
-- Keyword fallback when vector search fails
-- Learned facts retrieval
-- Rate limiting on searches
+// Test by intentionally slow-running operations and verifying null return
+```
 
-**Search Integration:**
-- Cache hit detection
-- Perplexity API call success
-- Tavily fallback when Perplexity fails
-- Both services unavailable (graceful degradation)
-- Query normalization for cache keys
-- Citation formatting
+## Component Testing Approach
 
-## What's Not Tested (Gaps)
+**Current Components:**
+- React components in `/components/**/*.tsx`
+- Client components marked with `'use client'`
+- Page components in `/app/**/*.tsx`
 
-- **Component behavior** - No React component tests
-- **State management edge cases** - useState/useRef logic in `app/chat/page.tsx`
-- **Concurrent operations** - Message queue processing under load
-- **Database constraints** - Uniqueness, foreign key violations
-- **Rate limiting under load** - 10 req/min per user behavior at scale
-- **Memory limits** - Vercel 1GB RAM constraint with large ChatGPT exports
-- **Authentication edge cases** - Session hijacking, token expiration
+**Component Testing Strategy (No Framework):**
+1. Manual browser testing via `npm run dev`
+2. Check component renders without errors
+3. Verify state management with browser devtools
+4. Test user interactions (clicks, form inputs)
+5. Verify API calls using browser Network tab
 
-## Monitoring & Observability
+**Example Component to Test Manually:**
+- `/app/chat/page.tsx` - Complex state management, message queue
+- Load chat, send message, verify API call, check history loads
+- Navigate away and back, verify memory persistence
+- Check responsive behavior at different breakpoints
 
-**Built-in Debugging:**
-- Health check endpoints: `app/api/chat/health/route.ts`, `app/api/health/supabase/route.ts`, `app/api/rlm/health/route.ts`
-- Admin endpoints for manual testing: `app/api/admin/health/route.ts`, `app/api/admin/metrics/route.ts`
-- Detailed console logging throughout request/response cycles
+## Integration Testing Areas
 
-**What to Add for Better Testing:**
-- Unit test framework (Jest or Vitest) for utility functions
-- E2E tests for critical flows (import, chat, search)
-- API contract testing (validate Supabase/Bedrock response shapes)
-- Performance benchmarks (embedding latency, search speed)
-- Load testing (concurrent users, concurrent uploads)
+**API Integration Tests (Manual/No Framework):**
+
+1. **Chat Flow:**
+   - User logs in → queries `/api/chat/messages`
+   - User sends message → POST to `/api/chat`
+   - Verify RLM integration works
+   - Check memory context is retrieved
+
+2. **Memory System:**
+   - Query embeddings via Bedrock
+   - Search chunks with vector similarity
+   - Verify layer filtering works
+   - Check keyword fallback on vector search failure
+
+3. **Import Flow:**
+   - User uploads ZIP file
+   - Server processes and chunks
+   - RLM generates soulprint
+   - Email sent on completion
+   - User can now chat
+
+4. **Voice Processing:**
+   - User uploads voice file
+   - Verify enrollment/verification endpoints
+   - Check transcription and storage
+
+## Mocking Strategy (If Tests Implemented)
+
+**What to Mock:**
+- AWS Bedrock API calls (expensive, external dependency)
+- Supabase database queries (would need test database)
+- Email sending (Resend/Gmail APIs)
+- External search APIs (Perplexity, Tavily)
+- File storage operations
+
+**What NOT to Mock:**
+- Core business logic (chunking, searching, memory)
+- Type validation
+- Timeout utilities
+- Fallback/retry logic
+
+**Mocking Examples (for future test setup):**
+```typescript
+// Mock Bedrock client
+vi.mock('@aws-sdk/client-bedrock-runtime', () => ({
+  BedrockRuntimeClient: vi.fn(),
+  InvokeModelCommand: vi.fn(),
+}));
+
+// Mock Supabase
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn(() => ({
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: { id: 'test' }, error: null }),
+        }),
+      }),
+    }),
+  })),
+}));
+
+// Mock email
+vi.mock('@/lib/email/send', () => ({
+  sendEmail: vi.fn().mockResolvedValue({ success: true }),
+}));
+```
+
+## Run Commands
+
+**Current Setup:**
+```bash
+npm run dev              # Start dev server with live reload
+npm run build           # Build for production
+npm run lint            # Run ESLint
+npm start               # Start production server
+```
+
+**Testing Commands (None Configured):**
+- No `npm test` script exists
+- No coverage reports generated
+- No CI/CD test stage configured
+
+**Manual Testing Process:**
+1. `npm run dev` - Start development server
+2. Open http://localhost:3000 in browser
+3. Navigate to feature/page
+4. Test user interactions
+5. Check browser console for errors
+6. Open DevTools Network tab to verify API calls
+7. Check application state in React DevTools
+
+## Health Checks & Verification
+
+**Built-in Endpoints:**
+- `GET /api/health/supabase` - Supabase connection
+- `GET /api/admin/health` - General system health
+- `GET /api/rlm/health` - RLM service status
+- `GET /api/chat/health` - Chat API status
+
+**Use These for Manual Testing:**
+```bash
+curl http://localhost:3000/api/health/supabase
+curl http://localhost:3000/api/rlm/health
+```
+
+## Key Areas Requiring Careful Testing
+
+**1. Memory Search (`/lib/memory/query.ts`):**
+- Test vector embedding with different query lengths
+- Test layered search with specific layer indices
+- Test timeout behavior (set timeout to 100ms, verify returns empty)
+- Test fallback from vector to keyword search
+- Test learned facts retrieval
+
+**2. Import Processing (`/app/api/import/process-server/route.ts`):**
+- Test with various ZIP file sizes (<100MB, >100MB, >500MB)
+- Verify conversations.json parsing
+- Check multi-tier chunking (100, 500, 2000 char tiers)
+- Test RLM integration for soulprint generation
+- Verify email notification sent
+
+**3. Chat API (`/app/api/chat/route.ts`):**
+- Test with and without memory context
+- Verify AI name generation (should use soulprint)
+- Test memory learning on each message
+- Verify source citations in responses
+- Test with different model temperatures
+
+**4. Timeout Protection:**
+- All async operations in memory search have explicit timeouts
+- Test by artificially slowing operations
+- Verify graceful degradation (empty results, not crash)
+
+## Development Best Practices
+
+**Before Committing:**
+1. Run `npm run lint` - no ESLint errors
+2. Test in browser manually - feature works as expected
+3. Check console - no JavaScript errors
+4. Verify API responses - correct status codes and data
+5. Test error scenarios - auth failure, timeout, invalid input
+
+**Type Checking:**
+- TypeScript strict mode catches many issues at compile time
+- Run `npm run build` to verify no type errors
+- Use explicit return types on functions
 
 ---
 
-*Testing analysis: 2026-02-01*
+*Testing analysis: 2026-02-06*

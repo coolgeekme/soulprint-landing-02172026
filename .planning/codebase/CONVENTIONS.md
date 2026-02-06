@@ -1,165 +1,192 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-02-01
+**Analysis Date:** 2026-02-06
 
 ## Naming Patterns
 
 **Files:**
-- API routes use kebab-case: `app/api/chat/route.ts`, `app/api/import/process-server/route.ts`
-- Component files use PascalCase: `components/chat/telegram-chat-v2.tsx`
-- Utility modules use camelCase: `lib/utils.ts`, `lib/email/send.ts`
-- Page components use lowercase: `app/chat/page.tsx`, `app/import/page.tsx`
-- Directories use kebab-case for multi-word names: `app/api/import/`, `lib/search/`
+- Kebab-case for most files: `telegram-chat-v2.tsx`, `theme-toggle.tsx`, `branch-manager.ts`
+- PascalCase for React components: `Navbar.tsx`, `BreakpointDesktop.tsx`
+- Lowercase for lib utilities: `utils.ts`, `email.ts`, `bedrock.ts`
 
 **Functions:**
-- Server actions (marked with `'use server'`) use camelCase: `signUp()`, `signIn()`, `signOut()`, `signInWithGoogle()`
-- Async utility functions use camelCase with clear purpose: `embedQuery()`, `embedBatch()`, `searchMemoryLayered()`, `getMemoryContext()`
-- Handler functions in API routes are named `POST`, `GET`, `PUT`, `DELETE` following Next.js convention
-- Private/internal functions use camelCase with helper semantics: `getSupabaseAdmin()`, `normalizeQuery()`, `checkCache()`
+- camelCase for all functions: `getSupabaseAdmin()`, `embedQuery()`, `sendEmail()`, `getMemoryContext()`
+- Prefix with verb for actions: `search*`, `create*`, `get*`, `format*`, `validate*`
+- Async functions named without "async" prefix: `async function getMemoryContext()` not `getAsyncMemoryContext()`
 
 **Variables:**
-- State variables use camelCase: `const [isLoading, setIsLoading]`, `const [messages, setMessages]`
-- Constants use UPPER_SNAKE_CASE: `const MAX_FILE_SIZE_MB = 500`, `const RATE_LIMIT_MAX = 10`, `const CACHE_TTL_MS = 5 * 60 * 1000`
-- Type/interface variables in lowercase during destructuring: `const { message, history = [] } = body`
-- Ref variables end with `Ref`: `messageQueueRef`, `processingPromiseRef`
+- camelCase for local variables: `queryEmbedding`, `userId`, `fileData`, `maxChunks`
+- UPPERCASE_SNAKE_CASE for constants: `MAX_FILE_SIZE_MB`, `MEMORY_SEARCH_TIMEOUT_MS`, `BATCH_SIZE`, `CLAUDE_MODELS`
+- Prefix meaningful names for clarity: `adminSupabase`, `queryEmbedding`, `internalUserId`, `usedChunksIDs`
 
-**Types:**
-- Interfaces use PascalCase: `interface ChatMessage`, `interface UserProfile`, `interface SmartSearchResult`
-- Type unions are descriptive: `'user' | 'assistant'`, `'none' | 'quick_ready' | 'processing' | 'complete'`
-- Query response types map database rows: `interface ChunkRpcRow`, `interface ChunkTableRow`, `interface LearnedFactRow`
+**Types & Interfaces:**
+- PascalCase for interfaces: `MemoryChunk`, `LearnedFactResult`, `ChatMessage`, `BedrockChatOptions`
+- Suffix with Row for database types: `ChunkRpcRow`, `ChunkTableRow`, `LearnedFactRow`
+- Suffix with Props for component props: `NavbarProps`
+- Use `as const` for type-safe object literals: `validRoles = ['user', 'assistant'] as const`
 
 ## Code Style
 
 **Formatting:**
-- ESLint: v9 with `eslint-config-next` and TypeScript rules enabled
-- Indentation: 2 spaces (enforced via ESLint)
-- Line length: No strict limit, but code is kept readable
-- Quotes: Single quotes for strings except in JSX attributes
-- Semicolons: Used consistently
+- ESLint (v9) with Next.js config (`eslint.config.mjs`)
+- No Prettier configured - uses ESLint defaults
+- Tab indentation in tsconfig.json examples, 2-space indentation in code
 
 **Linting:**
-- ESLint config: `eslint.config.mjs` with core-web-vitals and TypeScript plugins
-- Ignored paths: `.next/`, `out/`, `build/`, `next-env.d.ts`
-- Next.js best practices enforced (image optimization, layout patterns, etc.)
+- Run: `npm run lint` (mapped to `eslint`)
+- Uses `eslint-config-next/core-web-vitals` and `eslint-config-next/typescript`
+- Ignores: `.next/`, `out/`, `build/`, `next-env.d.ts`
 
-**TypeScript:**
-- Strict mode enabled: `"strict": true`
-- Target: ES2017 with ESNext modules
-- Path aliases: `@/*` maps to project root
-- JSX: react-jsx (automatic runtime)
-- Isolated modules: enabled for faster builds
+**Quotes:**
+- Single quotes for strings: `'use client'`, `'@/lib/supabase/server'`
+- Template literals for dynamic strings: `` `[Memory] ${operationName} timed out` ``
 
 ## Import Organization
 
 **Order:**
-1. Standard library/Node imports: `import { NextRequest } from 'next/server'`
-2. Third-party packages: `import JSZip from 'jszip'`, `import { Resend } from 'resend'`
-3. Internal modules with path alias: `import { createClient } from '@/lib/supabase/server'`
-4. Relative imports (rare): used only when necessary
+1. React/Next.js imports: `import { useState } from 'react'`, `import { NextResponse } from 'next/server'`
+2. Third-party library imports: `import JSZip from 'jszip'`, `import { createClient } from '@supabase/supabase-js'`
+3. AWS SDK imports grouped together: `import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime'`
+4. Internal library imports: `import { createClient } from '@/lib/supabase/server'`
+5. Component/utility imports: `import { cn } from '@/lib/utils'`, `import { TelegramChatV2 } from '@/components/chat/telegram-chat-v2'`
+6. Type imports: `import type { ClassValue } from 'clsx'`
 
 **Path Aliases:**
-- `@/*`: Project root imports (standard Next.js pattern)
-- Examples: `@/lib/supabase/server`, `@/components/chat/telegram-chat-v2`, `@/app/actions/auth`
-
-**Comment blocks:**
-- Top-level file comments describe purpose: `/** Server-side import processing for large files (mobile-friendly) */`
-- Section comments in functions mark major steps: `// Step 1: Check if search is needed`, `// VALIDATION: Ensure this is a valid ChatGPT export`
-- Inline comments explain "why", not "what": `// 5 minute TTL` rather than `// Set TTL to 5 minutes`
+- `@/*` maps to project root (configured in tsconfig.json)
+- Use for all internal imports: `@/lib`, `@/components`, `@/app`
 
 ## Error Handling
 
 **Patterns:**
-- Try-catch blocks for async operations with specific error messages
-- Validation happens early with clear error returns: `if (!storagePath) return NextResponse.json({ error: 'storagePath required' }, { status: 400 })`
-- HTTP responses use NextResponse for consistency: `NextResponse.json({ error: msg }, { status: 500 })`
-- Database errors are caught and logged before re-throwing: `if (error) { console.error(...); throw new Error(...) }`
-- Graceful degradation: non-critical failures log warnings but don't crash: `adminSupabase.storage.from(bucket).remove([filePath]).catch(() => {})`
+- Try-catch blocks wrapping async operations in API routes
+- Explicit error logging with context prefixes: `console.error('[Memory] Query failed:', error)`
+- Return NextResponse with appropriate status codes (401, 400, 500)
+- Graceful degradation on timeout: return empty array/object instead of throwing
+- Specific error messages in responses: `{ error: 'Unauthorized' }`, `{ error: error.message }`
 
-**Error Messages:**
-- User-facing errors are clear and actionable: `"File too large (500MB). Maximum is 500MB. Please export fewer conversations or contact support."`
-- Technical errors log enough context for debugging: `[ProcessServer] Download error: ${downloadError}`
-- Error context includes operation scope: `[Chat] RLM service error:`, `[SmartSearch] Perplexity failed:`
+**Error Types:**
+- Use Error constructor for custom errors: `throw new Error('Failed to download file from storage')`
+- Log error details to console before returning to client
+- Preserve error context for debugging
+
+**Example Pattern:**
+```typescript
+try {
+  const result = await someAsyncOperation();
+  return NextResponse.json({ result });
+} catch (error) {
+  console.error('[ModuleName] Context:', error);
+  return NextResponse.json({ error: 'User-friendly message' }, { status: 500 });
+}
+```
 
 ## Logging
 
-**Framework:** Native `console` (no external logger)
+**Framework:** Console (console.log, console.error, console.warn)
 
 **Patterns:**
-- All logging uses `console.log()` for info, `console.error()` for errors, `console.warn()` for warnings
-- Log messages use scope prefix in brackets: `[Chat]`, `[ProcessServer]`, `[SmartSearch]`, `[Email]`, `[Memory]`, `[RLM]`
-- Logging is contextual and helps trace execution: logs show feature, status, and key metrics
-- Examples:
-  ```typescript
-  console.log('[Chat] Calling RLM service...');
-  console.log(`[Chat] Found ${chunks.length} memories via ${method}`);
-  console.log('[ProcessServer] Downloaded ${sizeMB.toFixed(1)}MB');
-  console.error('[Chat] Name generation failed:', error);
-  ```
-- Non-critical async operations log failures without blocking: `learnFromChat(...).catch(err => { console.log('[Chat] Learning failed (non-blocking):', err); })`
+- Prefix log messages with module context in brackets: `[Memory]`, `[Email]`, `[ProcessServer]`, `[Chat]`, `[RLM]`
+- Log at decision points and error conditions
+- Use console.warn for timeout/fallback scenarios
+- Use console.error for failures
+- Use console.log for success confirmations: `console.log('[Email] Sent successfully on attempt 2')`
+
+**Examples:**
+```typescript
+console.log(`[RLM] Found ${chunks.length} chunks across layers (Macro:${macroChunks.length}, Thematic:${thematicChunks.length}, Micro:${microChunks.length})`);
+console.warn(`[Memory] ${operationName} timed out after ${timeoutMs}ms`);
+console.error('[Chat] Name generation failed:', error);
+console.log('[Memory] Learned facts retrieval failed:', error.message);
+```
 
 ## Comments
 
 **When to Comment:**
-- Complex logic or non-obvious decisions: `// Check if query is in cache and still valid`
-- Business logic explanations: `// Store original (gzip) → Supabase Storage`, `// ChatGPT format - traverse the mapping properly`
-- Configuration rationale: `// Cohere v3 supports context`, `// Critical for v3`
-- Multi-step processes benefit from section headers
+- Algorithm explanation: complex business logic, multi-tier chunking strategy
+- Public function purposes: JSDoc for exported functions
+- Non-obvious code paths: fallback logic, special cases
+- Integration details: why external service is called, expected format
 
 **JSDoc/TSDoc:**
-- Function signatures include parameter and return type info
-- Example from `smart-search.ts`:
-  ```typescript
-  /**
-   * Normalize query for cache key
-   */
-  function normalizeQuery(query: string): string { ... }
+- Used minimally - only for exported public functions
+- Single-line format for simple functions
+- Multi-line format with @param/@returns for complex functions
 
-  /**
-   * Smart Search - Main function
-   *
-   * Automatically determines if search is needed and performs it.
-   * Returns formatted context for the AI.
-   */
-  export async function smartSearch(message: string, ...): Promise<SmartSearchResult> { ... }
-  ```
-- Comments above type definitions explain purpose: `// Database row types for proper typing`
+**Example:**
+```typescript
+/**
+ * Embed a query using Cohere Embed v3 (with timeout protection)
+ */
+export async function embedQuery(text: string): Promise<number[]> {
+  // Implementation
+}
+
+/**
+ * Get Hierarchical (RLM) Context
+ * Searches multiple layers to build a deep context window
+ * Has overall timeout protection - returns empty context rather than hanging
+ */
+export async function getMemoryContext(
+  userId: string,
+  query: string,
+  maxChunks: number = 5
+): Promise<{ chunks: MemoryChunk[]; contextText: string; method: string; learnedFacts: LearnedFactResult[] }> {
+  // Implementation
+}
+```
 
 ## Function Design
 
-**Size:** Functions are focused and generally under 100 lines; larger processes are broken into steps with comments
+**Size:** Functions typically 20-100 lines, with specific purpose
+- Async functions in API routes: 60-100 lines acceptable for full request handling
+- Helper functions: 20-40 lines
+- Retrieval/search functions: 30-80 lines
 
 **Parameters:**
-- Avoid excessive positional parameters; use options objects for optional flags
-- Example pattern: `smartSearch(message, userId, options: { forceSearch?, skipCache?, preferDeep? } = {})`
-- Named exports preferred for utility functions
+- Use object destructuring for multiple parameters: `{ to, subject, html, text }`
+- Provide default values for optional params: `topK: number = 5`, `layerIndex?: number`
+- Group related config into objects: `BedrockChatOptions` interface
 
 **Return Values:**
-- Explicit return types on all functions: `Promise<MemoryChunk[]>`, `SmartSearchResult | null`
-- Consistent error handling: errors thrown or returned in result objects
-- Nullable returns use explicit `| null`: `async function searchLearnedFacts(...): Promise<LearnedFactResult[]>`
+- Always return objects with meaningful properties from API handlers: `{ success: boolean; error?: string; messageId?: string }`
+- Tuple returns for multi-value results: `Promise<MemoryChunk[]>`
+- Type-safe returns with explicit interface definitions
 
 ## Module Design
 
 **Exports:**
-- Utility modules export named functions: `export async function embedQuery(...)`, `export function getMemoryContext(...)`
-- Barrel files not used; direct imports from specific modules
-- Server action files export multiple handlers: `export async function signUp(...)`, `export async function signIn(...)`
+- Named exports for utilities and helpers: `export async function embedQuery()`, `export function cn()`
+- Default export only for pages and components: `export default function ChatPage()`
+- Type exports: `export type ClaudeModel = keyof typeof CLAUDE_MODELS`
+- Interface exports: `export interface MemoryChunk`
 
-**Module Purpose:**
-- Each file has a clear, single responsibility
-- Examples:
-  - `lib/email/send.ts` - Email delivery via Resend
-  - `lib/memory/query.ts` - Memory search and retrieval
-  - `lib/search/smart-search.ts` - Intelligent web search orchestration
-  - `app/api/chat/route.ts` - Chat request handler with RLM/Bedrock logic
-  - `app/actions/auth.ts` - Server-side authentication actions
+**Barrel Files:**
+- Used in `/lib/mem0/index.ts`: re-exports for cleaner imports
+```typescript
+export type { ParsedMessage, Mem0Message, ChatGPTConversation } from './chatgpt-parser';
+export type { Memory, SearchResult, AddMemoryResult, Mem0Config } from './client';
+```
 
-**Data Flow:**
-- Server actions in `app/actions/` handle form input and redirect logic
-- API routes in `app/api/` handle HTTP requests and return JSON/streams
-- Lib modules provide utilities and business logic
-- Components in `app/` pages use client-side hooks and fetch APIs
+**File Organization:**
+- One main export per file (can have supporting types/helpers)
+- Related functions grouped by feature: query, embed, search functions together in `memory/query.ts`
+- Helper functions at top of file, main exports at bottom
+
+## Type Safety
+
+**TypeScript:**
+- Strict mode enabled: `"strict": true` in tsconfig.json
+- Explicit type annotations on function parameters and returns
+- Interface definitions for data structures: `interface ChunkRpcRow`, `interface UserProfile`
+- Type narrowing and guards: `if (error.code === '42883') // Undefined function`, `(block): block is ContentBlock.TextMember => 'text' in block`
+- Const assertions for type safety: `as const`, `as unknown`
+
+**Validation:**
+- Runtime validation of database responses: check for null/undefined before use
+- Type guards for API responses: validate response shape before returning
+- Safe array access: `(data || [])` fallback pattern
+- Safe property access: `row.title || 'Untitled'`
 
 ---
 
-*Convention analysis: 2026-02-01*
+*Convention analysis: 2026-02-06*
