@@ -41,17 +41,17 @@ Plans:
 **Goal**: Application memory usage plateaus under load with no resource leaks
 **Depends on**: Phase 1
 **Requirements**: BUG-01, REL-01, REL-02
+**Plans:** 3 plans
 **Success Criteria** (what must be TRUE):
   1. Chunked upload cleanup removes stale chunks after 30-minute TTL (verified by test)
   2. RLM service calls timeout after 15 seconds maximum (down from 60s)
   3. All API routes catch exceptions and return proper error responses (no 500s without error payload)
   4. Memory usage plateaus in load testing (autocannon shows stable baseline)
-**Plans**: TBD
 
 Plans:
-- [ ] 02-01: Implement TTL-based cleanup for chunked upload Map
-- [ ] 02-02: Reduce RLM timeout to 15s with circuit breaker fallback
-- [ ] 02-03: Add comprehensive error handling to all API routes
+- [ ] 02-01-PLAN.md -- TDD: TTL cache with background cleanup for chunked uploads
+- [ ] 02-02-PLAN.md -- Reduce RLM timeout to 15s, modernize AbortSignal patterns
+- [ ] 02-03-PLAN.md -- Standardized error handler applied to all critical API routes
 
 ### Phase 3: Race Condition Fixes
 **Goal**: All async operations handle cancellation and out-of-order responses correctly
