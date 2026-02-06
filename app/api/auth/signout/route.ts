@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function GET() {
   try {
@@ -17,8 +18,16 @@ export async function GET() {
 export async function POST() {
   try {
     const supabase = await createClient();
+
+    // Get user before signout for rate limiting
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const rateLimited = await checkRateLimit(user.id, 'standard');
+      if (rateLimited) return rateLimited;
+    }
+
     await supabase.auth.signOut();
-    
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[Signout] Error:', error);

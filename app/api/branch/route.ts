@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import BranchManager from '@/lib/versioning/branch-manager';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const branchManager = new BranchManager({
   projectRoot: process.cwd(),
@@ -20,13 +21,17 @@ export async function POST(request: NextRequest) {
     // Get authenticated user
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    // Rate limit check
+    const rateLimited = await checkRateLimit(user.id, 'standard');
+    if (rateLimited) return rateLimited;
 
     const body = await request.json();
     const { action, filePath, content, branchId, files, description } = body;

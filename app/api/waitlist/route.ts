@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import { randomBytes } from 'crypto';
 import { sendEmail, generateWaitlistConfirmationEmail } from '@/lib/email';
 import { parseRequestBody, waitlistSchema } from '@/lib/api/schemas';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -26,6 +27,10 @@ export async function POST(request: Request) {
     const result = await parseRequestBody(request, waitlistSchema);
     if (result instanceof Response) return result;
     const { email, name } = result;
+
+    // Rate limit check using email as identifier (no user auth for waitlist)
+    const rateLimited = await checkRateLimit(email.toLowerCase(), 'standard');
+    if (rateLimited) return rateLimited;
 
     const supabase = getSupabaseAdmin();
 

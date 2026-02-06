@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { handleAPIError } from '@/lib/api/error-handler';
 import { parseRequestBody, aiNameSchema } from '@/lib/api/schemas';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 function getSupabaseAdmin() {
   return createAdminClient(
@@ -46,10 +47,14 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limit check
+    const rateLimited = await checkRateLimit(user.id, 'standard');
+    if (rateLimited) return rateLimited;
 
     // Parse and validate request body
     const result = await parseRequestBody(request, aiNameSchema);

@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { XP_CONFIG, XPSource } from '@/lib/gamification/xp';
 import { handleAPIError } from '@/lib/api/error-handler';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -31,6 +32,10 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limit check
+    const rateLimited = await checkRateLimit(user.id, 'standard');
+    if (rateLimited) return rateLimited;
 
     const { action, description } = await req.json() as { 
       action: 'message' | 'memory' | 'daily'; 

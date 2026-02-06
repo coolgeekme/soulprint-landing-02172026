@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { handleAPIError } from '@/lib/api/error-handler';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -27,6 +28,10 @@ export async function DELETE() {
     if (authError || !user) {
       return NextResponse.json({ error: 'Not logged in' }, { status: 401 });
     }
+
+    // Rate limit check
+    const rateLimited = await checkRateLimit(user.id, 'standard');
+    if (rateLimited) return rateLimited;
 
     const userId = user.id;
     const adminSupabase = getSupabaseAdmin();

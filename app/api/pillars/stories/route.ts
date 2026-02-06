@@ -8,6 +8,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { bedrockChat } from '@/lib/bedrock';
 import { PILLAR_NAMES, MicroStory } from '@/lib/soulprint/types';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 60;
 
@@ -31,6 +32,10 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limit check - expensive AI generation
+    const rateLimited = await checkRateLimit(user.id, 'expensive');
+    if (rateLimited) return rateLimited;
 
     // Check if summaries exist
     const { data: summaries, error: fetchError } = await supabase

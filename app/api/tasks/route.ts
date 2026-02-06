@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // GET - List user's tasks
 export async function GET() {
@@ -31,11 +32,15 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
+    // Rate limit check
+    const rateLimited = await checkRateLimit(user.id, 'standard');
+    if (rateLimited) return rateLimited;
+
     const body = await req.json();
     const {
       prompt,
@@ -90,11 +95,15 @@ export async function DELETE(req: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
+    // Rate limit check
+    const rateLimited = await checkRateLimit(user.id, 'standard');
+    if (rateLimited) return rateLimited;
+
     const { searchParams } = new URL(req.url);
     const taskId = searchParams.get('id');
     

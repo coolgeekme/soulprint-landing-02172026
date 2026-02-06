@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { v2 as cloudinary } from 'cloudinary';
 import { handleAPIError } from '@/lib/api/error-handler';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Configure Cloudinary
 cloudinary.config({
@@ -54,10 +55,14 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limit check - expensive AI generation
+    const rateLimited = await checkRateLimit(user.id, 'expensive');
+    if (rateLimited) return rateLimited;
 
     const body = await request.json().catch((e) => {
       console.warn('[ai-avatar] Failed to parse request body:', e);

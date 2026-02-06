@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/email';
 import { handleAPIError } from '@/lib/api/error-handler';
 import { parseRequestBody, importCompleteSchema } from '@/lib/api/schemas';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -115,6 +116,10 @@ export async function POST(request: Request) {
       chunks_embedded,
       processing_time
     } = result;
+
+    // Rate limit check using user_id
+    const rateLimited = await checkRateLimit(user_id, 'standard');
+    if (rateLimited) return rateLimited;
 
     const isProgressiveMode = soulprint_ready === true;
     console.log(`[ImportComplete] ${isProgressiveMode ? 'SoulPrint ready' : 'Full processing complete'} for user ${user_id}`);

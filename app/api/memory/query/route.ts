@@ -4,19 +4,24 @@ import { searchMemoryLayered as searchMemory } from '@/lib/memory/query';
 import { extractFacts } from '@/lib/memory/facts';
 import { handleAPIError } from '@/lib/api/error-handler';
 import { parseRequestBody, memoryQuerySchema } from '@/lib/api/schemas';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    // Rate limit check
+    const rateLimited = await checkRateLimit(user.id, 'standard');
+    if (rateLimited) return rateLimited;
 
     // Parse and validate request body
     const result = await parseRequestBody(request, memoryQuerySchema);

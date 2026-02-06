@@ -9,6 +9,7 @@ import { cookies } from 'next/headers';
 import { bedrockChatJSON } from '@/lib/bedrock';
 import { PILLAR_NAMES, QUESTIONS, PillarSummary, CoreAlignment } from '@/lib/soulprint/types';
 import { Mem0Client } from '@/lib/mem0';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 60;
 
@@ -71,6 +72,10 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limit check - expensive AI generation
+    const rateLimited = await checkRateLimit(user.id, 'expensive');
+    if (rateLimited) return rateLimited;
 
     // Check if all 36 answers exist
     const { data: answers, error: fetchError } = await supabase

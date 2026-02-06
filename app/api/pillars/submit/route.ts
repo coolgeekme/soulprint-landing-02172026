@@ -13,6 +13,7 @@ import {
   getQuestionType,
   QUESTIONS,
 } from '@/lib/soulprint/types';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 30;
 
@@ -43,6 +44,10 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limit check
+    const rateLimited = await checkRateLimit(user.id, 'standard');
+    if (rateLimited) return rateLimited;
 
     // Parse request
     const body: SubmitRequest = await request.json();
