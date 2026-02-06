@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Race Condition Fixes** - Eliminate out-of-order state updates
 - [x] **Phase 4: Security Hardening** - CSRF, rate limiting, RLS audit, input validation
 - [x] **Phase 5: Observability** - Structured logging and health checks
-- [ ] **Phase 6: Comprehensive Testing** - Integration and E2E test coverage
+- [x] **Phase 6: Comprehensive Testing** - Integration and E2E test coverage
 - [ ] **Phase 7: Type Safety Refinement** - Replace `any` with proper types
 
 ## Phase Details
@@ -116,9 +116,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 06-01-PLAN.md -- Integration tests for core API routes (health, chat/messages, memory/status) using next-test-api-route-handler
-- [ ] 06-02-PLAN.md -- Integration tests for import flow API routes (process-server, chunked-upload, complete)
-- [ ] 06-03-PLAN.md -- Install Playwright and write E2E tests with authenticated import-to-chat flow via route interception
+- [x] 06-01-PLAN.md -- Integration tests for core API routes (health, chat/messages, memory/status) using next-test-api-route-handler
+- [x] 06-02-PLAN.md -- Integration tests for import flow API routes (process-server, chunked-upload, complete)
+- [x] 06-03-PLAN.md -- Install Playwright and write E2E tests with authenticated import-to-chat flow via route interception
 
 ### Phase 7: Type Safety Refinement
 **Goal**: Replace `any` types with proper interfaces and runtime validation
@@ -148,7 +148,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 3. Race Condition Fixes | 3/3 | Complete | 2026-02-06 |
 | 4. Security Hardening | 6/6 | Complete | 2026-02-06 |
 | 5. Observability | 2/2 | Complete | 2026-02-06 |
-| 6. Comprehensive Testing | 0/3 | Not started | - |
+| 6. Comprehensive Testing | 3/3 | Complete | 2026-02-06 |
 | 7. Type Safety Refinement | 0/3 | Not started | - |
 
 ---

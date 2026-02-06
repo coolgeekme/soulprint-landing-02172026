@@ -33,9 +33,9 @@
 ### Testing
 
 - [x] **TEST-01**: Vitest configured and running with at least one passing test
-- [ ] **TEST-02**: Import flow has end-to-end test coverage (upload → process → complete)
-- [ ] **TEST-03**: All API routes have integration tests with mocked dependencies
-- [ ] **TEST-04**: Critical user flows have E2E tests via Playwright
+- [x] **TEST-02**: Import flow has end-to-end test coverage (upload → process → complete)
+- [x] **TEST-03**: All API routes have integration tests with mocked dependencies
+- [x] **TEST-04**: Critical user flows have E2E tests via Playwright
 
 ## v2 Requirements
 
@@ -84,9 +84,9 @@
 | SEC-04 | Phase 4 | Complete |
 | REL-03 | Phase 5 | Complete |
 | REL-04 | Phase 5 | Complete |
-| TEST-02 | Phase 6 | Pending |
-| TEST-03 | Phase 6 | Pending |
-| TEST-04 | Phase 6 | Pending |
+| TEST-02 | Phase 6 | Complete |
+| TEST-03 | Phase 6 | Complete |
+| TEST-04 | Phase 6 | Complete |
 | TYPE-01 | Phase 7 | Pending |
 
 **Coverage:**
