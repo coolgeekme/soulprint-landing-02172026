@@ -1,8 +1,39 @@
+import { createCsrfMiddleware } from '@edge-csrf/nextjs'
 import { type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
+// Create CSRF middleware with Double Submit Cookie pattern
+const csrfMiddleware = createCsrfMiddleware({
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  },
+})
+
 export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+  // Apply CSRF protection (validates token on POST/PUT/DELETE, sets cookie on GET)
+  const csrfResponse = await csrfMiddleware(request)
+
+  // If CSRF validation failed, return 403 immediately
+  if (csrfResponse.status === 403) {
+    return csrfResponse
+  }
+
+  // Pass through to Supabase auth session refresh
+  const authResponse = await updateSession(request)
+
+  // Copy CSRF cookies from csrfResponse to authResponse
+  csrfResponse.cookies.getAll().forEach(cookie => {
+    authResponse.cookies.set(cookie.name, cookie.value, cookie)
+  })
+
+  // Copy CSRF token header to auth response (for Server Components to read)
+  const csrfToken = csrfResponse.headers.get('X-CSRF-Token')
+  if (csrfToken) {
+    authResponse.headers.set('X-CSRF-Token', csrfToken)
+  }
+
+  return authResponse
 }
 
 export const config = {
