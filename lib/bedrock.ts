@@ -7,6 +7,7 @@ import {
   BedrockRuntimeClient,
   InvokeModelCommand,
   ConverseCommand,
+  ConverseStreamCommand,
 } from '@aws-sdk/client-bedrock-runtime';
 
 // Lazy initialization
@@ -120,4 +121,73 @@ export async function bedrockChatJSON<T = unknown>(
     console.error('Failed to parse JSON from Bedrock response:', response);
     throw new Error('Invalid JSON response from Bedrock');
   }
+}
+
+/**
+ * Streaming chat completion using Bedrock ConverseStream API
+ * Returns an async iterator of text chunks
+ */
+export async function* bedrockChatStream(
+  options: BedrockChatOptions
+): AsyncGenerator<string> {
+  const {
+    model = 'SONNET',
+    system,
+    messages,
+    maxTokens = 4096,
+    temperature = 0.7,
+  } = options;
+
+  const client = getBedrockClient();
+  const modelId = CLAUDE_MODELS[model];
+
+  const command = new ConverseStreamCommand({
+    modelId,
+    system: system ? [{ text: system }] : undefined,
+    messages: messages.map(m => ({
+      role: m.role,
+      content: [{ text: m.content }],
+    })),
+    inferenceConfig: {
+      maxTokens,
+      temperature,
+    },
+  });
+
+  const response = await client.send(command);
+  
+  if (!response.stream) {
+    throw new Error('No stream in Bedrock response');
+  }
+
+  for await (const event of response.stream) {
+    if (event.contentBlockDelta?.delta && 'text' in event.contentBlockDelta.delta) {
+      yield event.contentBlockDelta.delta.text || '';
+    }
+  }
+}
+
+/**
+ * Generate embedding using Titan v2
+ */
+export async function bedrockEmbed(text: string, dimensions = 768): Promise<number[]> {
+  const client = getBedrockClient();
+  
+  // Truncate to safe limit
+  const truncated = text.slice(0, 8000);
+
+  const command = new InvokeModelCommand({
+    modelId: 'amazon.titan-embed-text-v2:0',
+    contentType: 'application/json',
+    accept: 'application/json',
+    body: JSON.stringify({
+      inputText: truncated,
+      dimensions,
+      normalize: true,
+    }),
+  });
+
+  const response = await client.send(command);
+  const result = JSON.parse(new TextDecoder().decode(response.body));
+  return result.embedding;
 }

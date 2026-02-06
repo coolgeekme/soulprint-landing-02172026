@@ -1,28 +1,26 @@
 /**
  * Mem0-Enhanced Chat API
  * Uses Mem0 for automatic memory recall and capture
+ * Uses AWS Bedrock (Claude) for LLM
  */
 
 import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { streamText, convertToModelMessages, UIMessage } from 'ai';
-import { openai } from '@ai-sdk/openai';
-import { anthropic } from '@ai-sdk/anthropic';
+import { bedrockChatStream, CLAUDE_MODELS } from '@/lib/bedrock';
 import { Mem0Client } from '@/lib/mem0';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 interface ChatMessage {
-  id?: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
 interface ChatRequest {
   messages: ChatMessage[];
-  model?: string;
+  model?: 'SONNET' | 'HAIKU' | 'OPUS';
   systemPrompt?: string;
 }
 
@@ -52,15 +50,8 @@ Be warm, helpful, and reference past conversations when relevant.`;
 }
 
 /**
- * Extract text content from a message
- */
-function getMessageText(message: ChatMessage): string {
-  return message.content || '';
-}
-
-/**
  * POST /api/chat/mem0
- * Memory-enhanced chat with streaming
+ * Memory-enhanced chat with streaming via Bedrock
  */
 export async function POST(request: NextRequest) {
   try {
@@ -86,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request
     const body: ChatRequest = await request.json();
-    const { messages, model = 'gpt-4o-mini', systemPrompt } = body;
+    const { messages, model = 'SONNET', systemPrompt } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response('messages array required', { status: 400 });
@@ -108,10 +99,8 @@ export async function POST(request: NextRequest) {
           apiKey: mem0ApiKey,
         });
 
-        const userContent = getMessageText(latestUserMessage);
-
         const searchResult = await client.search(
-          userContent,
+          latestUserMessage.content,
           {
             userId: user.id,
             limit: 5,
@@ -123,78 +112,101 @@ export async function POST(request: NextRequest) {
         console.log(`[Mem0 Chat] Found ${memories.length} relevant memories`);
       } catch (memError) {
         console.error('[Mem0 Chat] Memory search failed:', memError);
-        // Continue without memories
       }
     }
 
-    // Get user's AI name from profile
+    // Get user's AI name and SoulPrint from profile
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('ai_name')
       .eq('user_id', user.id)
       .single();
 
+    // Check for SoulPrint system prompt
+    let soulprintPrompt = systemPrompt || '';
+    const { data: soulprint } = await supabase
+      .from('soulprints')
+      .select('system_prompt')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
+
+    if (soulprint?.system_prompt) {
+      soulprintPrompt = soulprint.system_prompt;
+    }
+
     // Build system prompt with memories
     const enhancedSystemPrompt = buildSystemPrompt(
-      systemPrompt || '',
+      soulprintPrompt,
       memories,
       profile?.ai_name
     );
 
-    // Select model provider
-    let aiModel;
-    if (model.startsWith('claude') || model.startsWith('anthropic')) {
-      const modelId = model.includes('/') ? model.split('/')[1] : model;
-      aiModel = anthropic(modelId as any);
-    } else {
-      const modelId = model.includes('/') ? model.split('/')[1] : model;
-      aiModel = openai(modelId as any);
-    }
+    // Filter to user/assistant messages only (Bedrock format)
+    const chatMessages = messages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }));
 
-    // Convert messages to core format for AI SDK
-    const coreMessages = messages.map(m => ({
-      role: m.role as 'user' | 'assistant' | 'system',
-      content: m.content,
-    }));
+    // Create streaming response
+    const encoder = new TextEncoder();
+    let fullResponse = '';
 
-    // Stream the response
-    const result = streamText({
-      model: aiModel,
-      system: enhancedSystemPrompt,
-      messages: coreMessages,
-      async onFinish({ text }) {
-        // Auto-capture: Store the conversation exchange to Mem0
-        if (mem0ApiKey && latestUserMessage) {
-          try {
-            const client = new Mem0Client({
-              mode: 'cloud',
-              apiKey: mem0ApiKey,
-            });
-
-            const userContent = getMessageText(latestUserMessage);
-
-            await client.add(
-              [
-                { role: 'user', content: userContent },
-                { role: 'assistant', content: text },
-              ],
-              {
-                userId: user.id,
-                metadata: {
-                  source: 'soulprint-chat',
-                  capturedAt: new Date().toISOString(),
-                },
-              }
-            );
-            console.log('[Mem0 Chat] Auto-captured conversation exchange');
-          } catch (captureError) {
-            console.error('[Mem0 Chat] Auto-capture failed:', captureError);
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of bedrockChatStream({
+            model,
+            system: enhancedSystemPrompt,
+            messages: chatMessages,
+          })) {
+            fullResponse += chunk;
+            controller.enqueue(encoder.encode(chunk));
           }
+
+          // Auto-capture after stream completes
+          if (mem0ApiKey && latestUserMessage && fullResponse) {
+            try {
+              const client = new Mem0Client({
+                mode: 'cloud',
+                apiKey: mem0ApiKey,
+              });
+
+              await client.add(
+                [
+                  { role: 'user', content: latestUserMessage.content },
+                  { role: 'assistant', content: fullResponse },
+                ],
+                {
+                  userId: user.id,
+                  metadata: {
+                    source: 'soulprint-chat',
+                    capturedAt: new Date().toISOString(),
+                  },
+                }
+              );
+              console.log('[Mem0 Chat] Auto-captured conversation exchange');
+            } catch (captureError) {
+              console.error('[Mem0 Chat] Auto-capture failed:', captureError);
+            }
+          }
+
+          controller.close();
+        } catch (error) {
+          console.error('[Mem0 Chat] Stream error:', error);
+          controller.error(error);
         }
       },
     });
 
-    return result.toTextStreamResponse();
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+      },
+    });
 
   } catch (error) {
     console.error('[Mem0 Chat] Error:', error);
