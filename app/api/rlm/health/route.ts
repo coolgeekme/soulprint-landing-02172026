@@ -4,22 +4,21 @@ export async function GET() {
   try {
     // Check if RLM service is configured and responsive
     const rlmUrl = process.env.RLM_SERVICE_URL || 'http://localhost:3001';
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
+
     try {
       const response = await fetch(`${rlmUrl}/health`, {
-        signal: controller.signal,
+        signal: AbortSignal.timeout(5000),
       });
-      clearTimeout(timeoutId);
-      
+
       if (response.ok) {
         return NextResponse.json({ healthy: true, status: 'operational' });
       }
       return NextResponse.json({ healthy: false, status: 'degraded' }, { status: 503 });
-    } catch {
-      clearTimeout(timeoutId);
+    } catch (error) {
+      if (error instanceof Error && error.name === 'TimeoutError') {
+        // RLM timed out - treat as unhealthy
+        return NextResponse.json({ healthy: false, status: 'timeout' }, { status: 503 });
+      }
       // RLM service not available - that's ok, return simulated healthy for demo
       return NextResponse.json({ healthy: true, status: 'simulated' });
     }

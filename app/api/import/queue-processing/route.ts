@@ -99,22 +99,17 @@ export async function POST(request: Request) {
     // IMPORTANT: We MUST await this. Fire-and-forget does NOT work on Vercel.
     // Vercel terminates the function after response is sent, killing any pending promises.
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.soulprintengine.ai';
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 290000); // 290s timeout (slightly less than maxDuration)
-    
+
     try {
       const response = await fetch(`${baseUrl}/api/import/process-server`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'X-Internal-User-Id': user.id,
         },
         body: JSON.stringify({ storagePath, userId: user.id, filename, isExtracted }),
-        signal: controller.signal,
+        signal: AbortSignal.timeout(290000), // 290s timeout (slightly less than maxDuration)
       });
-      
-      clearTimeout(timeoutId);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -147,22 +142,20 @@ export async function POST(request: Request) {
       });
       
     } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      
-      if (fetchError.name === 'AbortError') {
-        console.error('[QueueProcessing] Process server timed out');
+      if (fetchError instanceof Error && fetchError.name === 'TimeoutError') {
+        console.error('[QueueProcessing] Process server timed out after 290s');
         await adminSupabase.from('user_profiles').update({
           import_status: 'failed',
           import_error: 'Processing timed out. Please try with a smaller file or try again later.',
           updated_at: new Date().toISOString(),
         }).eq('user_id', user.id);
-        
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Processing timed out' 
+
+        return NextResponse.json({
+          success: false,
+          error: 'Processing timed out'
         }, { status: 504 });
       }
-      
+
       throw fetchError;
     }
     

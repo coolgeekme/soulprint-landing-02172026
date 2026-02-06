@@ -98,15 +98,10 @@ export async function checkRLMHealth(): Promise<boolean> {
   if (!rlmUrl) return false;
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS);
-
     const response = await fetch(`${rlmUrl}/health`, {
       method: 'GET',
-      signal: controller.signal,
+      signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
     });
-
-    clearTimeout(timeoutId);
 
     if (response.ok) {
       recordSuccess();
@@ -116,6 +111,11 @@ export async function checkRLMHealth(): Promise<boolean> {
     recordFailure();
     return false;
   } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      console.log('[RLM Health] Check timed out after 5s');
+      recordFailure();
+      return false;
+    }
     console.log('[RLM Health] Check failed:', error instanceof Error ? error.message : error);
     recordFailure();
     return false;
