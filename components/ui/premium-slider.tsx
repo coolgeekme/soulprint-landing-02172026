@@ -37,14 +37,17 @@ export function PremiumSlider({
     React.useEffect(() => {
         if (!containerRef.current) return;
         const observer = new ResizeObserver((entries) => {
-            setWidth(entries[0].contentRect.width);
+            const entry = entries[0];
+            if (entry) {
+                setWidth(entry.contentRect.width);
+            }
         });
         observer.observe(containerRef.current);
         return () => observer.disconnect();
     }, []);
 
     // Derived values
-    const progress = (value[0] - min) / (max - min);
+    const progress = ((value[0] ?? min) - min) / (max - min);
 
     // Motion values for smoother programmatic animations
     const x = useMotionValue(0);

@@ -111,12 +111,15 @@ export async function POST(request: Request) {
           const chunks = chunkConversation(convo.messages, convo.title);
           
           for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i];
+            if (!chunk) continue; // Skip if undefined (should not happen in bounded loop)
+
             newChunks.push({
               user_id: uid,
               conversation_id: chunks.length > 1 ? `${convo.conversation_id}-chunk-${i}` : convo.conversation_id,
               title: convo.title,
-              content: chunks[i].content,
-              message_count: chunks[i].messageCount,
+              content: chunk.content,
+              message_count: chunk.messageCount,
               created_at: convo.created_at,
               is_recent: false,
             });
@@ -198,6 +201,7 @@ function generateChunks(
 
   while (i < formattedMessages.length) {
     const msg = formattedMessages[i];
+    if (!msg) break; // Should not happen but satisfy type checker
 
     if (msg.length >= substantial) {
       if (msg.length > maxSize) {
@@ -207,6 +211,7 @@ function generateChunks(
 
         while (wordIdx < words.length) {
           const word = words[wordIdx];
+          if (!word) break; // Skip undefined entries
           if (subChunk.length + word.length + 1 > maxSize && subChunk.length > 0) {
             const header = `[Conversation: ${title}] [Part ${chunks.length + 1}]`;
             chunks.push({ content: `${header}\n${subChunk.trim()}`, messageCount: 1 });
@@ -237,6 +242,7 @@ function generateChunks(
 
     while (i < formattedMessages.length) {
       const nextMsg = formattedMessages[i];
+      if (!nextMsg) break; // Should not happen but satisfy type checker
       if (nextMsg.length >= substantial) break;
       if (accumulatedLength + nextMsg.length + 2 > maxSize && msgCount > 0) break;
       accumulated.push(nextMsg.text);

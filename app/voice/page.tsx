@@ -63,7 +63,11 @@ export default function VoicePage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const story = MICRO_STORIES[currentStory];
-  const recording = recordings[currentStory];
+  if (!story) {
+    return <div>Error: Story not found</div>;
+  }
+
+  const recording = recordings[currentStory] ?? null;
   const allRecorded = recordings.every(r => r !== null);
   const progress = ((currentStory + 1) / MICRO_STORIES.length) * 100;
 

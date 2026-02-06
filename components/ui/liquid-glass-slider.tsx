@@ -32,7 +32,7 @@ export function LiquidGlassSlider({
     const [isDragging, setIsDragging] = React.useState(false);
 
     // Derived values
-    const progress = (value[0] - min) / (max - min);
+    const progress = ((value[0] ?? min) - min) / (max - min);
 
     // Calculate left/right influence for label animations
     const leftInfluence = Math.max(0, 1 - progress * 2); // 1 at 0%, 0 at 50%

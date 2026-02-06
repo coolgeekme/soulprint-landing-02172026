@@ -41,7 +41,10 @@ function formatAnswersForPrompt(answers: PillarAnswerRow[]): string {
       formatted += `A: ${answer.text_value || 'No answer'}`;
     }
     
-    grouped[answer.pillar].push(formatted);
+    const pillarGroup = grouped[answer.pillar];
+    if (pillarGroup) {
+      pillarGroup.push(formatted);
+    }
   }
   
   return Object.entries(grouped)

@@ -157,7 +157,7 @@ export async function GET() {
         latencies.reduce((sum: number, l: number) => sum + l, 0) / latencies.length
       )
       const p95Index = Math.floor(latencies.length * 0.95)
-      p95ResponseTime = latencies[p95Index] || latencies[latencies.length - 1]
+      p95ResponseTime = latencies[p95Index] ?? latencies[latencies.length - 1] ?? null
     }
 
     const messagesToday = todayMessagesResult.count || 0

@@ -171,7 +171,7 @@ const AIChatInput = ({ onSubmit, onVoiceStart, isLoading, darkMode = true }: AIC
                     animate="animate"
                     exit="exit"
                   >
-                    {PLACEHOLDERS[placeholderIndex].split("").map((char, i) => (
+                    {(PLACEHOLDERS[placeholderIndex] ?? "").split("").map((char, i) => (
                       <motion.span
                         key={i}
                         variants={letterVariants}

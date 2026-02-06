@@ -121,6 +121,10 @@ export default function PillarsPage() {
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const question = QUESTIONS[currentQuestion];
+  if (!question) {
+    return <div>Error: Question not found</div>;
+  }
+
   const pillar = PILLARS.find(p => p.id === question.pillar)!;
   const progress = ((currentQuestion + 1) / QUESTIONS.length) * 100;
   const pillarProgress = ((currentQuestion % 6) + 1) / 6 * 100;
@@ -138,10 +142,10 @@ export default function PillarsPage() {
       setSliderValue([50]);
       setTextValue('');
     }
-  }, [currentQuestion]);
+  }, [currentQuestion, question.type, answers]);
 
   const saveAnswer = () => {
-    const value = question.type === 'slider' ? sliderValue[0] : textValue;
+    const value = question.type === 'slider' ? (sliderValue[0] ?? 50) : textValue;
     setAnswers(prev => {
       const filtered = prev.filter(a => a.questionIndex !== currentQuestion);
       return [...filtered, { questionIndex: currentQuestion, value }];
@@ -180,7 +184,7 @@ export default function PillarsPage() {
     // Save all answers to localStorage and API
     const allAnswers = [...answers];
     if (question.type === 'slider') {
-      allAnswers.push({ questionIndex: currentQuestion, value: sliderValue[0] });
+      allAnswers.push({ questionIndex: currentQuestion, value: sliderValue[0] ?? 50 });
     } else if (textValue.trim()) {
       allAnswers.push({ questionIndex: currentQuestion, value: textValue });
     }

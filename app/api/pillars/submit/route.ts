@@ -205,7 +205,10 @@ export async function GET(request: NextRequest) {
     // Calculate progress per pillar
     const pillarProgress: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
     for (const answer of answers || []) {
-      pillarProgress[answer.pillar]++;
+      const currentCount = pillarProgress[answer.pillar];
+      if (currentCount !== undefined) {
+        pillarProgress[answer.pillar] = currentCount + 1;
+      }
     }
 
     return NextResponse.json({

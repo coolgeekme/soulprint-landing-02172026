@@ -60,7 +60,10 @@ async function synthesizeFacts(
     if (!factsByCategory[fact.category]) {
       factsByCategory[fact.category] = [];
     }
-    factsByCategory[fact.category].push(fact.fact);
+    const categoryArray = factsByCategory[fact.category];
+    if (categoryArray) {
+      categoryArray.push(fact.fact);
+    }
   }
 
   const factsText = Object.entries(factsByCategory)

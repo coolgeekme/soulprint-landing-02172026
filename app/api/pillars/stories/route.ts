@@ -82,8 +82,10 @@ Just output the story text, nothing else. No quotes, no labels, just the story.`
 
     for (let i = 0; i < pillarKeys.length; i++) {
       const pillarKey = pillarKeys[i];
+      if (!pillarKey) continue; // Skip if undefined
       const pillarNum = i + 1;
       const pillarName = PILLAR_NAMES[i];
+      if (!pillarName) continue; // Skip if undefined
       const summary = pillarSummariesMap[pillarKey];
 
       const userPrompt = `Based on this psychological profile for ${pillarName}:

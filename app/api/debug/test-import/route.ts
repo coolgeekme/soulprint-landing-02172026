@@ -61,7 +61,9 @@ export async function GET(request: Request) {
     for (const fileName of fileNames) {
       if (fileName.includes('conversations.json') || fileName.endsWith('conversations.json')) {
         conversationsFile = fileName;
-        const content = await zip.files[fileName].async('string');
+        const file = zip.files[fileName];
+        if (!file) continue; // Should not happen but satisfy type checker
+        const content = await file.async('string');
         conversations = JSON.parse(content);
         break;
       }
@@ -93,11 +95,13 @@ export async function GET(request: Request) {
     
     // Get a sample message from the first conversation
     let sampleMessage = null;
-    if (conversations.length > 0 && conversations[0].mapping) {
-      const mapping = conversations[0].mapping;
+    const firstConvo = conversations[0];
+    if (firstConvo && firstConvo.mapping) {
+      const mapping = firstConvo.mapping;
       const messageIds = Object.keys(mapping);
       for (const msgId of messageIds) {
         const node = mapping[msgId];
+        if (!node) continue; // Skip undefined entries
         if (node.message?.content?.parts?.[0]) {
           sampleMessage = {
             role: node.message.author?.role,

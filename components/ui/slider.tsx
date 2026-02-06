@@ -30,7 +30,7 @@ export function Slider({
 
     // Calculate the center point and the fill direction/width
     const center = (max + min) / 2;
-    const currentValue = value[0];
+    const currentValue = value[0] ?? center;
     const range = max - min;
 
     // Calculate fill percentage from center

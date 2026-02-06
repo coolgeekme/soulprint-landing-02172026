@@ -84,9 +84,12 @@ function extractCadenceMarkers(words: DeepgramWord[], duration: number): Cadence
   // Find pause points (gaps > 0.5 seconds between words)
   const pausePoints: number[] = [];
   for (let i = 1; i < words.length; i++) {
-    const gap = words[i].start - words[i - 1].end;
+    const currentWord = words[i];
+    const prevWord = words[i - 1];
+    if (!currentWord || !prevWord) continue; // Skip if undefined
+    const gap = currentWord.start - prevWord.end;
     if (gap > 0.5) {
-      pausePoints.push(words[i].start);
+      pausePoints.push(currentWord.start);
     }
   }
 
@@ -111,7 +114,10 @@ function extractCadenceMarkers(words: DeepgramWord[], duration: number): Cadence
   for (let i = 0; i < words.length; i += segmentSize) {
     const segment = words.slice(i, i + segmentSize);
     if (segment.length > 1) {
-      const segmentDuration = segment[segment.length - 1].end - segment[0].start;
+      const lastWord = segment[segment.length - 1];
+      const firstWord = segment[0];
+      if (!lastWord || !firstWord) continue; // Skip if undefined
+      const segmentDuration = lastWord.end - firstWord.start;
       const wpm = (segment.length / segmentDuration) * 60;
       segmentDurations.push(wpm);
     }

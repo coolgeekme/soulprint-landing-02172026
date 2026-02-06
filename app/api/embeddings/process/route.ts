@@ -108,13 +108,21 @@ async function processBatch(chunks: ConversationChunk[]): Promise<{ success: num
 
     // Update each chunk with its embedding
     for (let i = 0; i < chunks.length; i++) {
+      const embedding = embeddings[i];
+      const chunk = chunks[i];
+      if (!embedding || !chunk) {
+        console.error(`[Embed] Missing embedding or chunk at index ${i}`);
+        failed++;
+        continue;
+      }
+
       const { error } = await getSupabase()
         .from('conversation_chunks')
-        .update({ embedding: embeddings[i] })
-        .eq('id', chunks[i].id);
+        .update({ embedding })
+        .eq('id', chunk.id);
 
       if (error) {
-        console.error(`[Embed] Error updating chunk ${chunks[i].id}:`, error.message);
+        console.error(`[Embed] Error updating chunk ${chunk.id}:`, error.message);
         failed++;
       } else {
         success++;

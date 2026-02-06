@@ -94,8 +94,10 @@ function SwipeableMessage({
 
   const handleTouchStart = (e: TouchEvent) => {
     if (isDesktop) return; // No swipe on desktop
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartX.current = touch.clientX;
+    touchStartY.current = touch.clientY;
     isHorizontalSwipe.current = null;
     setIsSwiping(true);
   };
@@ -103,8 +105,10 @@ function SwipeableMessage({
   const handleTouchMove = (e: TouchEvent) => {
     if (!isSwiping || isDesktop) return;
 
-    const deltaX = e.touches[0].clientX - touchStartX.current;
-    const deltaY = e.touches[0].clientY - touchStartY.current;
+    const touch = e.touches[0];
+    if (!touch) return;
+    const deltaX = touch.clientX - touchStartX.current;
+    const deltaY = touch.clientY - touchStartY.current;
 
     // Determine swipe direction on first significant movement
     if (isHorizontalSwipe.current === null) {
