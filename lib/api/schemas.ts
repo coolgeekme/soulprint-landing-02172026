@@ -132,16 +132,18 @@ export async function parseRequestBody<T extends z.ZodType>(
 
 /**
  * ChatGPT Raw Conversation Schema
- * Minimal validation for ChatGPT export format - just enough to confirm structure
+ * Minimal validation for ChatGPT export format - just enough to confirm structure.
+ * Uses .nullish() (null | undefined) because real exports have null fields.
+ * Uses .passthrough() to allow any extra fields ChatGPT may add.
  */
 export const chatGPTRawConversationSchema = z.object({
-  id: z.string().optional(),
-  conversation_id: z.string().optional(),
-  title: z.string().optional(),
-  create_time: z.number().optional(),
-  update_time: z.number().optional(),
-  mapping: z.record(z.string(), z.unknown()).optional(),
-});
+  id: z.string().nullish(),
+  conversation_id: z.string().nullish(),
+  title: z.string().nullish(),
+  create_time: z.number().nullish(),
+  update_time: z.number().nullish(),
+  mapping: z.record(z.string(), z.unknown()).nullish(),
+}).passthrough();
 
 export const chatGPTExportSchema = z.array(chatGPTRawConversationSchema);
 

@@ -133,6 +133,7 @@ export async function POST(request: Request) {
       const validationResult = chatGPTExportSchema.safeParse(parsed);
 
       if (!validationResult.success) {
+        reqLog.error({ zodErrors: validationResult.error.issues.slice(0, 5) }, 'ChatGPT export validation failed (JSON)');
         adminSupabase.storage.from(bucket).remove([filePath]).catch(e => console.warn('[ProcessServer] Cleanup failed:', e));
         throw new Error('Invalid ChatGPT export format. Please upload a valid ChatGPT export file.');
       }
@@ -155,6 +156,7 @@ export async function POST(request: Request) {
       const validationResult = chatGPTExportSchema.safeParse(parsed);
 
       if (!validationResult.success) {
+        reqLog.error({ zodErrors: validationResult.error.issues.slice(0, 5) }, 'ChatGPT export validation failed (ZIP)');
         adminSupabase.storage.from(bucket).remove([filePath]).catch(e => reqLog.warn({ error: String(e) }, 'Cleanup failed'));
         throw new Error('Invalid ChatGPT export format. Please upload a valid ChatGPT export file.');
       }
