@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { getCsrfToken } from '@/lib/csrf';
 
 export default function DashboardPage() {
   const [aiName, setAiName] = useState<string | null>(null);
@@ -46,9 +47,10 @@ export default function DashboardPage() {
   const handleRename = async () => {
     if (!renameInput.trim()) return;
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch('/api/profile/ai-name', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ name: renameInput.trim() }),
       });
       if (res.ok) {

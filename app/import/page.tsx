@@ -12,6 +12,7 @@ import { RingProgress } from '@/components/ui/ring-progress';
 import { createClient } from '@/lib/supabase/client';
 import JSZip from 'jszip';
 import { uploadWithProgress, chunkedUpload } from '@/lib/chunked-upload';
+import { getCsrfToken } from '@/lib/csrf';
 
 // Detect mobile devices (conservative - if unsure, treat as mobile)
 function isMobileDevice(): boolean {
@@ -113,8 +114,10 @@ function ImportPageContent() {
     setIsResetting(true);
     try {
       // Use user self-reset endpoint (works for any logged-in user)
+      const csrfToken = await getCsrfToken();
       const res = await fetch('/api/user/reset', {
         method: 'DELETE',
+        headers: { 'X-CSRF-Token': csrfToken },
       });
 
       const data = await res.json();
@@ -393,9 +396,10 @@ function ImportPageContent() {
         // Process on server - NO timeout, let it complete (up to 5 min)
         let queueRes;
         try {
+          const csrfToken = await getCsrfToken();
           queueRes = await fetch('/api/import/queue-processing', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
             credentials: 'include',
             body: JSON.stringify({
               storagePath,

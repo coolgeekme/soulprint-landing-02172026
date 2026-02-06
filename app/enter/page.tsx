@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, ArrowLeft, Mail, CheckCircle2, Loader2 } from 'lucide-react';
 import { validateReferralCode } from '@/app/actions/referral';
+import { getCsrfToken } from '@/lib/csrf';
 
 type Mode = 'code' | 'waitlist' | 'success';
 
@@ -49,9 +50,10 @@ export default function EnterPage() {
     setIsLoading(true);
 
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch('/api/waitlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ email, name }),
       });
 

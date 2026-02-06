@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { TelegramChatV2 } from '@/components/chat/telegram-chat-v2';
 import { fetchWithRetry } from '@/lib/retry';
 import { AddToHomeScreen } from '@/components/ui/AddToHomeScreen';
+import { getCsrfToken } from '@/lib/csrf';
 // BackgroundSync removed - RLM handles all chunk processing server-side
 
 type Message = {
@@ -194,9 +195,10 @@ export default function ChatPage() {
 
   const saveMessage = async (role: string, content: string) => {
     try {
+      const csrfToken = await getCsrfToken();
       const response = await fetchWithRetry('/api/chat/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ role, content }),
       });
       if (!response.ok) {
@@ -214,6 +216,9 @@ export default function ChatPage() {
 
   // Process a single message from the queue
   const processMessage = useCallback(async (content: string, voiceVerified?: boolean, deepSearch?: boolean) => {
+    // Get CSRF token once for all requests in this function
+    const csrfToken = await getCsrfToken();
+
     // Track if this is a deep search request
     if (deepSearch) {
       setIsDeepSearching(true);
@@ -224,7 +229,7 @@ export default function ChatPage() {
       try {
         const res = await fetch('/api/profile/ai-name', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
           body: JSON.stringify({ name: content }),
         });
 
@@ -300,7 +305,7 @@ export default function ChatPage() {
           try {
             const res = await fetch('/api/profile/ai-name', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
               body: JSON.stringify({ name: newName }),
             });
             if (res.ok) {
@@ -350,7 +355,7 @@ export default function ChatPage() {
           try {
             const res = await fetch('/api/tasks', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
               body: JSON.stringify({
                 prompt: taskContent,
                 description: `${timing}: ${taskContent}`.slice(0, 50),
@@ -386,9 +391,9 @@ export default function ChatPage() {
       const history = messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          message: content, 
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        body: JSON.stringify({
+          message: content,
           history,
           voiceVerified: voiceVerified ?? true, // Default to true for typed messages
           deepSearch: deepSearch ?? false, // Deep Search mode
@@ -520,9 +525,10 @@ export default function ChatPage() {
   const handleRename = async () => {
     if (!renameInput.trim()) return;
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch('/api/profile/ai-name', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ name: renameInput.trim() }),
       });
       if (res.ok) {

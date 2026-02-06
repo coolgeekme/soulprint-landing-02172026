@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, TouchEvent } from 'react';
 import { ArrowLeft, Mic, Send, Moon, Sun, LogOut, Search } from 'lucide-react';
 import { MessageContent } from './message-content';
+import { getCsrfToken } from '@/lib/csrf';
 
 type Message = {
   id: string;
@@ -277,8 +278,10 @@ export function TelegramChatV2({
       const formData = new FormData();
       formData.append('audio', audioBlob, 'audio.webm');
 
+      const csrfToken = await getCsrfToken();
       const response = await fetch('/api/transcribe', {
         method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken },
         body: formData,
       });
 

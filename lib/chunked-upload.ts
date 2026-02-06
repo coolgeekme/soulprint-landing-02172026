@@ -3,6 +3,8 @@
  * Splits file into 50MB chunks and uploads sequentially
  */
 
+import { getCsrfToken } from '@/lib/csrf';
+
 const CHUNK_SIZE = 50 * 1024 * 1024; // 50MB chunks
 
 export interface UploadProgress {
@@ -31,6 +33,9 @@ export async function chunkedUpload(
 
   console.log(`[ChunkedUpload] Starting: ${(file.size / 1024 / 1024).toFixed(1)}MB in ${totalChunks} chunks`);
 
+  // Get CSRF token once for all chunks
+  const csrfToken = await getCsrfToken();
+
   for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
     const start = chunkIndex * CHUNK_SIZE;
     const end = Math.min(start + CHUNK_SIZE, file.size);
@@ -46,8 +51,9 @@ export async function chunkedUpload(
         'X-Total-Chunks': String(totalChunks),
         'X-Chunk-Size': String(chunk.size),
         'X-Total-Size': String(file.size),
+        'X-CSRF-Token': csrfToken,
       };
-      
+
       if (uploadId) {
         headers['X-Upload-Id'] = uploadId;
       }
@@ -95,13 +101,16 @@ export async function chunkedUpload(
  * Upload using XMLHttpRequest for real progress tracking
  * Better for medium-large files (100MB-1GB)
  */
-export function uploadWithProgress(
+export async function uploadWithProgress(
   file: Blob,
   url: string,
   authToken: string,
   contentType: string,
   onProgress?: (percent: number) => void
 ): Promise<{ success: boolean; data?: any; error?: string }> {
+  // Get CSRF token first
+  const csrfToken = await getCsrfToken();
+
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     
@@ -136,6 +145,7 @@ export function uploadWithProgress(
     xhr.open('POST', url);
     xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
     xhr.setRequestHeader('Content-Type', contentType);
+    xhr.setRequestHeader('X-CSRF-Token', csrfToken);
     xhr.timeout = 10 * 60 * 1000; // 10 min timeout
     xhr.send(file);
   });

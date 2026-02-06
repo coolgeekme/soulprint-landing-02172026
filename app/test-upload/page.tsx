@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
+import { getCsrfToken } from '@/lib/csrf';
 
 export default function TestUploadPage() {
   const [status, setStatus] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle');
@@ -28,8 +29,10 @@ export default function TestUploadPage() {
       const formData = new FormData();
       formData.append('file', file);
 
+      const csrfToken = await getCsrfToken();
       const res = await fetch('/api/test-upload', {
         method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken },
         body: formData,
       });
 

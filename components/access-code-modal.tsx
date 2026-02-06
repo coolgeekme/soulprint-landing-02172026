@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Ticket, Mail, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { validateReferralCode } from '@/app/actions/referral';
+import { getCsrfToken } from '@/lib/csrf';
 
 interface AccessCodeModalProps {
   isOpen: boolean;
@@ -66,9 +67,10 @@ export function AccessCodeModal({ isOpen, onClose, onCodeValid }: AccessCodeModa
     setIsLoading(true);
 
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch('/api/waitlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ email, name }),
       });
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { getCsrfToken } from '@/lib/csrf';
 
 export default function TestVoicePage() {
   const [status, setStatus] = useState<string>('Ready');
@@ -87,13 +88,15 @@ export default function TestVoicePage() {
   const transcribeAudio = async (audioBlob: Blob) => {
     addLog('📤 Sending to transcribe API...');
     setStatus('Transcribing...');
-    
+
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob, 'audio.webm');
 
+      const csrfToken = await getCsrfToken();
       const response = await fetch('/api/transcribe', {
         method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken },
         body: formData,
       });
 

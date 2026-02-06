@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { getCsrfToken } from '@/lib/csrf';
 
 interface Memory {
   id: string;
@@ -107,13 +108,14 @@ export default function MemoryControlPage() {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const idsToDelete = deleteTarget === 'single' && singleDeleteId 
-        ? [singleDeleteId] 
+      const idsToDelete = deleteTarget === 'single' && singleDeleteId
+        ? [singleDeleteId]
         : Array.from(selectedIds);
-      
+
+      const csrfToken = await getCsrfToken();
       const res = await fetch('/api/memory/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         body: JSON.stringify({ memoryIds: idsToDelete }),
       });
       
