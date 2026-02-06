@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-06)
 
 **Core value:** The import-to-chat flow must work reliably every time on production
-**Current focus:** Phase 3 - Race Condition Fixes
+**Current focus:** Phase 4 - Security Hardening
 
 ## Current Position
 
-Phase: 3 of 7 (Race Condition Fixes)
-Plan: 3 of 3 in current phase
-Status: Phase complete
-Last activity: 2026-02-06 — Completed 03-03-PLAN.md (sequence-tracked polling and AbortController)
+Phase: 4 of 7 (Security Hardening)
+Plan: 3 of 4 in current phase
+Status: In progress
+Last activity: 2026-02-06 — Completed 04-03-PLAN.md (RLS audit and remediation scripts)
 
-Progress: [████████░░] 80%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 2m 49s
-- Total execution time: 0.38 hours
+- Total plans completed: 9
+- Average duration: 2m 32s
+- Total execution time: 0.40 hours
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: [████████░░] 80%
 | 01-testing-foundation | 2 | 3m 16s | 1m 38s |
 | 02-memory-resource-cleanup | 3 | 14m 46s | 4m 55s |
 | 03-race-condition-fixes | 3 | 5m 59s | 2m 0s |
+| 04-security-hardening | 1 | 1m 4s | 1m 4s |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (2m 38s), 02-03 (8m 8s), 03-01 (2m 0s), 03-02 (1m 59s), 03-03 (2m 0s)
-- Trend: Focused bug fixes consistently execute in ~2 minutes
+- Last 5 plans: 02-03 (8m 8s), 03-01 (2m 0s), 03-02 (1m 59s), 03-03 (2m 0s), 04-03 (1m 4s)
+- Trend: Simple script creation and SQL work very fast (~1 minute)
 
 *Updated after each plan completion*
 
@@ -65,6 +66,9 @@ Recent decisions affecting current work:
 - AbortSignal.any for composing caller + timeout signals with feature detection fallback (03-02)
 - Sequence tracking via local closure counter + shared useRef for stale poll detection (03-03)
 - AbortController cleanup on all chat page useEffects to prevent unmounted state updates (03-03)
+- auth.uid() for RLS policies over auth.jwt()->>'user_metadata' for cryptographic verification (04-03)
+- Idempotent SQL via IF NOT EXISTS checks for safe re-runs during deployment (04-03)
+- Service role key bypasses RLS for trusted server-side operations (04-03)
 
 ### Pending Todos
 
@@ -76,8 +80,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-06 16:24:00 UTC
-Stopped at: Completed 03-03-PLAN.md (sequence-tracked polling and AbortController) -- Phase 3 complete
+Last session: 2026-02-06 17:00:00 UTC
+Stopped at: Completed 04-03-PLAN.md (RLS audit and remediation scripts)
 Resume file: None
 
 ---
