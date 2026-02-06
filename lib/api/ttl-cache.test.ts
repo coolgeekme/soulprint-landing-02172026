@@ -108,12 +108,15 @@ describe('TTLCache', () => {
   });
 
   it('should force cleanup and return count of removed entries', () => {
-    const cache = new TTLCache<string>(30 * 60 * 1000);
+    const cache = new TTLCache<string>(30 * 60 * 1000, 60 * 60 * 1000); // 1 hour cleanup interval
     cache.set('key1', 'value1');
     cache.set('key2', 'value2');
 
-    // Advance past TTL
+    // Advance past TTL but not cleanup interval
     vi.advanceTimersByTime(31 * 60 * 1000);
+
+    // Entries are expired but still in cache (background cleanup hasn't run yet)
+    expect(cache.size).toBe(2);
 
     const removedCount = cache.forceCleanup();
     expect(removedCount).toBe(2);
@@ -123,17 +126,17 @@ describe('TTLCache', () => {
   });
 
   it('should run background cleanup on interval', () => {
-    const cache = new TTLCache<string>(30 * 60 * 1000, 5 * 60 * 1000); // 5 min cleanup interval
+    const cache = new TTLCache<string>(5 * 1000, 10 * 1000); // 5s TTL, 10s cleanup interval
     cache.set('key1', 'value1');
     cache.set('key2', 'value2');
 
-    // Advance past entry TTL but not cleanup interval
-    vi.advanceTimersByTime(31 * 60 * 1000);
-    expect(cache.size).toBe(2); // Not cleaned yet
+    // Advance past entry TTL but not cleanup interval yet
+    vi.advanceTimersByTime(6 * 1000); // 6 seconds - entries expired, cleanup hasn't run
+    expect(cache.size).toBe(2); // Expired but not cleaned yet
 
-    // Advance to trigger cleanup interval
-    vi.advanceTimersByTime(5 * 60 * 1000);
-    expect(cache.size).toBe(0); // Cleaned up
+    // Advance to trigger first cleanup interval
+    vi.advanceTimersByTime(4 * 1000); // Total 10 seconds - cleanup runs
+    expect(cache.size).toBe(0); // Cleaned up by background timer
 
     cache.destroy();
   });
@@ -153,16 +156,16 @@ describe('TTLCache', () => {
   });
 
   it('should lazily delete expired entry on get', () => {
-    const cache = new TTLCache<string>(30 * 60 * 1000);
+    const cache = new TTLCache<string>(30 * 60 * 1000, 60 * 60 * 1000); // 1 hour cleanup interval
     cache.set('key1', 'value1');
     cache.set('key2', 'value2');
 
     expect(cache.size).toBe(2);
 
-    // Advance past TTL
+    // Advance past TTL but not cleanup interval
     vi.advanceTimersByTime(31 * 60 * 1000);
 
-    // Size still shows 2 (lazy deletion)
+    // Size still shows 2 (lazy deletion, background cleanup hasn't run)
     expect(cache.size).toBe(2);
 
     // Get triggers lazy deletion
