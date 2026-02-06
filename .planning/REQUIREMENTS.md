@@ -7,7 +7,7 @@
 
 ### Bug Fixes
 
-- [ ] **BUG-01**: Chunked upload cleans up stale in-memory chunks after 30 minutes
+- [x] **BUG-01**: Chunked upload cleans up stale in-memory chunks after 30 minutes
 - [ ] **BUG-02**: Starting a new import cancels any existing processing job (no duplicates)
 - [ ] **BUG-03**: Failed chat message saves retry with exponential backoff and show error indicator
 - [ ] **BUG-04**: Memory status polling ignores out-of-order responses using sequence tracking
@@ -21,8 +21,8 @@
 
 ### Reliability
 
-- [ ] **REL-01**: RLM timeout reduced to 15s with fast fallback to Bedrock
-- [ ] **REL-02**: All API routes return proper error responses (no unhandled exceptions)
+- [x] **REL-01**: RLM timeout reduced to 15s with fast fallback to Bedrock
+- [x] **REL-02**: All API routes return proper error responses (no unhandled exceptions)
 - [ ] **REL-03**: Structured logging with correlation IDs on all API routes
 - [ ] **REL-04**: Health check endpoint reports status of all external dependencies
 
@@ -72,9 +72,9 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | TEST-01 | Phase 1 | Complete |
-| BUG-01 | Phase 2 | Pending |
-| REL-01 | Phase 2 | Pending |
-| REL-02 | Phase 2 | Pending |
+| BUG-01 | Phase 2 | Complete |
+| REL-01 | Phase 2 | Complete |
+| REL-02 | Phase 2 | Complete |
 | BUG-02 | Phase 3 | Pending |
 | BUG-03 | Phase 3 | Pending |
 | BUG-04 | Phase 3 | Pending |

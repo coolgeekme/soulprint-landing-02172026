@@ -13,7 +13,7 @@ This stabilization milestone hardens the SoulPrint import-to-chat flow through s
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Testing Foundation** - Vitest setup enabling verification of all fixes
-- [ ] **Phase 2: Memory & Resource Cleanup** - Fix leaks, timeouts, and error handling
+- [x] **Phase 2: Memory & Resource Cleanup** - Fix leaks, timeouts, and error handling
 - [ ] **Phase 3: Race Condition Fixes** - Eliminate out-of-order state updates
 - [ ] **Phase 4: Security Hardening** - CSRF, rate limiting, RLS audit, input validation
 - [ ] **Phase 5: Observability** - Structured logging and health checks
@@ -49,9 +49,9 @@ Plans:
   4. Memory usage plateaus in load testing (autocannon shows stable baseline)
 
 Plans:
-- [ ] 02-01-PLAN.md -- TDD: TTL cache with background cleanup for chunked uploads
-- [ ] 02-02-PLAN.md -- Reduce RLM timeout to 15s, modernize AbortSignal patterns
-- [ ] 02-03-PLAN.md -- Standardized error handler applied to all critical API routes
+- [x] 02-01-PLAN.md -- TDD: TTL cache with background cleanup for chunked uploads
+- [x] 02-02-PLAN.md -- Reduce RLM timeout to 15s, modernize AbortSignal patterns
+- [x] 02-03-PLAN.md -- Standardized error handler applied to all critical API routes
 
 ### Phase 3: Race Condition Fixes
 **Goal**: All async operations handle cancellation and out-of-order responses correctly
@@ -142,7 +142,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Testing Foundation | 2/2 | Complete | 2026-02-06 |
-| 2. Memory & Resource Cleanup | 0/3 | Not started | - |
+| 2. Memory & Resource Cleanup | 3/3 | Complete | 2026-02-06 |
 | 3. Race Condition Fixes | 0/3 | Not started | - |
 | 4. Security Hardening | 0/4 | Not started | - |
 | 5. Observability | 0/2 | Not started | - |
