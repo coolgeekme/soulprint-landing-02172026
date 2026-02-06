@@ -129,12 +129,12 @@ Plans:
   2. External service responses validated with Zod at boundaries
   3. noUncheckedIndexedAccess enabled in tsconfig.json (API routes fixed first)
   4. TypeScript build succeeds with strict mode and no type errors
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 07-01: Add noUncheckedIndexedAccess and fix API route type errors
-- [ ] 07-02: Replace `any` types in import flow with proper interfaces
-- [ ] 07-03: Replace `any` types in chat flow with proper interfaces
+- [ ] 07-01-PLAN.md -- Replace `any` types in import flow with proper interfaces + Zod response validation at boundaries
+- [ ] 07-02-PLAN.md -- Replace `any` types in chat flow with proper interfaces + Zod response validation at boundaries
+- [ ] 07-03-PLAN.md -- Enable noUncheckedIndexedAccess and fix all resulting type errors
 
 ## Progress
 
