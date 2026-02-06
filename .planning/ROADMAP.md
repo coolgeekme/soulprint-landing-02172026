@@ -118,7 +118,7 @@ Plans:
 Plans:
 - [ ] 06-01-PLAN.md -- Integration tests for core API routes (health, chat/messages, memory/status) using next-test-api-route-handler
 - [ ] 06-02-PLAN.md -- Integration tests for import flow API routes (process-server, chunked-upload, complete)
-- [ ] 06-03-PLAN.md -- Install Playwright and write E2E smoke tests for critical user flows
+- [ ] 06-03-PLAN.md -- Install Playwright and write E2E tests with authenticated import-to-chat flow via route interception
 
 ### Phase 7: Type Safety Refinement
 **Goal**: Replace `any` types with proper interfaces and runtime validation
