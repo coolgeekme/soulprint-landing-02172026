@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { XP_CONFIG, XPSource } from '@/lib/gamification/xp';
 import { handleAPIError } from '@/lib/api/error-handler';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -161,8 +162,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function checkAchievements(supabase: any, userId: string, stats: Record<string, unknown>) {
+async function checkAchievements(supabase: SupabaseClient, userId: string, stats: Record<string, unknown>) {
   // Get all achievements
   const { data: achievements } = await supabase
     .from('achievements')

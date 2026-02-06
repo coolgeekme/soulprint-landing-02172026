@@ -8,6 +8,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { v2 as cloudinary } from 'cloudinary';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { cloudinaryUploadResultSchema } from '@/lib/api/schemas';
 
 export const maxDuration = 60;
 
@@ -94,8 +95,16 @@ export async function POST(request: NextRequest) {
           format: 'mp3', // Convert to mp3 for compatibility
         },
         (error, result) => {
-          if (error) reject(error);
-          else resolve(result as any);
+          if (error) {
+            reject(error);
+            return;
+          }
+          const parsed = cloudinaryUploadResultSchema.safeParse(result);
+          if (!parsed.success) {
+            reject(new Error('Invalid Cloudinary upload response'));
+            return;
+          }
+          resolve(parsed.data);
         }
       ).end(buffer);
     });
