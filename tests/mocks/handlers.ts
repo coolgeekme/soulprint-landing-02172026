@@ -123,15 +123,21 @@ export const handlers = [
     }
 
     const body = await request.json() as Record<string, unknown>
-    return HttpResponse.json([
-      {
-        id: 'new-msg-id',
-        user_id: body.user_id || 'test-user-id',
-        role: body.role,
-        content: body.content,
-        created_at: new Date().toISOString(),
-      },
-    ])
+
+    // Check for Prefer: return=representation header to determine if single or array
+    const preferHeader = request.headers.get('prefer')
+    const message = {
+      id: 'new-msg-id',
+      user_id: body.user_id || 'test-user-id',
+      role: body.role,
+      content: body.content,
+      created_at: new Date().toISOString(),
+    }
+
+    // .single() query returns object directly, not array
+    return preferHeader?.includes('return=representation')
+      ? HttpResponse.json(message)
+      : HttpResponse.json([message])
   }),
 
   // User profiles upsert (for import process)
