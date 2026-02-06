@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { TTLCache } from '@/lib/api/ttl-cache';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Define upload session structure
 interface UploadSession {
@@ -21,6 +22,10 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limit check
+    const rateLimited = await checkRateLimit(user.id, 'upload');
+    if (rateLimited) return rateLimited;
 
     const chunkIndex = parseInt(req.headers.get('X-Chunk-Index') || '0');
     const totalChunks = parseInt(req.headers.get('X-Total-Chunks') || '1');

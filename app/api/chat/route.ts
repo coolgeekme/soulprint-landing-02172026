@@ -11,6 +11,7 @@ import { smartSearch, SmartSearchResult } from '@/lib/search/smart-search';
 import { getMemoryContext } from '@/lib/memory/query';
 import { learnFromChat } from '@/lib/memory/learning';
 import { shouldAttemptRLM, recordSuccess, recordFailure } from '@/lib/rlm/health';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Initialize Bedrock client
 const bedrockClient = new BedrockRuntimeClient({
@@ -173,6 +174,10 @@ export async function POST(request: NextRequest) {
         { status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
+
+    // Rate limit check
+    const rateLimited = await checkRateLimit(user.id, 'expensive');
+    if (rateLimited) return rateLimited;
 
     // Parse request body
     const body = await request.json();

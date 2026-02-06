@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import JSZip from 'jszip';
 import { gzipSync } from 'zlib';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes
@@ -49,11 +50,15 @@ export async function POST(request: Request) {
     } else {
       const supabase = await createClient();
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
+
       if (authError || !user) {
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
       }
       userId = user.id;
+
+      // Rate limit check (only for normal auth - internal calls are trusted)
+      const rateLimited = await checkRateLimit(userId, 'expensive');
+      if (rateLimited) return rateLimited;
     }
 
     const body = await request.json();
