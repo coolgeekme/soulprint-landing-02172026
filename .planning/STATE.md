@@ -5,18 +5,18 @@
 See: .planning/PROJECT.md (updated 2026-02-06)
 
 **Core value:** The import-to-chat flow must work reliably every time on production
-**Current focus:** All 7 phases complete — milestone ready for audit
+**Current focus:** v1.1 Stabilization shipped — planning next milestone
 
 ## Current Position
 
-Phase: 7 of 7 (Type Safety Refinement)
-Plan: 3 of 3 in current phase
-Status: All phases complete
-Last activity: 2026-02-06 — Completed 07-03-PLAN.md (enable noUncheckedIndexedAccess)
+Phase: Not started
+Plan: Not started
+Status: Between milestones
+Last activity: 2026-02-06 — v1.1 Stabilization milestone completed and archived
 
-Progress: [██████████] 100% (22/22 plans)
+Progress: v1.1 complete (7 phases, 22 plans)
 
-## Performance Metrics
+## v1.1 Performance Metrics
 
 **Velocity:**
 - Total plans completed: 22
@@ -35,94 +35,26 @@ Progress: [██████████] 100% (22/22 plans)
 | 06-comprehensive-testing | 3 | 19m 38s | 6m 33s |
 | 07-type-safety-refinement | 3 | 12m 35s | 4m 12s |
 
-**Recent Trend:**
-- Last 5 plans: 06-02 (7m 50s), 06-03 (6m 34s), 07-02 (2m 20s), 07-01 (5m 40s), 07-03 (4m 35s)
-- Trend: Type safety work averaging 4 minutes per plan
-
-*Updated after each plan completion*
-
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- Stabilization approach: Fix everything from audit before adding new features
-- Testing strategy: User validates on deployed Vercel production (not localhost)
-- Scope: Exclude voice/pillar features to focus purely on bug fixes and hardening
-- Use Vitest over Jest for modern, faster test runner with better Vite integration (01-01)
-- Use MSW for API mocking via Service Worker approach for realistic testing (01-01)
-- Co-locate tests next to source files for maintainability (01-02)
-- Use @/* path aliases in tests to verify alias resolution works (01-02)
-- .unref() on setInterval timers prevents blocking serverless process exit (02-01)
-- Dual cleanup strategy: lazy deletion on access + proactive background cleanup (02-01)
-- 30-minute TTL for abandoned uploads based on typical upload duration (02-01)
-- 15s RLM timeout balances responsiveness vs. cold-start accommodation (02-02)
-- AbortSignal.timeout() replaces manual AbortController for cleaner code (02-02)
-- TimeoutError handling enables circuit breaker to distinguish timeout from other failures (02-02)
-- Centralized error handling prevents information disclosure (02-03)
-- Descriptive context strings in handleAPIError enable precise error tracking (02-03)
-- 15-minute threshold distinguishes fresh vs stuck imports for duplicate detection (03-01)
-- HTTP 409 Conflict for business-logic duplicate rejection (03-01)
-- Query-before-upsert pattern for duplicate detection with time-based threshold (03-01)
-- AbortSignal.any for composing caller + timeout signals with feature detection fallback (03-02)
-- Sequence tracking via local closure counter + shared useRef for stale poll detection (03-03)
-- AbortController cleanup on all chat page useEffects to prevent unmounted state updates (03-03)
-- auth.uid() for RLS policies over auth.jwt()->>'user_metadata' for cryptographic verification (04-03)
-- Idempotent SQL via IF NOT EXISTS checks for safe re-runs during deployment (04-03)
-- Service role key bypasses RLS for trusted server-side operations (04-03)
-- 3 tiered rate limits: standard (60/min), expensive (20/min), upload (100/min) for different endpoint costs (04-02)
-- Fail-open rate limiting: if Redis down, allow requests through for availability (04-02)
-- Lazy Redis initialization prevents build failures when Upstash env vars missing (04-02)
-- Per-user rate limiting (not IP-based) for authenticated abuse prevention (04-02)
-- Use @edge-csrf/nextjs despite deprecation - no alternative exists for edge runtime (04-01)
-- CSRF before auth in middleware chain for early rejection of invalid requests (04-01)
-- 'unsafe-inline' CSP directives acceptable for Next.js/Tailwind compatibility (04-01)
-- Zod safeParse over parse for no-throw validation with explicit error handling (04-04)
-- Schema-based error messages hide internal structure to prevent schema disclosure attacks (04-04)
-- Centralized schemas in lib/api/schemas.ts for single source of truth and reuse (04-04)
-- Cache CSRF token in module-level variable to avoid repeated network requests (04-05)
-- Get CSRF token once per function for multiple fetch calls to optimize performance (04-05)
-- Use getCsrfToken directly over csrfFetch wrapper for minimal disruption to existing patterns (04-05)
-- Use Pino over Winston for performance and modern JSON logging (05-01)
-- Generate correlation IDs in Edge-compatible middleware using crypto.randomUUID() (05-01)
-- Don't import Pino in middleware (Edge runtime incompatible) - only set headers (05-01)
-- Replace console.error in error handler but keep selective console.log for hot path only (05-01)
-- Support LOG_LEVEL env var override for production debugging (05-01)
-- Use server.use() for per-test MSW overrides, keep default handlers minimal (06-01)
-- Mock @/lib/supabase/server at module level for per-test auth control (06-01)
-- Check Prefer header to return single object vs array for .single() queries (06-01)
-- Mock Blob.arrayBuffer() for Node.js compatibility (native Blob lacks this method) (06-02)
-- Use vi.mocked() helper to access mock function calls instead of storing references (06-02)
-- Test Zod validation with code check instead of exact message (messages vary) (06-02)
-- Use Playwright route interception over real auth for E2E tests (no credentials needed) (06-03)
-- Install chromium only (not webkit/firefox) to minimize disk and install time (06-03)
-- Exclude tests/e2e/** from Vitest to avoid Playwright/Vitest test API conflicts (06-03)
-- Use safeParse with error logging before throwing for external API validation (07-02)
-- Validate Mem0 responses at boundaries to catch malformed data early (07-02)
-- Import SupabaseClient type from @supabase/supabase-js for helper function parameters (07-02)
-- Validate external data (ChatGPT exports, API responses) at parse boundary with Zod (07-01)
-- Use unknown type for catch blocks and unparsed data, require explicit type narrowing (07-01)
-- Use type guards with optional chaining for complex nested structures instead of as any casts (07-01)
-- noUncheckedIndexedAccess enabled for all future code to catch undefined access bugs (07-03)
-- Undefined checks required for all array element and object key access (07-03)
-- Nullish coalescing preferred over || for default values to handle 0/false correctly (07-03)
-- Continue statements for loop guard clauses instead of nested if blocks (07-03)
-- Test file mock type errors excluded from scope when pre-existing (07-03)
+Full decision history archived in `.planning/milestones/v1.1-ROADMAP.md`
 
 ### Pending Todos
 
-None yet.
+- Run `scripts/rls-audit.sql` in Supabase SQL Editor (from Phase 4)
+- Verify CSRF middleware rejects unauthenticated POSTs on production
 
 ### Blockers/Concerns
 
-None yet.
+None.
 
 ## Session Continuity
 
 Last session: 2026-02-06
-Stopped at: All phases complete — all 22 plans executed successfully
+Stopped at: v1.1 milestone completed and archived
 Resume file: None
 
 ---
