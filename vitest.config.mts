@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
-    exclude: ['node_modules', '.next', 'dist'],
+    exclude: ['node_modules', '.next', 'dist', 'tests/e2e/**'],
     env: {
       NEXT_PUBLIC_SUPABASE_URL: 'https://test.supabase.co',
       SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
