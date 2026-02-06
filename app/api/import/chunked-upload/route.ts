@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { TTLCache } from '@/lib/api/ttl-cache';
 
-// Store chunks in memory temporarily (for assembly)
-// In production, you'd want Redis or temp file storage
-const chunkStore = new Map<string, { chunks: Buffer[]; totalChunks: number; receivedChunks: number }>();
+// Define upload session structure
+interface UploadSession {
+  chunks: Buffer[];
+  totalChunks: number;
+  receivedChunks: number;
+}
+
+// Store chunks in memory with TTL (30 min default, 5 min cleanup)
+// Automatically removes stale uploads to prevent memory leaks
+const uploadCache = new TTLCache<UploadSession>(30 * 60 * 1000, 5 * 60 * 1000);
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,15 +34,15 @@ export async function POST(req: NextRequest) {
     const chunkBuffer = Buffer.from(arrayBuffer);
 
     // Initialize or get upload session
-    if (!chunkStore.has(uploadId)) {
-      chunkStore.set(uploadId, {
+    if (!uploadCache.has(uploadId)) {
+      uploadCache.set(uploadId, {
         chunks: new Array(totalChunks).fill(null),
         totalChunks,
         receivedChunks: 0,
       });
     }
 
-    const session = chunkStore.get(uploadId)!;
+    const session = uploadCache.get(uploadId)!;
     session.chunks[chunkIndex] = chunkBuffer;
     session.receivedChunks++;
 
@@ -48,8 +56,8 @@ export async function POST(req: NextRequest) {
       const fullFile = Buffer.concat(session.chunks);
       console.log(`[ChunkedUpload API] Assembled file: ${(fullFile.length / 1024 / 1024).toFixed(1)}MB`);
 
-      // Clean up chunk store
-      chunkStore.delete(uploadId);
+      // Clean up immediately (successful upload)
+      uploadCache.delete(uploadId);
 
       // Upload to Supabase storage
       const timestamp = Date.now();
@@ -93,8 +101,5 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Clean up stale uploads (call periodically or on app start)
-export function cleanupStaleUploads(maxAgeMs = 30 * 60 * 1000) {
-  // In a real implementation, track timestamps and clean up old uploads
-  // For now, this is a placeholder
-}
+// Note: Stale upload cleanup is now handled automatically by TTLCache
+// Expired entries (>30 min) are removed via background cleanup timer
