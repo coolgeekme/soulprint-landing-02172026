@@ -54,12 +54,12 @@ See: `.planning/milestones/v1.1-ROADMAP.md`
   3. After import, the database contains a USER section with name, location, occupation, relationships, and how the user wants to be addressed
   4. After import, the database contains AGENTS (behavioral rules, response style) and TOOLS (capabilities tuned to user) sections
   5. The quick pass completes in under 60 seconds using Haiku 4.5 on Bedrock, sampling the richest conversations (not processing all of them)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Database schema for structured context sections
-- [ ] 01-02: Conversation sampling + Haiku 4.5 quick pass generation
-- [ ] 01-03: Integration test -- upload ZIP, verify 5 sections populated
+- [ ] 01-01-PLAN.md -- Foundation: Haiku 4.5 model constant, TypeScript interfaces, Zod schema, conversation sampling, tools_md migration
+- [ ] 01-02-PLAN.md -- Quick pass generation module + wire into import pipeline + update reset route
+- [ ] 01-03-PLAN.md -- Unit tests for sampling and generation + human verification
 
 ### Phase 2: Full Pass Pipeline
 **Goal**: Background processing map-reduces all conversations to produce a MEMORY section and conversation chunks, then regenerates all 5 quick-pass sections with complete data (v2)
@@ -128,9 +128,9 @@ Orphans: 0
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Schema + Quick Pass Pipeline | v1.2 | 0/3 | Not started | - |
+| 1. Schema + Quick Pass Pipeline | v1.2 | 0/3 | Planned | - |
 | 2. Full Pass Pipeline | v1.2 | 0/3 | Not started | - |
 | 3. Chat Integration + UX | v1.2 | 0/4 | Not started | - |
 
 ---
-*Last updated: 2026-02-06 after v1.2 roadmap revision (3-phase structure)*
+*Last updated: 2026-02-06 after Phase 1 planning (3 plans in 3 waves)*
