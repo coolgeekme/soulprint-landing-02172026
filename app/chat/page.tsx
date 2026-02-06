@@ -42,6 +42,7 @@ export default function ChatPage() {
   // Message queue for handling multiple messages while AI is responding
   const messageQueueRef = useRef<QueuedMessage[]>([]);
   const processingPromiseRef = useRef<Promise<void> | null>(null);
+  const latestPollIdRef = useRef(0);
 
   // Load initial state
   useEffect(() => {
@@ -113,38 +114,54 @@ export default function ChatPage() {
 
   // Poll memory/embedding status
   useEffect(() => {
+    const controller = new AbortController();
+    let pollSequence = 0;
+
     const checkMemoryStatus = async () => {
+      const currentSeq = ++pollSequence;
+      latestPollIdRef.current = currentSeq;
+
       try {
-        const res = await fetch('/api/memory/status');
+        const res = await fetch('/api/memory/status', {
+          signal: controller.signal
+        });
+
+        // Ignore if aborted or out-of-order
+        if (controller.signal.aborted) return;
+        if (currentSeq !== latestPollIdRef.current) {
+          console.log(`[Memory] Ignoring stale poll response (seq ${currentSeq} != ${latestPollIdRef.current})`);
+          return;
+        }
+
         if (res.ok) {
           const data = await res.json();
-          
+
           // If user has no soulprint and not processing, redirect to import
           if (!data.hasSoulprint && data.status === 'none') {
             router.push('/import');
             return;
           }
-          
+
           // Handle failed imports
           if (data.status === 'failed' || data.failed) {
             setMemoryStatus('failed');
             setImportError(data.importError || 'Import processing failed. Please try again.');
             return;
           }
-          
+
           // Still processing - show progress
           if (data.status === 'processing') {
             setMemoryStatus('processing');
             setMemoryProgress(data.embeddingProgress || 10);
             return;
           }
-          
+
           if (data.embeddingStatus === 'complete' || data.embeddingProgress >= 100) {
             setMemoryStatus('ready');
             setMemoryProgress(100);
           } else if (data.embeddingStatus === 'processing' || data.totalChunks > 0) {
             setMemoryStatus('loading');
-            const progress = data.totalChunks > 0 
+            const progress = data.totalChunks > 0
               ? Math.round((data.processedChunks / data.totalChunks) * 100)
               : data.embeddingProgress || 0;
             setMemoryProgress(progress);
@@ -154,13 +171,18 @@ export default function ChatPage() {
           }
         }
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
         console.error('Memory status check failed:', err);
       }
     };
-    
+
     checkMemoryStatus();
-    const interval = setInterval(checkMemoryStatus, 5000); // Poll every 5s
-    return () => clearInterval(interval);
+    const interval = setInterval(checkMemoryStatus, 5000);
+
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
   }, [router]);
 
   const saveMessage = async (role: string, content: string) => {
