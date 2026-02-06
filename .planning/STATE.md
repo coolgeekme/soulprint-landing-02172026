@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 ## Current Position
 
 Phase: 4 of 7 (Security Hardening)
-Plan: 3 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-06 — Completed 04-03-PLAN.md (RLS audit and remediation scripts)
+Last activity: 2026-02-06 — Completed 04-02-PLAN.md (rate limiting with Upstash Redis)
 
 Progress: [█████████░] 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 2m 32s
-- Total execution time: 0.40 hours
+- Total plans completed: 10
+- Average duration: 2m 38s
+- Total execution time: 0.44 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: [█████████░] 90%
 | 01-testing-foundation | 2 | 3m 16s | 1m 38s |
 | 02-memory-resource-cleanup | 3 | 14m 46s | 4m 55s |
 | 03-race-condition-fixes | 3 | 5m 59s | 2m 0s |
-| 04-security-hardening | 1 | 1m 4s | 1m 4s |
+| 04-security-hardening | 2 | 4m 49s | 2m 25s |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (8m 8s), 03-01 (2m 0s), 03-02 (1m 59s), 03-03 (2m 0s), 04-03 (1m 4s)
-- Trend: Simple script creation and SQL work very fast (~1 minute)
+- Last 5 plans: 03-01 (2m 0s), 03-02 (1m 59s), 03-03 (2m 0s), 04-03 (1m 4s), 04-02 (3m 45s)
+- Trend: Package installation and API integration takes ~3-4 minutes, scripts ~1 minute
 
 *Updated after each plan completion*
 
@@ -69,6 +69,10 @@ Recent decisions affecting current work:
 - auth.uid() for RLS policies over auth.jwt()->>'user_metadata' for cryptographic verification (04-03)
 - Idempotent SQL via IF NOT EXISTS checks for safe re-runs during deployment (04-03)
 - Service role key bypasses RLS for trusted server-side operations (04-03)
+- 3 tiered rate limits: standard (60/min), expensive (20/min), upload (100/min) for different endpoint costs (04-02)
+- Fail-open rate limiting: if Redis down, allow requests through for availability (04-02)
+- Lazy Redis initialization prevents build failures when Upstash env vars missing (04-02)
+- Per-user rate limiting (not IP-based) for authenticated abuse prevention (04-02)
 
 ### Pending Todos
 
@@ -80,8 +84,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-06 17:00:00 UTC
-Stopped at: Completed 04-03-PLAN.md (RLS audit and remediation scripts)
+Last session: 2026-02-06 17:01:41 UTC
+Stopped at: Completed 04-02-PLAN.md (rate limiting with Upstash Redis)
 Resume file: None
 
 ---
