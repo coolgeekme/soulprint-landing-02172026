@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { handleAPIError } from '@/lib/api/error-handler';
+import { parseRequestBody, saveMessageSchema } from '@/lib/api/schemas';
 
 function getSupabaseAdmin() {
   return createAdminClient(
@@ -66,25 +67,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { role, content } = body;
-
-    // Validate role is only 'user' or 'assistant'
-    const validRoles = ['user', 'assistant'] as const;
-    if (!role || !validRoles.includes(role)) {
-      return NextResponse.json({ error: 'Invalid role. Must be "user" or "assistant"' }, { status: 400 });
-    }
-
-    // Validate content exists and is a string
-    if (!content || typeof content !== 'string') {
-      return NextResponse.json({ error: 'Content is required and must be a string' }, { status: 400 });
-    }
-
-    // Validate content length (100KB max)
-    const MAX_MESSAGE_LENGTH = 100000;
-    if (content.length > MAX_MESSAGE_LENGTH) {
-      return NextResponse.json({ error: `Message too long. Max ${MAX_MESSAGE_LENGTH} characters` }, { status: 400 });
-    }
+    // Parse and validate request body
+    const result = await parseRequestBody(request, saveMessageSchema);
+    if (result instanceof Response) return result;
+    const { role, content } = result;
 
     const adminSupabase = getSupabaseAdmin();
     

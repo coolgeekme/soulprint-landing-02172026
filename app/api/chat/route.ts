@@ -12,6 +12,7 @@ import { getMemoryContext } from '@/lib/memory/query';
 import { learnFromChat } from '@/lib/memory/learning';
 import { shouldAttemptRLM, recordSuccess, recordFailure } from '@/lib/rlm/health';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { parseRequestBody, chatRequestSchema } from '@/lib/api/schemas';
 
 // Initialize Bedrock client
 const bedrockClient = new BedrockRuntimeClient({
@@ -179,23 +180,12 @@ export async function POST(request: NextRequest) {
     const rateLimited = await checkRateLimit(user.id, 'expensive');
     if (rateLimited) return rateLimited;
 
-    // Parse request body
-    const body = await request.json();
-    const { message, history = [], voiceVerified = true, deepSearch = false } = body as {
-      message: string;
-      history?: ChatMessage[];
-      voiceVerified?: boolean;
-      deepSearch?: boolean;
-    };
-    
-    console.log('[Chat] Voice verified:', voiceVerified, '| Deep Search:', deepSearch);
+    // Parse and validate request body
+    const result = await parseRequestBody(request, chatRequestSchema);
+    if (result instanceof Response) return result;
+    const { message, history, voiceVerified, deepSearch } = result;
 
-    if (!message || typeof message !== 'string') {
-      return new Response(
-        JSON.stringify({ error: 'Message is required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log('[Chat] Voice verified:', voiceVerified, '| Deep Search:', deepSearch);
 
     // Get user profile for soulprint context
     const adminSupabase = getSupabaseAdmin();

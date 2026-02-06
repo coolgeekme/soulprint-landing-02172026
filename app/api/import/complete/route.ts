@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/email';
 import { handleAPIError } from '@/lib/api/error-handler';
+import { parseRequestBody, importCompleteSchema } from '@/lib/api/schemas';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -102,7 +103,9 @@ function generateSoulPrintReadyEmail(userName: string, memoryBuilding = false) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    // Parse and validate request body
+    const result = await parseRequestBody(request, importCompleteSchema);
+    if (result instanceof Response) return result;
     const {
       user_id,
       // Progressive availability: soulprint_ready comes first, memory_building continues
@@ -111,11 +114,7 @@ export async function POST(request: Request) {
       // Legacy params (for backwards compatibility)
       chunks_embedded,
       processing_time
-    } = body;
-
-    if (!user_id) {
-      return NextResponse.json({ error: 'user_id required' }, { status: 400 });
-    }
+    } = result;
 
     const isProgressiveMode = soulprint_ready === true;
     console.log(`[ImportComplete] ${isProgressiveMode ? 'SoulPrint ready' : 'Full processing complete'} for user ${user_id}`);

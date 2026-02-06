@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { searchMemoryLayered as searchMemory } from '@/lib/memory/query';
 import { extractFacts } from '@/lib/memory/facts';
 import { handleAPIError } from '@/lib/api/error-handler';
+import { parseRequestBody, memoryQuerySchema } from '@/lib/api/schemas';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,16 +18,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse request body
-    const body = await request.json();
-    const { query, topK = 5, includeFacts = false } = body;
-
-    if (!query || typeof query !== 'string') {
-      return NextResponse.json(
-        { error: 'Query is required' },
-        { status: 400 }
-      );
-    }
+    // Parse and validate request body
+    const result = await parseRequestBody(request, memoryQuerySchema);
+    if (result instanceof Response) return result;
+    const { query, topK, includeFacts } = result;
 
     // Search memory
     const chunks = await searchMemory(user.id, query, topK);

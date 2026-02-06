@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { parseRequestBody, pushSubscribeSchema } from '@/lib/api/schemas';
 
 export async function POST(request: Request) {
   try {
@@ -15,11 +16,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const subscription = await request.json();
-
-    if (!subscription || !subscription.endpoint) {
-      return NextResponse.json({ error: 'Invalid subscription' }, { status: 400 });
-    }
+    // Parse and validate request body
+    const result = await parseRequestBody(request, pushSubscribeSchema);
+    if (result instanceof Response) return result;
+    const subscription = result;
 
     // Save subscription to user profile
     const { error: updateError } = await supabase

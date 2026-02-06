@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { handleAPIError } from '@/lib/api/error-handler';
+import { parseRequestBody, memoryDeleteSchema } from '@/lib/api/schemas';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,15 +12,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { memoryId, memoryIds } = body;
+    // Parse and validate request body
+    const result = await parseRequestBody(request, memoryDeleteSchema);
+    if (result instanceof Response) return result;
+    const { memoryId, memoryIds } = result;
 
     // Support single deletion or bulk deletion
     const idsToDelete = memoryIds || (memoryId ? [memoryId] : []);
-    
-    if (idsToDelete.length === 0) {
-      return NextResponse.json({ error: 'No memory IDs provided' }, { status: 400 });
-    }
 
     // Delete the chunks (with user_id check for security)
     const { error, count } = await supabase

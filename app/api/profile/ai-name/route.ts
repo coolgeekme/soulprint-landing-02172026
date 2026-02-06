@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { handleAPIError } from '@/lib/api/error-handler';
+import { parseRequestBody, aiNameSchema } from '@/lib/api/schemas';
 
 function getSupabaseAdmin() {
   return createAdminClient(
@@ -50,13 +51,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name } = await request.json();
-    
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
-    }
+    // Parse and validate request body
+    const result = await parseRequestBody(request, aiNameSchema);
+    if (result instanceof Response) return result;
+    const { name } = result;
 
-    const cleanName = name.trim().slice(0, 50); // Limit to 50 chars
+    const cleanName = name.slice(0, 50); // Limit to 50 chars (trim is in schema)
 
     const adminSupabase = getSupabaseAdmin();
     const { error: updateError } = await adminSupabase

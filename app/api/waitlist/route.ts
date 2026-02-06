@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { randomBytes } from 'crypto';
 import { sendEmail, generateWaitlistConfirmationEmail } from '@/lib/email';
+import { parseRequestBody, waitlistSchema } from '@/lib/api/schemas';
 
 export const runtime = 'nodejs';
 
@@ -21,11 +22,10 @@ function getSupabaseAdmin() {
 
 export async function POST(request: Request) {
   try {
-    const { email, name } = await request.json();
-
-    if (!email || !email.includes('@')) {
-      return NextResponse.json({ error: 'Valid email required' }, { status: 400 });
-    }
+    // Parse and validate request body
+    const result = await parseRequestBody(request, waitlistSchema);
+    if (result instanceof Response) return result;
+    const { email, name } = result;
 
     const supabase = getSupabaseAdmin();
 
