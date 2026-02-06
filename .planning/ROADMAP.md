@@ -73,19 +73,19 @@ Plans:
 **Goal**: Production-ready security posture with defense in depth
 **Depends on**: Phase 3
 **Requirements**: SEC-01, SEC-02, SEC-03, SEC-04
+**Plans:** 4 plans
 **Success Criteria** (what must be TRUE):
   1. All state-changing API endpoints validate CSRF tokens (POST, PUT, DELETE)
   2. API endpoints enforce per-user rate limits and return 429 with Retry-After header
   3. All Supabase tables have RLS enabled (verified by SQL query)
   4. All API route request bodies validated with Zod schemas before processing
   5. Security headers configured (X-Frame-Options, CSP, Permissions-Policy)
-**Plans**: TBD
 
 Plans:
-- [ ] 04-01: Implement CSRF protection with @edge-csrf/nextjs
-- [ ] 04-02: Add per-user rate limiting with @upstash/ratelimit
-- [ ] 04-03: Audit and verify RLS policies on all tables
-- [ ] 04-04: Add Zod validation schemas for all API routes
+- [ ] 04-01-PLAN.md -- CSRF protection via @edge-csrf/nextjs middleware + CSP and Permissions-Policy headers
+- [ ] 04-02-PLAN.md -- Per-user rate limiting with @upstash/ratelimit on critical routes
+- [ ] 04-03-PLAN.md -- RLS audit and remediation scripts for all Supabase tables
+- [ ] 04-04-PLAN.md -- Zod validation schemas for all critical API route request bodies
 
 ### Phase 5: Observability
 **Goal**: Production monitoring with structured logs and health checks
