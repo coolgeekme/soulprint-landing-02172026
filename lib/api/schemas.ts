@@ -140,7 +140,7 @@ export const chatGPTRawConversationSchema = z.object({
   title: z.string().optional(),
   create_time: z.number().optional(),
   update_time: z.number().optional(),
-  mapping: z.record(z.unknown()).optional(),
+  mapping: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const chatGPTExportSchema = z.array(chatGPTRawConversationSchema);
@@ -190,7 +190,7 @@ export const mem0MemorySchema = z.object({
   id: z.string(),
   memory: z.string(),
   hash: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });
@@ -212,7 +212,7 @@ export const mem0SearchResultSchema = z.object({
   id: z.string(),
   memory: z.string(),
   score: z.number().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**

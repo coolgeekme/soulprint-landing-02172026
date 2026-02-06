@@ -9,6 +9,7 @@ import {
   ConverseCommand,
   ConverseStreamCommand,
 } from '@aws-sdk/client-bedrock-runtime';
+import { bedrockEmbedResponseSchema } from '@/lib/api/schemas';
 
 // Lazy initialization
 let _client: BedrockRuntimeClient | null = null;
@@ -94,15 +95,17 @@ export async function bedrockChat(options: BedrockChatOptions): Promise<string> 
 
 /**
  * JSON completion - parses response as JSON
+ * NOTE: The `as T` cast is deliberate for generic usage where callers provide the expected type.
+ * This is a generic utility function that cannot validate specific types at runtime.
  */
 export async function bedrockChatJSON<T = unknown>(
   options: BedrockChatOptions
 ): Promise<T> {
   const response = await bedrockChat(options);
-  
+
   // Extract JSON from response (handle markdown code blocks)
   let jsonStr = response.trim();
-  
+
   // Remove markdown code blocks if present
   if (jsonStr.startsWith('```json')) {
     jsonStr = jsonStr.slice(7);
@@ -112,9 +115,9 @@ export async function bedrockChatJSON<T = unknown>(
   if (jsonStr.endsWith('```')) {
     jsonStr = jsonStr.slice(0, -3);
   }
-  
+
   jsonStr = jsonStr.trim();
-  
+
   try {
     return JSON.parse(jsonStr) as T;
   } catch (e) {
@@ -172,7 +175,7 @@ export async function* bedrockChatStream(
  */
 export async function bedrockEmbed(text: string, dimensions = 768): Promise<number[]> {
   const client = getBedrockClient();
-  
+
   // Truncate to safe limit
   const truncated = text.slice(0, 8000);
 
@@ -188,6 +191,15 @@ export async function bedrockEmbed(text: string, dimensions = 768): Promise<numb
   });
 
   const response = await client.send(command);
-  const result = JSON.parse(new TextDecoder().decode(response.body));
-  return result.embedding;
+
+  // Parse response as unknown first, then validate with Zod
+  const rawResult: unknown = JSON.parse(new TextDecoder().decode(response.body));
+  const validationResult = bedrockEmbedResponseSchema.safeParse(rawResult);
+
+  if (!validationResult.success) {
+    console.error('[bedrockEmbed] Invalid response from Bedrock:', validationResult.error.issues);
+    throw new Error('Invalid embedding response from Bedrock');
+  }
+
+  return validationResult.data.embedding;
 }
