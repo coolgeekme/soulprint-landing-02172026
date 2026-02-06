@@ -46,6 +46,8 @@ export default function ChatPage() {
 
   // Load initial state
   useEffect(() => {
+    const controller = new AbortController();
+
     const loadChatState = async () => {
       try {
         // Check auth
@@ -57,7 +59,7 @@ export default function ChatPage() {
         }
 
         // Check if AI has a name (if not, will be auto-generated on first chat)
-        const nameRes = await fetch('/api/profile/ai-name');
+        const nameRes = await fetch('/api/profile/ai-name', { signal: controller.signal });
         if (nameRes.ok) {
           const nameData = await nameRes.json();
           if (nameData.aiName) {
@@ -67,7 +69,7 @@ export default function ChatPage() {
         }
 
         // Load avatar
-        const avatarRes = await fetch('/api/profile/ai-avatar');
+        const avatarRes = await fetch('/api/profile/ai-avatar', { signal: controller.signal });
         if (avatarRes.ok) {
           const avatarData = await avatarRes.json();
           if (avatarData.avatarUrl) {
@@ -76,7 +78,7 @@ export default function ChatPage() {
         }
 
         // Load chat history
-        const historyRes = await fetch('/api/chat/messages?limit=100');
+        const historyRes = await fetch('/api/chat/messages?limit=100', { signal: controller.signal });
         if (historyRes.ok) {
           const data = await historyRes.json();
           if (data.messages?.length > 0) {
@@ -98,6 +100,7 @@ export default function ChatPage() {
           }
         }
       } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return;
         console.error('Failed to load chat state:', error);
         setMessages([{
           id: 'error',
@@ -106,10 +109,14 @@ export default function ChatPage() {
           timestamp: new Date(),
         }]);
       }
-      setLoadingHistory(false);
+      if (!controller.signal.aborted) {
+        setLoadingHistory(false);
+      }
     };
 
     loadChatState();
+
+    return () => controller.abort();
   }, [router, aiName]);
 
   // Poll memory/embedding status
