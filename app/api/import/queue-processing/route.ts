@@ -39,18 +39,54 @@ export async function POST(request: Request) {
     userId = user.id;
 
     const { storagePath, filename, fileSize, isExtracted } = await request.json();
-    
+
     if (!storagePath) {
       return NextResponse.json({ error: 'storagePath required' }, { status: 400 });
     }
-    
+
     console.log(`[QueueProcessing] isExtracted: ${isExtracted}, filename: ${filename}, useMotia: ${USE_MOTIA}`);
+
+    // --- Duplicate import guard ---
+    // Check if this user already has a processing import to prevent concurrent imports
+    const { data: existingProfile } = await adminSupabase
+      .from('user_profiles')
+      .select('import_status, processing_started_at')
+      .eq('user_id', user.id)
+      .single();
+
+    if (existingProfile?.import_status === 'processing') {
+      const startedAt = existingProfile.processing_started_at
+        ? new Date(existingProfile.processing_started_at).getTime()
+        : Date.now();
+      const elapsedMs = Date.now() - startedAt;
+      const elapsedMinutes = Math.round(elapsedMs / 1000 / 60);
+      const STUCK_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
+
+      if (elapsedMs < STUCK_THRESHOLD_MS) {
+        // Import is still fresh -- reject the duplicate
+        console.log(`[QueueProcessing] Duplicate import rejected for user ${user.id} (${elapsedMinutes}min elapsed)`);
+        return NextResponse.json(
+          {
+            error: 'Import already in progress. Please wait for it to complete.',
+            status: 'processing',
+            elapsedMinutes,
+          },
+          { status: 409 }
+        );
+      }
+
+      // Import appears stuck (>= 15 min) -- allow retry
+      console.warn(
+        `[QueueProcessing] Stuck import detected (${elapsedMinutes}min), allowing retry for user ${user.id}`
+      );
+    }
 
     // Update user profile to show processing started
     await adminSupabase.from('user_profiles').upsert({
       user_id: user.id,
       import_status: 'processing',
       import_error: null, // Clear any previous error
+      processing_started_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
     
