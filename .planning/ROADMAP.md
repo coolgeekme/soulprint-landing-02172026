@@ -120,12 +120,14 @@ Plans:
   2. v2 pipeline validated with real user data on production before full cutover
   3. v1 /process-full endpoint deprecated after v2 handles 100% traffic for 7+ days
   4. Production RLM deployed to Render with v1.2 capabilities via git push
-**Plans**: 3 plans
+**Plans**: 5 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Add V2_ROLLOUT_PERCENT traffic routing to Next.js import route
-- [ ] 05-02-PLAN.md — Add deprecation headers to v1 /process-full endpoint
-- [ ] 05-03-PLAN.md — Cutover runbook, validation SQL, and production deployment verification
+- [x] 05-01-PLAN.md — Add V2_ROLLOUT_PERCENT traffic routing to Next.js import route
+- [x] 05-02-PLAN.md — Add deprecation headers to v1 /process-full endpoint
+- [x] 05-03-PLAN.md — Cutover runbook, validation SQL, and production deployment verification
+- [ ] 05-04-PLAN.md — Gap closure: Add deprecation headers to production RLM and push to Render
+- [ ] 05-05-PLAN.md — Gap closure: Deploy Next.js with V2_ROLLOUT_PERCENT and verify production stack
 
 ## Progress
 
@@ -138,7 +140,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Copy & Modify Processors | v1.3 | 2/2 | Complete | 2026-02-07 |
 | 3. Wire New Endpoint | v1.3 | 2/2 | Complete | 2026-02-07 |
 | 4. Pipeline Integration | v1.3 | 2/2 | Complete | 2026-02-07 |
-| 5. Gradual Cutover | v1.3 | 0/3 | Not started | - |
+| 5. Gradual Cutover | v1.3 | 3/5 | Gap closure | - |
 
 ---
-*Last updated: 2026-02-07 after Phase 5 planning complete*
+*Last updated: 2026-02-07 after Phase 5 gap closure planning*
