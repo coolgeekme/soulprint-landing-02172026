@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 ## Current Position
 
 Phase: 4 of 5 (Pipeline Integration)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-02-07 — Phase 3 (Wire New Endpoint) complete, verified (12/12 must-haves)
+Plan: 1 of TBD in current phase
+Status: In progress
+Last activity: 2026-02-07 — Completed 04-01-PLAN.md (pipeline hardening)
 
-Progress: [███████░░░] 70%
+Progress: [███████░░░] 71%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5 (v1.3)
-- Average duration: 8.1 minutes
-- Total execution time: 0.67 hours
+- Total plans completed: 6 (v1.3)
+- Average duration: 8.2 minutes
+- Total execution time: 0.75 hours
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: [███████░░░] 70%
 | 01-dependency-extraction | 1 | 4 min | 4 min |
 | 02-copy-modify-processors | 2 | 5 min | 2.5 min |
 | 03-wire-new-endpoint | 2 | 28 min | 14 min |
+| 04-pipeline-integration | 1 | 9 min | 9 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4min), 02-01 (3min), 02-02 (2min), 03-01 (3.5min), 03-02 (24min)
-- Trend: Longer duration for testing phase (24min includes test development and full suite execution)
+- Last 5 plans: 02-01 (3min), 02-02 (2min), 03-01 (3.5min), 03-02 (24min), 04-01 (9min)
+- Trend: Execution time varies by complexity (testing phases longer, implementation phases faster)
 
 *Updated after each plan completion*
 
@@ -62,6 +63,9 @@ Recent decisions affecting current work:
 | WIRE-04 | Require storage_path for v2 endpoint | v2 processors designed for scalable storage-based flow | v2 endpoint returns 400 if storage_path not provided | 03-01 |
 | WIRE-05 | Reuse ProcessFullRequest model for v2 endpoint | Minimizes changes, leverages existing job tracking | v1 and v2 share same request schema and job system | 03-01 |
 | TEST-04 | Hybrid endpoint testing approach | Route inspection for registration, TestClient for functional checks | Endpoint tests are fast and reliable, 23 scenarios cover all endpoints | 03-02 |
+| PIPE-02 | Default concurrency to 3 for Render Starter | Render Starter has 512MB RAM, concurrency=10 would OOM | FACT_EXTRACTION_CONCURRENCY env var controls parallel fact extraction (1-50, default 3) | 04-01 |
+| MON-01 | Structured logging with user_id and step name | Enables production debugging via Render logs | All 9 pipeline steps log user_id and step name at boundaries | 04-01 |
+| MON-03 | V2 regeneration failure is non-fatal | MEMORY section is core value, v2 sections are enhancement | Pipeline marks complete if MEMORY saved, even if v2 regen fails | 04-01 |
 
 **Project-level decisions:**
 - v1.3: Separate soulprint-rlm repo — Production RLM deploys from Pu11en/soulprint-rlm, not soulprint-landing/rlm-service/ (Pending)
@@ -74,21 +78,22 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-None - Phase 3 complete with safety net.
+None - Plan 04-01 complete.
 
-**Readiness for Phase 4:**
-- ✅ /process-full-v2 endpoint wired and tested
-- ✅ All 16 endpoints verified (backwards compatibility confirmed)
-- ✅ Rollback procedure documented
-- ✅ 55 tests passing (17 adapter + 15 processor + 23 endpoint)
+**Readiness for next plan:**
+- ✅ Pipeline has configurable concurrency (safe for Render Starter)
+- ✅ Structured logging at all major steps (ready for monitoring)
+- ✅ Status tracking in user_profiles (UI can show progress)
+- ✅ Error messages include step context (debugging-friendly)
+- ✅ All 54 tests passing (no regressions)
 
 **Note:** Processors not yet tested end-to-end with real Supabase data. Phase 4 should include smoke test.
 
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Phase 3 complete and verified, ready to plan Phase 4
+Stopped at: Completed 04-01-PLAN.md (pipeline hardening)
 Resume file: None
 
 ---
-*Last updated: 2026-02-07 after Phase 3 execution and verification*
+*Last updated: 2026-02-07 after 04-01 execution*
