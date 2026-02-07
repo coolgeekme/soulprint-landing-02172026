@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 ## Current Position
 
 Phase: 3 of 3 (Chat Integration + UX)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-07 -- Completed 03-02-PLAN.md
+Last activity: 2026-02-07 -- Completed 03-03-PLAN.md
 
-Progress: [########..] 80% (8/10 plans)
+Progress: [#########.] 90% (9/10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 3.3min
-- Total execution time: 27.0min
+- Total plans completed: 9
+- Average duration: 3.2min
+- Total execution time: 30.0min
 
 **By Phase:**
 
@@ -29,7 +29,7 @@ Progress: [########..] 80% (8/10 plans)
 |-------|-------|-------|----------|
 | 1. Schema + Quick Pass Pipeline | 3/3 | 11min | 3.7min |
 | 2. Full Pass Pipeline | 3/3 | 8.1min | 2.7min |
-| 3. Chat Integration + UX | 2/4 | 7.9min | 4.0min |
+| 3. Chat Integration + UX | 3/4 | 10.9min | 3.6min |
 
 ## Accumulated Context
 
@@ -66,6 +66,10 @@ Recent decisions affecting current work:
 - 03-02: Import page redirects to /chat immediately after queue-processing completes (quick pass done)
 - 03-02: Removed all "We'll email you when ready" messaging from import flow
 - 03-02: Memory status endpoint exposes fullPassStatus and fullPassError for chat page progress indicator
+- 03-03: Chat page gates on import_status (redirects to /import if none/processing)
+- 03-03: Chat shows "Building deep memory..." indicator while full pass runs (based on fullPassStatus)
+- 03-03: Polling stops when fullPassStatus is complete/failed (resource optimization)
+- 03-03: Removed sendSoulprintReadyEmail function (v1.2 users go directly to chat)
 
 ### Pending Todos
 
@@ -81,7 +85,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Completed 03-02-PLAN.md
+Stopped at: Completed 03-03-PLAN.md
 Resume file: None
 
 ---
