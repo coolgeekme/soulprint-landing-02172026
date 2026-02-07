@@ -14,17 +14,17 @@
 
 ### Pipeline
 
-- [ ] **PIPE-01**: New /process-full-v2 endpoint dispatches fact extraction, MEMORY generation, and v2 section regeneration as background task
+- [x] **PIPE-01**: New /process-full-v2 endpoint dispatches fact extraction, MEMORY generation, and v2 section regeneration as background task
 - [ ] **PIPE-02**: Full pass pipeline completes: chunk conversations → extract facts (parallel) → consolidate → generate MEMORY → regenerate v2 sections → save to DB
 - [ ] **PIPE-03**: Pipeline handles large exports (5000+ conversations) via hierarchical fact reduction without OOM
 - [ ] **PIPE-04**: Pipeline failure is non-fatal — v1 soulprint sections remain functional for chat
 
 ### Deployment
 
-- [ ] **DEPLOY-01**: Health check validates all processor modules import correctly at startup
-- [ ] **DEPLOY-02**: All 14 existing production endpoints continue working after merge (zero breaking changes)
+- [x] **DEPLOY-01**: Health check validates all processor modules import correctly at startup
+- [x] **DEPLOY-02**: All 14 existing production endpoints continue working after merge (zero breaking changes)
 - [ ] **DEPLOY-03**: Production RLM deployed to Render with v1.2 capabilities via git push
-- [ ] **DEPLOY-04**: Rollback procedure documented — git revert + push restores previous version
+- [x] **DEPLOY-04**: Rollback procedure documented — git revert + push restores previous version
 
 ### Monitoring
 
@@ -66,14 +66,14 @@
 | MERGE-02 | Phase 1 | Complete |
 | MERGE-03 | Phase 1 | Complete |
 | MERGE-04 | Phase 2 | Complete |
-| PIPE-01 | Phase 3 | Pending |
+| PIPE-01 | Phase 3 | Complete |
 | PIPE-02 | Phase 4 | Pending |
 | PIPE-03 | Phase 4 | Pending |
 | PIPE-04 | Phase 4 | Pending |
-| DEPLOY-01 | Phase 3 | Pending |
-| DEPLOY-02 | Phase 3 | Pending |
+| DEPLOY-01 | Phase 3 | Complete |
+| DEPLOY-02 | Phase 3 | Complete |
 | DEPLOY-03 | Phase 5 | Pending |
-| DEPLOY-04 | Phase 3 | Pending |
+| DEPLOY-04 | Phase 3 | Complete |
 | MON-01 | Phase 4 | Pending |
 | MON-02 | Phase 4 | Pending |
 | MON-03 | Phase 4 | Pending |
@@ -95,4 +95,4 @@
 
 ---
 *Requirements defined: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 2 complete*
+*Last updated: 2026-02-07 after Phase 3 complete*

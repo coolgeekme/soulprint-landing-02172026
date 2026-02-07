@@ -91,8 +91,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Migrate to lifespan, add /process-full-v2 endpoint, enhance /health
-- [ ] 03-02-PLAN.md — Backwards compatibility tests and rollback documentation
+- [x] 03-01-PLAN.md — Migrate to lifespan, add /process-full-v2 endpoint, enhance /health
+- [x] 03-02-PLAN.md — Backwards compatibility tests and rollback documentation
 
 ### Phase 4: Pipeline Integration
 **Goal**: Full pass pipeline completes end-to-end with monitoring and handles large exports gracefully
@@ -133,9 +133,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|-----------|----------------|--------|-----------|
 | 1. Dependency Extraction | v1.3 | 1/1 | Complete | 2026-02-06 |
 | 2. Copy & Modify Processors | v1.3 | 2/2 | Complete | 2026-02-07 |
-| 3. Wire New Endpoint | v1.3 | 0/2 | Not started | - |
+| 3. Wire New Endpoint | v1.3 | 2/2 | Complete | 2026-02-07 |
 | 4. Pipeline Integration | v1.3 | 0/TBD | Not started | - |
 | 5. Gradual Cutover | v1.3 | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-02-07 after Phase 3 planning complete*
+*Last updated: 2026-02-07 after Phase 3 execution complete, verified*
