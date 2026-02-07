@@ -9,7 +9,7 @@ import asyncio
 import gzip
 from datetime import datetime, timedelta
 from typing import Optional, List
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -277,17 +277,28 @@ Guidelines:
 
 
 @app.post("/process-full")
-async def process_full(request: ProcessFullRequest, background_tasks: BackgroundTasks):
+async def process_full(request: ProcessFullRequest, background_tasks: BackgroundTasks, response: Response):
     """
+    DEPRECATED: Use /process-full-v2 instead.
+
     Accept full pass processing job and dispatch to background task.
     Returns 202 Accepted immediately - processing happens asynchronously.
     """
+    # Deprecation headers (RFC 8594)
+    response.headers["Deprecation"] = "true"
+    response.headers["Sunset"] = "Sat, 01 Mar 2026 00:00:00 GMT"
+    response.headers["Link"] = '</process-full-v2>; rel="alternate"'
+
+    # Log deprecation usage
+    print(f"[DEPRECATED] /process-full called by user {request.user_id}")
+
     # Dispatch background task
     background_tasks.add_task(run_full_pass, request)
 
     return {
         "status": "accepted",
-        "message": "Full pass processing started",
+        "message": "Full pass processing started (DEPRECATED: use /process-full-v2)",
+        "deprecation_notice": "This endpoint will be removed after v2 handles 100% traffic for 7+ days. Use /process-full-v2.",
     }
 
 
