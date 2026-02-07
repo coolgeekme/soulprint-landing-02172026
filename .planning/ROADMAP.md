@@ -105,10 +105,11 @@ Plans:
   4. full_pass_status field tracks pipeline state (processing/complete/failed)
   5. FACT_EXTRACTION_CONCURRENCY configurable via environment variable (default 3 for Render Starter tier)
   6. Pipeline errors logged with context (user_id, step, error) for debugging
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] TBD
+- [ ] 04-01-PLAN.md — Pipeline hardening: configurable concurrency, status tracking, enhanced error logging
+- [ ] 04-02-PLAN.md — Integration tests for pipeline + SQL migration for full_pass_status columns
 
 ### Phase 5: Gradual Cutover
 **Goal**: v2 pipeline handles 100% of production traffic and v1 endpoint is deprecated
@@ -134,8 +135,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Dependency Extraction | v1.3 | 1/1 | Complete | 2026-02-06 |
 | 2. Copy & Modify Processors | v1.3 | 2/2 | Complete | 2026-02-07 |
 | 3. Wire New Endpoint | v1.3 | 2/2 | Complete | 2026-02-07 |
-| 4. Pipeline Integration | v1.3 | 0/TBD | Not started | - |
+| 4. Pipeline Integration | v1.3 | 0/2 | Not started | - |
 | 5. Gradual Cutover | v1.3 | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-02-07 after Phase 3 execution complete, verified*
+*Last updated: 2026-02-07 after Phase 4 planning complete*
