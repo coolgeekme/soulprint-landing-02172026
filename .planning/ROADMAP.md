@@ -150,13 +150,14 @@ This milestone eliminates the generic assistant feeling by implementing proper p
   7. System prompt instructs model to reference retrieved memory chunks naturally ("Like we discussed..." not ignoring context)
   8. Section validation filters "not enough data" placeholders before prompt composition
   9. Pending DB migrations executed in production (section columns exist and are queryable)
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — TDD: Section validation (cleanSection) + formatting (formatSection) helpers with tests
-- [ ] 06-02-PLAN.md — Next.js prompt update: use new helpers, add memory/anti-generic instructions, personalized greeting
-- [ ] 06-03-PLAN.md — RLM prompt consistency: Python helpers matching TypeScript, identical base prompt
-- [ ] 06-04-PLAN.md — Execute pending DB migrations in Supabase (checkpoint)
+- [x] 06-01-PLAN.md — TDD: Section validation (cleanSection) + formatting (formatSection) helpers with tests
+- [x] 06-02-PLAN.md — Next.js prompt update: use new helpers, add memory/anti-generic instructions
+- [x] 06-03-PLAN.md — RLM prompt consistency: Python helpers matching TypeScript, cross-language hash test
+- [x] 06-04-PLAN.md — Execute pending DB migrations in Supabase (checkpoint)
+- [x] 06-05-PLAN.md — Personalized greeting from IDENTITY section
 
 ### Phase 7: Production Deployment
 **Goal**: Updated RLM deployed to Render with new prompt system, personality verified end-to-end
@@ -184,8 +185,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Wire New Endpoint | v1.3 | 2/2 | Complete | 2026-02-07 |
 | 4. Pipeline Integration | v1.3 | 2/2 | Complete | 2026-02-07 |
 | 5. Gradual Cutover | v1.3 | 3/5 | Gap closure | - |
-| 6. Prompt Foundation | v1.4 | 0/4 | Planned | - |
+| 6. Prompt Foundation | v1.4 | 5/5 | Complete | 2026-02-07 |
 | 7. Production Deployment | v1.4 | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-02-07 after v1.4 roadmap creation*
+*Last updated: 2026-02-07 — Phase 6 complete (5/5 plans, verified)*

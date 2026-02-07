@@ -7,24 +7,24 @@
 
 ### Prompt System
 
-- [ ] **PROMPT-01**: AI chat uses all 7 structured sections (SOUL/IDENTITY/USER/AGENTS/TOOLS/MEMORY) in system prompt, not generic filler
-- [ ] **PROMPT-02**: RLM `/query` endpoint and Next.js Bedrock fallback use a shared prompt template so personality is consistent regardless of which path handles the request
-- [ ] **PROMPT-03**: System prompt uses OpenClaw-inspired natural language personality (values/principles, not robotic "NEVER do X" rules)
-- [ ] **PROMPT-04**: System prompt includes anti-generic instructions — no "Great question!", "I'd be happy to help!", or "How can I assist you today?"
+- [x] **PROMPT-01**: AI chat uses all 7 structured sections (SOUL/IDENTITY/USER/AGENTS/TOOLS/MEMORY) in system prompt, not generic filler
+- [x] **PROMPT-02**: RLM `/query` endpoint and Next.js Bedrock fallback use a shared prompt template so personality is consistent regardless of which path handles the request
+- [x] **PROMPT-03**: System prompt uses OpenClaw-inspired natural language personality (values/principles, not robotic "NEVER do X" rules)
+- [x] **PROMPT-04**: System prompt includes anti-generic instructions — no "Great question!", "I'd be happy to help!", or "How can I assist you today?"
 
 ### AI Identity
 
-- [ ] **IDENT-01**: AI refers to itself by its generated name (e.g., "I'm Echo") naturally in conversation
-- [ ] **IDENT-02**: First message uses personality sections to craft a personalized greeting, not a generic "Hello"
+- [x] **IDENT-01**: AI refers to itself by its generated name (e.g., "I'm Echo") naturally in conversation
+- [x] **IDENT-02**: First message uses personality sections to craft a personalized greeting, not a generic "Hello"
 
 ### Memory & Context
 
-- [ ] **MEM-01**: System prompt instructs model to reference retrieved conversation chunks naturally ("Like we discussed..." not ignoring context)
-- [ ] **MEM-02**: Section validation filters "not enough data" placeholders before prompt composition
+- [x] **MEM-01**: System prompt instructs model to reference retrieved conversation chunks naturally ("Like we discussed..." not ignoring context)
+- [x] **MEM-02**: Section validation filters "not enough data" placeholders before prompt composition
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: Pending DB migrations executed (section columns exist in production)
+- [x] **INFRA-01**: Pending DB migrations executed (section columns exist in production)
 - [ ] **INFRA-02**: Updated RLM deployed to Render with new prompt system
 
 ## Future Requirements (deferred)
@@ -53,15 +53,15 @@
 
 | Requirement | Phase | Plan(s) | Status |
 |-------------|-------|---------|--------|
-| PROMPT-01 | Phase 6 | TBD | Pending |
-| PROMPT-02 | Phase 6 | TBD | Pending |
-| PROMPT-03 | Phase 6 | TBD | Pending |
-| PROMPT-04 | Phase 6 | TBD | Pending |
-| IDENT-01 | Phase 6 | TBD | Pending |
-| IDENT-02 | Phase 6 | TBD | Pending |
-| MEM-01 | Phase 6 | TBD | Pending |
-| MEM-02 | Phase 6 | TBD | Pending |
-| INFRA-01 | Phase 6 | TBD | Pending |
+| PROMPT-01 | Phase 6 | 06-01, 06-02 | Complete |
+| PROMPT-02 | Phase 6 | 06-01, 06-03 | Complete |
+| PROMPT-03 | Phase 6 | 06-02, 06-03 | Complete |
+| PROMPT-04 | Phase 6 | 06-02, 06-03 | Complete |
+| IDENT-01 | Phase 6 | 06-02, 06-05 | Complete |
+| IDENT-02 | Phase 6 | 06-05 | Complete |
+| MEM-01 | Phase 6 | 06-02, 06-03 | Complete |
+| MEM-02 | Phase 6 | 06-01, 06-02 | Complete |
+| INFRA-01 | Phase 6 | 06-04 | Complete |
 | INFRA-02 | Phase 7 | TBD | Pending |
 
 **Coverage:**
@@ -75,4 +75,4 @@
 
 ---
 *10 requirements across 4 categories*
-*Last updated: 2026-02-07 — v1.4 roadmap complete*
+*Last updated: 2026-02-07 — Phase 6 complete (9/9 requirements satisfied)*
