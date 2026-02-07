@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 ## Current Position
 
 Phase: 3 of 3 (Chat Integration + UX)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-07 -- Completed 03-01-PLAN.md
+Last activity: 2026-02-07 -- Completed 03-02-PLAN.md
 
-Progress: [#######...] 70% (7/10 plans)
+Progress: [########..] 80% (8/10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 3.4min
-- Total execution time: 24.1min
+- Total plans completed: 8
+- Average duration: 3.3min
+- Total execution time: 27.0min
 
 **By Phase:**
 
@@ -29,7 +29,7 @@ Progress: [#######...] 70% (7/10 plans)
 |-------|-------|-------|----------|
 | 1. Schema + Quick Pass Pipeline | 3/3 | 11min | 3.7min |
 | 2. Full Pass Pipeline | 3/3 | 8.1min | 2.7min |
-| 3. Chat Integration + UX | 1/4 | 5min | 5.0min |
+| 3. Chat Integration + UX | 2/4 | 7.9min | 4.0min |
 
 ## Accumulated Context
 
@@ -63,6 +63,9 @@ Recent decisions affecting current work:
 - 03-01: Include placeholder "Building your memory in background..." when memory_md is null
 - 03-01: Fetch top 20 recent learned facts for daily memory section
 - 03-01: Use sectionToMarkdown from quick-pass for consistent section rendering
+- 03-02: Import page redirects to /chat immediately after queue-processing completes (quick pass done)
+- 03-02: Removed all "We'll email you when ready" messaging from import flow
+- 03-02: Memory status endpoint exposes fullPassStatus and fullPassError for chat page progress indicator
 
 ### Pending Todos
 
@@ -78,7 +81,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Completed 03-01-PLAN.md
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None
 
 ---
