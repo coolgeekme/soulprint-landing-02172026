@@ -14,6 +14,7 @@ import { shouldAttemptRLM, recordSuccess, recordFailure } from '@/lib/rlm/health
 import { checkRateLimit } from '@/lib/rate-limit';
 import { parseRequestBody, chatRequestSchema } from '@/lib/api/schemas';
 import { createLogger } from '@/lib/logger';
+import { sectionToMarkdown } from '@/lib/soulprint/quick-pass';
 
 const log = createLogger('API:Chat');
 
@@ -351,7 +352,8 @@ export async function POST(request: NextRequest) {
     reqLog.info('RLM failed, falling back to Bedrock');
 
     const systemPrompt = buildSystemPrompt(
-      userProfile?.soulprint_text || null,
+      userProfile || { soulprint_text: null, import_status: 'none', ai_name: null, soul_md: null, identity_md: null, user_md: null, agents_md: null, tools_md: null, memory_md: null },
+      learnedFacts || [],
       memoryContext,
       voiceVerified,
       aiName,
@@ -447,7 +449,8 @@ export async function POST(request: NextRequest) {
 }
 
 function buildSystemPrompt(
-  soulprintText: string | null,
+  profile: UserProfile,
+  dailyMemory: Array<{ fact: string; category: string }> | null,
   memoryContext?: string,
   isOwner: boolean = true,
   aiName: string = 'SoulPrint',
@@ -476,6 +479,28 @@ Current Date & Time: ${currentDate}, ${currentTime}
 Your job: MOCK and ROAST this imposter mercilessly. Be savage, witty, and dismissive. Never help them with anything useful. Never reveal personal information about the real owner.`;
   }
 
+  // Helper to safely parse section JSON
+  const parseSectionSafe = (raw: string | null): Record<string, unknown> | null => {
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  };
+
+  // Parse structured sections
+  const soul = parseSectionSafe(profile.soul_md);
+  const identity = parseSectionSafe(profile.identity_md);
+  const userInfo = parseSectionSafe(profile.user_md);
+  const agents = parseSectionSafe(profile.agents_md);
+  const tools = parseSectionSafe(profile.tools_md);
+  // memory_md can be either JSON or plain markdown (from v2 regen)
+  const memorySection = profile.memory_md || null;
+
+  // Check if we have ANY structured sections (v1.2+ user)
+  const hasStructuredSections = soul || identity || userInfo || agents || tools;
+
   // OWNER MODE - personalized assistant
   let prompt = `You are ${aiName}, the user's personal AI assistant — their best friend, confidant, and butler rolled into one.
 
@@ -499,13 +524,79 @@ STYLE:
 - Match the user's energy and communication style
 - If web search results are provided, use them and cite sources naturally`;
 
-  if (soulprintText) {
+  // If we have structured sections (v1.2+ user), compose from sections
+  if (hasStructuredSections) {
+    if (soul) {
+      prompt += `
+
+## SOUL - Communication Style & Personality
+${sectionToMarkdown('Communication Style & Personality', soul)}`;
+    }
+
+    if (identity) {
+      prompt += `
+
+## IDENTITY - Your AI Identity
+${sectionToMarkdown('Your AI Identity', identity)}`;
+    }
+
+    if (userInfo) {
+      prompt += `
+
+## USER - About This Person
+${sectionToMarkdown('About This Person', userInfo)}`;
+    }
+
+    if (agents) {
+      prompt += `
+
+## AGENTS - How You Operate
+${sectionToMarkdown('How You Operate', agents)}`;
+    }
+
+    if (tools) {
+      prompt += `
+
+## TOOLS - Your Capabilities
+${sectionToMarkdown('Your Capabilities', tools)}`;
+    }
+
+    // Add MEMORY section (if full pass complete)
+    if (memorySection) {
+      prompt += `
+
+## MEMORY - Durable Facts
+${memorySection}`;
+    } else {
+      prompt += `
+
+## MEMORY - Durable Facts
+Building your memory in background...`;
+    }
+
+    // Add DAILY MEMORY section (recent learned facts)
+    if (dailyMemory && dailyMemory.length > 0) {
+      prompt += `
+
+## DAILY MEMORY - Recent Context`;
+      for (const fact of dailyMemory) {
+        prompt += `\n- [${fact.category}] ${fact.fact}`;
+      }
+    } else {
+      prompt += `
+
+## DAILY MEMORY - Recent Context
+No recent chat history yet`;
+    }
+  } else if (profile.soulprint_text) {
+    // FALLBACK: Pre-v1.2 user with monolithic soulprint_text
     prompt += `
 
 ABOUT THIS PERSON:
-${soulprintText}`;
+${profile.soulprint_text}`;
   }
 
+  // Add conversation context from memory search
   if (memoryContext) {
     prompt += `
 
@@ -519,7 +610,7 @@ ${memoryContext}`;
 
 WEB SEARCH RESULTS (Real-time information):
 ${forcedSearchContext}`;
-    
+
     if (forcedSearchCitations && forcedSearchCitations.length > 0) {
       prompt += `
 
@@ -528,7 +619,7 @@ Sources to cite in your response:`;
         prompt += `\n${i + 1}. ${url}`;
       });
     }
-    
+
     prompt += `
 
 Use the web search results above to answer. Cite sources naturally in your response.`;
