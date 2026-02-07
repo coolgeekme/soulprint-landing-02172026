@@ -123,60 +123,46 @@ export default function ChatPage() {
   // Poll memory/embedding status
   useEffect(() => {
     const controller = new AbortController();
-    let pollSequence = 0;
+    const shouldPoll = { current: true };
 
     const checkMemoryStatus = async () => {
-      const currentSeq = ++pollSequence;
-      latestPollIdRef.current = currentSeq;
+      if (!shouldPoll.current) return;
 
       try {
         const res = await fetch('/api/memory/status', {
           signal: controller.signal
         });
-
-        // Ignore if aborted or out-of-order
         if (controller.signal.aborted) return;
-        if (currentSeq !== latestPollIdRef.current) {
-          console.log(`[Memory] Ignoring stale poll response (seq ${currentSeq} != ${latestPollIdRef.current})`);
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        // Gate: no soulprint and not ready -> redirect to import
+        if (!data.hasSoulprint && (data.status === 'none' || data.status === 'processing')) {
+          router.push('/import');
           return;
         }
 
-        if (res.ok) {
-          const data = await res.json();
+        // Gate: failed import
+        if (data.status === 'failed' || data.failed) {
+          setMemoryStatus('failed');
+          setImportError(data.import_error || data.importError || 'Import processing failed. Please try again.');
+          return;
+        }
 
-          // If user has no soulprint and not processing, redirect to import
-          if (!data.hasSoulprint && data.status === 'none') {
-            router.push('/import');
-            return;
-          }
-
-          // Handle failed imports
-          if (data.status === 'failed' || data.failed) {
-            setMemoryStatus('failed');
-            setImportError(data.importError || 'Import processing failed. Please try again.');
-            return;
-          }
-
-          // Still processing - show progress
-          if (data.status === 'processing') {
-            setMemoryStatus('processing');
-            setMemoryProgress(data.embeddingProgress || 10);
-            return;
-          }
-
-          if (data.embeddingStatus === 'complete' || data.embeddingProgress >= 100) {
-            setMemoryStatus('ready');
-            setMemoryProgress(100);
-          } else if (data.embeddingStatus === 'processing' || data.totalChunks > 0) {
-            setMemoryStatus('loading');
-            const progress = data.totalChunks > 0
-              ? Math.round((data.processedChunks / data.totalChunks) * 100)
-              : data.embeddingProgress || 0;
-            setMemoryProgress(progress);
-          } else {
-            setMemoryStatus('none');
-            setMemoryProgress(null);
-          }
+        // Has soulprint (quick_ready or complete) -- check full pass status
+        const fps = data.fullPassStatus || 'pending';
+        if (fps === 'complete') {
+          setMemoryStatus('ready');
+          shouldPoll.current = false; // Stop polling
+        } else if (fps === 'failed') {
+          // Full pass failure is non-fatal -- user can still chat with v1 sections
+          setMemoryStatus('ready');
+          shouldPoll.current = false;
+          console.warn('[Chat] Full pass failed (non-fatal):', data.fullPassError);
+        } else {
+          // pending or processing
+          setMemoryStatus('building');
         }
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
@@ -189,6 +175,7 @@ export default function ChatPage() {
 
     return () => {
       controller.abort();
+      shouldPoll.current = false;
       clearInterval(interval);
     };
   }, [router]);
@@ -584,13 +571,13 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* Memory Loading Indicator */}
-      {(memoryStatus === 'loading' || memoryStatus === 'processing') && memoryProgress !== null && memoryProgress < 100 && (
+      {/* Memory Building Indicator */}
+      {memoryStatus === 'building' && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40">
           <div className="bg-[#1a1a1a]/90 backdrop-blur-sm border border-[#262626] rounded-full px-4 py-2 flex items-center gap-2">
             <div className="w-3 h-3 border-2 border-[#EA580C] border-t-transparent rounded-full animate-spin" />
             <span className="text-sm text-[#a3a3a3]">
-              {memoryStatus === 'processing' ? 'Processing import...' : `Memory: ${memoryProgress}%`}
+              Building deep memory...
             </span>
           </div>
         </div>
