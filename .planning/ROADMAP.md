@@ -108,8 +108,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Pipeline hardening: configurable concurrency, status tracking, enhanced error logging
-- [ ] 04-02-PLAN.md — Integration tests for pipeline + SQL migration for full_pass_status columns
+- [x] 04-01-PLAN.md — Pipeline hardening: configurable concurrency, status tracking, enhanced error logging
+- [x] 04-02-PLAN.md — Integration tests for pipeline + SQL migration for full_pass_status columns
 
 ### Phase 5: Gradual Cutover
 **Goal**: v2 pipeline handles 100% of production traffic and v1 endpoint is deprecated
@@ -135,8 +135,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Dependency Extraction | v1.3 | 1/1 | Complete | 2026-02-06 |
 | 2. Copy & Modify Processors | v1.3 | 2/2 | Complete | 2026-02-07 |
 | 3. Wire New Endpoint | v1.3 | 2/2 | Complete | 2026-02-07 |
-| 4. Pipeline Integration | v1.3 | 0/2 | Not started | - |
+| 4. Pipeline Integration | v1.3 | 2/2 | Complete | 2026-02-07 |
 | 5. Gradual Cutover | v1.3 | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-02-07 after Phase 4 planning complete*
+*Last updated: 2026-02-07 after Phase 4 execution complete, verified*

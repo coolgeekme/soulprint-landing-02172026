@@ -15,9 +15,9 @@
 ### Pipeline
 
 - [x] **PIPE-01**: New /process-full-v2 endpoint dispatches fact extraction, MEMORY generation, and v2 section regeneration as background task
-- [ ] **PIPE-02**: Full pass pipeline completes: chunk conversations → extract facts (parallel) → consolidate → generate MEMORY → regenerate v2 sections → save to DB
-- [ ] **PIPE-03**: Pipeline handles large exports (5000+ conversations) via hierarchical fact reduction without OOM
-- [ ] **PIPE-04**: Pipeline failure is non-fatal — v1 soulprint sections remain functional for chat
+- [x] **PIPE-02**: Full pass pipeline completes: chunk conversations → extract facts (parallel) → consolidate → generate MEMORY → regenerate v2 sections → save to DB
+- [x] **PIPE-03**: Pipeline handles large exports (5000+ conversations) via hierarchical fact reduction without OOM
+- [x] **PIPE-04**: Pipeline failure is non-fatal — v1 soulprint sections remain functional for chat
 
 ### Deployment
 
@@ -28,9 +28,9 @@
 
 ### Monitoring
 
-- [ ] **MON-01**: full_pass_status field tracks pipeline state (processing/complete/failed) in user_profiles
-- [ ] **MON-02**: Concurrency limit configurable via environment variable (FACT_EXTRACTION_CONCURRENCY, default 3)
-- [ ] **MON-03**: Pipeline errors logged with context for debugging (user_id, step, error)
+- [x] **MON-01**: full_pass_status field tracks pipeline state (processing/complete/failed) in user_profiles
+- [x] **MON-02**: Concurrency limit configurable via environment variable (FACT_EXTRACTION_CONCURRENCY, default 3)
+- [x] **MON-03**: Pipeline errors logged with context for debugging (user_id, step, error)
 
 ### Cutover
 
@@ -67,16 +67,16 @@
 | MERGE-03 | Phase 1 | Complete |
 | MERGE-04 | Phase 2 | Complete |
 | PIPE-01 | Phase 3 | Complete |
-| PIPE-02 | Phase 4 | Pending |
-| PIPE-03 | Phase 4 | Pending |
-| PIPE-04 | Phase 4 | Pending |
+| PIPE-02 | Phase 4 | Complete |
+| PIPE-03 | Phase 4 | Complete |
+| PIPE-04 | Phase 4 | Complete |
 | DEPLOY-01 | Phase 3 | Complete |
 | DEPLOY-02 | Phase 3 | Complete |
 | DEPLOY-03 | Phase 5 | Pending |
 | DEPLOY-04 | Phase 3 | Complete |
-| MON-01 | Phase 4 | Pending |
-| MON-02 | Phase 4 | Pending |
-| MON-03 | Phase 4 | Pending |
+| MON-01 | Phase 4 | Complete |
+| MON-02 | Phase 4 | Complete |
+| MON-03 | Phase 4 | Complete |
 | CUT-01 | Phase 5 | Pending |
 | CUT-02 | Phase 5 | Pending |
 | CUT-03 | Phase 5 | Pending |
@@ -95,4 +95,4 @@
 
 ---
 *Requirements defined: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 3 complete*
+*Last updated: 2026-02-07 after Phase 4 complete*
