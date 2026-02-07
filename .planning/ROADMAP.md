@@ -59,10 +59,10 @@ This milestone merges v1.2's modular processor architecture into the production 
   2. Production schema verified — chunk_tier enum values documented
   3. Adapter functions have unit tests with 100% coverage
   4. No production code modified (main.py unchanged, zero risk)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] TBD
+- [ ] 01-01-PLAN.md — TDD: Supabase adapter layer with 100% test coverage
 
 ### Phase 2: Copy & Modify Processors
 **Goal**: v1.2 processor modules are integrated and Dockerfile can build container with all modules verified
