@@ -1,316 +1,314 @@
-# Stack Research: RLM Production Sync
+# Stack Research: AI Personalization Prompt System
 
-**Domain:** FastAPI Modular Code Merge
-**Researched:** 2026-02-06
+**Domain:** OpenClaw-inspired AI personality injection for chat personalization
+**Researched:** 2026-02-07
 **Confidence:** HIGH
 
-## Recommended Stack
+## Executive Summary
 
-### Core Technologies (Already Present)
+After analyzing OpenClaw's approach and the existing SoulPrint codebase, **no additional libraries are needed**. The current stack already contains everything required for OpenClaw-inspired personality injection:
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| Python | 3.12 | Runtime | Current production version, stable for FastAPI async operations |
-| FastAPI | >=0.109.0 | Web framework | Built-in dependency injection, async-first, automatic API docs |
-| Uvicorn | >=0.27.0 | ASGI server | Production-ready async server for FastAPI |
-| Anthropic | >=0.18.0 | LLM API | Claude models for soulprint generation, fact extraction |
-| httpx | >=0.26.0 | Async HTTP | Required for Supabase calls and external API integrations |
-| python-dotenv | >=1.0.0 | Config | Environment variable management |
+- **Vercel AI SDK (v6.0.72)**: Already installed, supports dynamic system prompts via template literals
+- **Anthropic API**: Already in use for chat (claude-sonnet-4-20250514 via Bedrock)
+- **TypeScript**: Native template literal composition is sufficient for prompt building
+- **Existing DB schema**: Already stores 7 sections (SOUL, IDENTITY, USER, AGENTS, TOOLS, MEMORY, daily)
 
-**No new dependencies needed.** All required libraries already present in requirements.txt.
+The gap is **architectural, not technological**. The existing `buildSystemPrompt()` function (lines 472-599 in `app/api/chat/route.ts`) already implements the OpenClaw pattern but isn't being used by RLM.
 
-### Testing Tools (New - Required for Merge Validation)
+## Recommended Stack (No Changes)
 
-| Tool | Version | Purpose | When to Use |
-|------|---------|---------|-------------|
-| pytest | >=8.0.0 | Test framework | Test all 14 endpoints after merge to ensure backwards compatibility |
-| pytest-asyncio | >=0.23.0 | Async test support | Required for testing async FastAPI endpoints |
-| httpx[testing] | (included with httpx) | TestClient | FastAPI's recommended testing client |
+### Core Technologies (Already Installed)
 
-### Development Tools
+| Technology | Current Version | Purpose | Why It's Sufficient |
+|------------|-----------------|---------|---------------------|
+| Vercel AI SDK | ^6.0.72 | AI abstraction layer | Supports dynamic system prompts via `system` property and template literals |
+| @ai-sdk/anthropic | ^3.0.36 | Anthropic integration | Direct API access for Claude models with streaming |
+| AWS Bedrock SDK | ^3.980.0 | Bedrock fallback | Already used for Haiku fallback and AI name generation |
+| TypeScript | ^5.x | Type safety | Native template literals are optimal for prompt composition |
+| Supabase | ^2.93.1 | Database | Already stores structured sections (soul_md, identity_md, etc.) |
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| Docker | Containerization | Already configured for Render deployment |
-| .dockerignore | Build optimization | Exclude __pycache__, .git, tests from image |
+### Supporting Libraries (Already Installed)
 
-## Installation
+| Library | Version | Current Use | Applies To New Features |
+|---------|---------|-------------|-------------------------|
+| zod | ^4.3.6 | Request validation | Validate prompt section structures |
+| pino | ^10.3.0 | Structured logging | Log prompt composition and personality injection |
 
-```bash
-# Core dependencies (already installed)
-pip install -r requirements.txt
+### Development Tools (No Changes)
 
-# Testing dependencies (NEW - add for merge validation)
-pip install pytest>=8.0.0 pytest-asyncio>=0.23.0
+| Tool | Current Use | Notes |
+|------|-------------|-------|
+| TypeScript | Type checking | Template literal typing is native |
+| Vitest | Unit testing | Test prompt builders with fixtures |
+| Playwright | E2E testing | Test personality-aware chat responses |
 
-# Or update requirements.txt:
-echo "pytest>=8.0.0" >> requirements.txt
-echo "pytest-asyncio>=0.23.0" >> requirements.txt
+## What NOT to Add
+
+| Avoid | Why | What We Have Instead |
+|-------|-----|---------------------|
+| Handlebars/Mustache | Adds complexity for simple string composition | TypeScript template literals (native, typed, fast) |
+| Dedicated prompt DSL (Impromptu, PromptML) | Overkill for single-use case, adds learning curve | Direct string composition with helper functions |
+| LangChain prompt templates | Heavy dependency (not installed), unnecessary abstraction | Vercel AI SDK + native templates |
+| Third-party prompt builders | External dependency, vendor lock-in | In-house `buildSystemPrompt()` function |
+| Markdown parsers (@ts-stack/markdown, marked) | Sections are stored as JSON or pre-formatted markdown | Direct interpolation (data is already clean) |
+
+## Integration Points with Existing Stack
+
+### 1. RLM Service Prompt Builder (New Function)
+
+**Location:** Create `lib/prompts/build-rlm-prompt.ts`
+
+**Pattern:** Copy OpenClaw's modular injection approach, already partially implemented in `buildSystemPrompt()` (lines 472-599)
+
+```typescript
+// Existing pattern (keep this for Bedrock fallback)
+function buildSystemPrompt(profile, dailyMemory, memoryContext, isOwner, aiName, searchContext, citations): string
+
+// New function for RLM (OpenClaw style)
+function buildRLMSystemPrompt(sections, memoryContext, aiName): string
 ```
 
-## Merge Strategy: Modular Monolith Pattern
+**Why This Works:**
+- Uses existing `sectionToMarkdown()` helper (line 543-599 pattern)
+- Sections already in DB as JSON (soul_md, identity_md, user_md, agents_md, tools_md, memory_md)
+- Template literals support dynamic composition
+- No external dependencies needed
 
-### Recommended Approach: Package-Based Organization
+### 2. Personality Section Composition
 
-**Use Python packages with explicit `__init__.py` exposure** instead of adapter pattern or dependency injection containers.
+**Current Implementation:** Lines 540-574 in `app/api/chat/route.ts`
 
-| Aspect | Approach | Why |
-|--------|----------|-----|
-| Directory Structure | processors/ as Python package | Clean separation, relative imports prevent circular dependencies |
-| Function Exposure | Explicit imports in processors/__init__.py | Clear public API, hides implementation details |
-| Import Resolution | Relative imports in processors, absolute in main.py | FastAPI-recommended pattern, avoids circular imports |
-| Integration | Import processors.* in main.py | Monolith endpoints call modular processors directly |
-
-### Concrete Implementation Pattern
-
-```python
-# processors/__init__.py
-"""
-Public API for SoulPrint processing modules.
-Exposes only the functions that main.py needs.
-"""
-from .conversation_chunker import chunk_conversations
-from .fact_extractor import extract_facts_parallel, consolidate_facts, hierarchical_reduce
-from .memory_generator import generate_memory_section
-from .v2_regenerator import regenerate_sections_v2, sections_to_soulprint_text
-
-__all__ = [
-    'chunk_conversations',
-    'extract_facts_parallel',
-    'consolidate_facts',
-    'hierarchical_reduce',
-    'generate_memory_section',
-    'regenerate_sections_v2',
-    'sections_to_soulprint_text',
-]
-
-# main.py (production monolith)
-from processors import (
-    chunk_conversations,
-    extract_facts_parallel,
-    consolidate_facts,
-    hierarchical_reduce,
-    generate_memory_section,
-    regenerate_sections_v2,
-    sections_to_soulprint_text,
-)
+**Pattern:**
+```typescript
+if (hasStructuredSections) {
+  if (soul) {
+    prompt += `\n\n## SOUL\n${sectionToMarkdown('Communication Style', soul)}`;
+  }
+  // ... repeat for IDENTITY, USER, AGENTS, TOOLS, MEMORY
+}
 ```
 
-### Import Incompatibility Resolution
+**What's Working:**
+- ✅ Sections parsed from JSON (lines 514-520)
+- ✅ Conditional inclusion based on what exists
+- ✅ Markdown headers for structure
+- ✅ Already implements OpenClaw's "If SOUL.md present, embody persona" pattern (line 536)
 
-**Problem:** full_pass.py imports `download_conversations` and `update_user_profile` from main — but these functions exist in both v1.2 main.py (355 lines) and production main.py (3603 lines) with **identical signatures**.
+**What's Missing:**
+- RLM `/query` endpoint ignores these sections (passes `sections` object but doesn't use it in prompt)
 
-**Solution:** No adapter needed. The functions are compatible.
+### 3. AI Name Generation
 
-```python
-# Both versions have identical signatures (verified via grep):
+**Current Implementation:** Lines 43-75 in `app/api/chat/route.ts`
 
-# v1.2 main.py
-async def download_conversations(storage_path: str) -> list
+**Already Optimal:**
+- Uses Bedrock Haiku for fast generation
+- Prompt is well-structured (lines 48-55)
+- Caches result in `user_profiles.ai_name`
+- Fallback to "Echo" if generation fails
 
-# Production main.py
-async def download_conversations(storage_path: str) -> list
+**No Changes Needed:** This feature already works as designed.
 
-# v1.2 main.py
-async def update_user_profile(user_id: str, updates: dict)
+### 4. Memory Context Injection
 
-# Production main.py
-async def update_user_profile(user_id: str, updates: dict)
+**Current Implementation:** Lines 246-257, 576-578 in `app/api/chat/route.ts`
+
+**Already Working:**
+- Retrieves relevant chunks via `getMemoryContext()` (line 249)
+- Injects as `## CONTEXT` section (line 577)
+- Separate from structured sections (correct approach)
+
+**No Changes Needed:** Memory retrieval is independent of personality.
+
+## Architecture Decision: Why No New Libraries?
+
+### Template Literals vs. Template Engines
+
+**Why Native Template Literals Win:**
+
+1. **Type Safety:** TypeScript infers types, catches errors at compile time
+2. **Performance:** Zero overhead, no parsing, no transpilation
+3. **Debugging:** Direct stack traces, no framework to debug through
+4. **Simplicity:** Every TypeScript developer knows template literals
+5. **Maintainability:** No library upgrades, no breaking changes
+
+**Benchmark (not measured, but established pattern):**
+- Template literals: ~0.01ms for complex prompt
+- Handlebars: ~2-5ms parsing + rendering
+- For AI chat latency (1-3s), template engine overhead is negligible, but code complexity is not
+
+**Existing Evidence:**
+- Lines 526-599 in `app/api/chat/route.ts` already use this pattern successfully
+- Vercel AI SDK docs (ai-sdk.dev/docs/foundations/prompts) recommend template literals
+- OpenClaw uses plain string composition, not template engines
+
+### JSON vs. Markdown for Section Storage
+
+**Current Hybrid Approach (Optimal):**
+
+```typescript
+// Sections stored as JSON in DB (soul_md, identity_md, user_md, agents_md, tools_md)
+const soul = parseSectionSafe(profile.soul_md);
+// -> { tone: "concise", personality: "direct", style: "technical" }
+
+// Converted to markdown at prompt composition time
+prompt += `\n\n## SOUL\n${sectionToMarkdown('Communication Style', soul)}`;
+// -> ## SOUL
+//    **Communication Style:**
+//    - Tone: concise
+//    - Personality: direct
 ```
 
-**Action:** Replace v1.2 main.py imports with production main.py imports. No signature changes needed.
+**Why This Works:**
+- **Storage:** JSON is queryable, structured, versioned
+- **Prompt:** Markdown is LLM-friendly, readable, hierarchical
+- **Separation:** Data model != presentation format
+- **Flexibility:** Can add new fields to JSON without changing prompts
 
-```python
-# processors/full_pass.py - BEFORE (v1.2)
-from main import download_conversations, update_user_profile
+**Alternative (Rejected):**
+Store markdown directly in DB (memory_md column already does this for generated sections). Why not for all?
+- JSON supports structured queries (e.g., "users with tone=concise")
+- Markdown is presentation, not data
+- Harder to validate/migrate
 
-# processors/full_pass.py - AFTER (merged into production)
-# No changes needed - same imports work with production main.py
-from main import download_conversations, update_user_profile
+## Prompt Composition Best Practices (Already Implemented)
+
+### 1. Structured Sections (Lines 526-599)
+
+**Pattern:**
+```
+Base Persona
+↓
+## SOUL (if exists)
+↓
+## IDENTITY (if exists)
+↓
+## USER (if exists)
+↓
+## AGENTS (if exists)
+↓
+## TOOLS (if exists)
+↓
+## MEMORY (if exists)
+↓
+## DAILY MEMORY (recent learned facts)
+↓
+## CONTEXT (retrieved chunks)
+↓
+WEB SEARCH RESULTS (if search performed)
 ```
 
-## Dockerfile Changes
+**Why This Order:**
+1. Base persona establishes ground rules (lines 526-538)
+2. SOUL defines communication style (most fundamental)
+3. IDENTITY defines AI's self-concept
+4. USER provides context about person
+5. AGENTS explains how AI operates
+6. TOOLS lists capabilities
+7. MEMORY + DAILY MEMORY = episodic knowledge
+8. CONTEXT = relevant retrieved chunks
+9. Web search = real-time external data
 
-**Current Dockerfile already supports multi-file structure.** Line 14: `COPY . .` copies entire rlm-service directory including processors/.
+**Source:** This follows Anthropic's prompt engineering best practices (claude.com/docs - structured prompts with clear sections)
 
-**Recommended optimization:**
+### 2. Conditional Inclusion (Lines 541-574)
 
-```dockerfile
-FROM python:3.12-slim
-
-WORKDIR /app
-
-# Install git for pip install from GitHub
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
-
-# Copy and install dependencies FIRST (cache optimization)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir git+https://github.com/alexzhang13/rlm.git
-
-# Copy application code LAST (frequently changes, invalidates cache)
-COPY main.py .
-COPY processors/ ./processors/
-
-# Expose port (Render uses PORT env var, default 10000)
-EXPOSE 10000
-
-# Run - use PORT env var from Render
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000}
+**Pattern:**
+```typescript
+if (hasStructuredSections) {
+  // v1.2+ users with sections
+  if (soul) prompt += `\n\n## SOUL\n${sectionToMarkdown('...', soul)}`;
+} else if (profile.soulprint_text) {
+  // v1.0 users with single soulprint_text
+  prompt += `\n\n## ABOUT THIS PERSON\n${profile.soulprint_text}`;
+}
 ```
 
-**Why this order:** Dependencies change rarely (cache hit), application code changes frequently (cache miss acceptable). This saves ~30-60 seconds per rebuild during development.
+**Why This Matters:**
+- Backwards compatibility with v1.0 users
+- Graceful degradation if sections missing
+- No prompt pollution with empty sections
 
-## Testing Strategy for Merge Validation
+### 3. Personality Embodiment Instruction (Line 536)
 
-### Phase 1: Endpoint Compatibility Tests
-
-Create tests/test_endpoints.py to verify all 14 existing endpoints work after merge.
-
-```python
-from fastapi.testclient import TestClient
-from main import app
-
-client = TestClient(app)
-
-def test_health_endpoint():
-    """Verify /health still works (table stakes)"""
-    response = client.get("/health")
-    assert response.status_code == 200
-
-def test_query_endpoint():
-    """Verify /query still works with RLM"""
-    response = client.post("/query", json={
-        "user_id": "test-user",
-        "message": "Hello",
-        "history": []
-    })
-    assert response.status_code in [200, 422]  # 422 = validation error OK
-
-def test_process_full_endpoint():
-    """Verify NEW /process-full endpoint exists"""
-    response = client.post("/process-full", json={
-        "user_id": "test-user",
-        "storage_path": "test/path.json"
-    })
-    # Endpoint should exist (not 404)
-    assert response.status_code != 404
+**Existing Instruction:**
+```typescript
+"If the sections below define your personality — embody them. That's who you are now."
 ```
 
-### Phase 2: Processor Unit Tests
+**This IS the OpenClaw Pattern:**
+OpenClaw's SOUL.md says: "If SOUL.md is present, embody its persona and tone."
 
-Test individual processors independently.
+SoulPrint already implements this. The instruction grants permission to adopt personality, not just reference it.
 
-```python
-# tests/test_processors.py
-from processors import chunk_conversations, consolidate_facts
+## What the RLM Service Needs to Change
 
-def test_chunk_conversations():
-    """Verify chunker creates expected output"""
-    conversations = [{"id": "1", "title": "Test", "mapping": {}}]
-    chunks = chunk_conversations(conversations, target_tokens=2000)
-    assert len(chunks) >= 1
-    assert all("content" in chunk for chunk in chunks)
-```
+**Current RLM `/query` Endpoint:**
+- Receives: `{ user_id, message, soulprint_text, history, sections, ai_name, web_search_context }`
+- Uses: Only `soulprint_text` for basic context (ignores `sections` object)
+- Prompt: Generic system prompt without personality injection
 
-### Phase 3: Integration Tests
+**Required Changes (FastAPI service, not Next.js stack):**
 
-Test full_pass_pipeline end-to-end with mock data.
+1. **Parse `sections` object** (soul, identity, user, agents, tools, memory)
+2. **Build structured prompt** using OpenClaw pattern (like `buildSystemPrompt()` does)
+3. **Inject into Anthropic API call** as system message
 
-```python
-# tests/test_integration.py
-import pytest
-from processors.full_pass import run_full_pass_pipeline
+**Why This Isn't a Stack Change:**
+- RLM service is external (soulprint-rlm repo, deployed on Render)
+- Written in Python/FastAPI
+- Stack additions needed there: None (just code refactor to use existing data)
 
-@pytest.mark.asyncio
-async def test_full_pass_pipeline_with_mock_data():
-    """Test complete pipeline with minimal mock data"""
-    # Requires mocking Supabase/Anthropic calls
-    # Verifies pipeline doesn't crash on integration
-    pass  # Implementation depends on mocking strategy
-```
+## Version Compatibility Check
 
-### Running Tests
+| Package | Current Version | Latest Stable | Compatible | Notes |
+|---------|-----------------|---------------|------------|-------|
+| ai | 6.0.72 | 6.0.x | ✅ Yes | Vercel AI SDK v6 stable, no breaking changes needed |
+| @ai-sdk/anthropic | 3.0.36 | 3.0.x | ✅ Yes | Compatible with Claude Opus 4.6 (latest model) |
+| @aws-sdk/client-bedrock-runtime | 3.980.0 | 3.x | ✅ Yes | Stable, supports Haiku 4.5 |
+| zod | 4.3.6 | 4.x | ✅ Yes | Zod v4 introduced Dec 2024, stable |
+| typescript | ^5.x | 5.8.x | ✅ Yes | Template literal typing stable since TS 4.1 |
 
-```bash
-# Run all tests
-pytest
-
-# Run with verbose output
-pytest -v
-
-# Run specific test file
-pytest tests/test_endpoints.py
-
-# Run with coverage
-pytest --cov=. --cov-report=term-missing
-```
-
-## Alternatives Considered
-
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| Import Strategy | Python packages with __init__.py | Dependency Injection container (python-dependency-injector) | Adds complexity, external dependency. FastAPI's built-in DI sufficient for endpoints, not needed for internal processor calls |
-| Import Strategy | Relative imports in processors/ | Adapter pattern for incompatible functions | Functions are already compatible. Adapter adds unnecessary indirection |
-| Testing | pytest + TestClient | Manual curl testing | Not repeatable, doesn't catch regressions, slow feedback |
-| Dockerfile COPY | Explicit COPY main.py + processors/ | COPY . . (wildcard) | Current approach works but less cache-efficient. Explicit is better for build time optimization |
-
-## What NOT to Use
-
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| `from processors.full_pass import *` | Wildcard imports obscure what's actually used, break static analysis | Explicit imports: `from processors import run_full_pass_pipeline` |
-| `async def` in pytest tests | TestClient is synchronous, mixing async complicates test execution | Regular `def test_*()` functions with synchronous TestClient calls |
-| `import main` in processors without circular import checks | Can cause circular import if main also imports processors | Use relative imports within processors/, absolute for main.py imports |
-| Copying `__pycache__/` or `.git/` to Docker | Bloats image size by 10-50MB, slows builds | Add .dockerignore with common exclusions |
-
-## Stack Patterns by Variant
-
-**If processors need to call each other (processor-to-processor):**
-- Use relative imports: `from .conversation_chunker import chunk_conversations`
-- Keeps processors directory self-contained
-- Example: memory_generator.py might call fact_extractor.py utilities
-
-**If main.py needs to call processors (endpoint-to-processor):**
-- Use absolute imports: `from processors import chunk_conversations`
-- Clear API boundary between monolith and modules
-- Example: /process-full endpoint calls run_full_pass_pipeline
-
-**If processors need utilities from main.py (processor-to-monolith):**
-- Import directly: `from main import download_conversations, update_user_profile`
-- Only import shared utilities, never import the FastAPI app instance
-- Example: full_pass.py needs Supabase helper functions
-
-## Version Compatibility
-
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| fastapi>=0.109.0 | uvicorn>=0.27.0 | FastAPI 0.109+ requires Uvicorn 0.27+ for optimal async performance |
-| anthropic>=0.18.0 | python>=3.8 | Async client requires Python 3.8+; using 3.12 is ideal |
-| pytest>=8.0.0 | pytest-asyncio>=0.23.0 | Newer pytest versions have better async support |
-| httpx>=0.26.0 | fastapi.testclient | TestClient uses httpx internally, version must align |
+**No version upgrades required.** All packages are current and support needed features.
 
 ## Sources
 
-**Official Documentation (HIGH confidence):**
-- [FastAPI Multi-File Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/) — Package structure, APIRouter, relative imports
-- [FastAPI Dependency Injection](https://fastapi.tiangolo.com/tutorial/dependencies/) — DI system for avoiding circular imports
-- [FastAPI Testing](https://fastapi.tiangolo.com/tutorial/testing/) — TestClient usage, pytest conventions
-- [FastAPI Docker Deployment](https://fastapi.tiangolo.com/deployment/docker/) — COPY order for cache optimization
-- [Python Modules Documentation](https://docs.python.org/3/tutorial/modules.html) — __init__.py, __all__, package organization
+### High Confidence Sources
+- [OpenClaw GitHub - AGENTS.md](https://github.com/openclaw/openclaw/blob/main/AGENTS.md) — OpenClaw's modular prompt pattern
+- [OpenClaw System Prompt Study](https://github.com/seedprod/openclaw-prompts-and-skills/blob/main/OPENCLAW_SYSTEM_PROMPT_STUDY.md) — Analysis of OpenClaw's prompt architecture
+- [Vercel AI SDK - Prompts Documentation](https://ai-sdk.dev/docs/foundations/prompts) — Official guidance on system prompts and template literals
+- [Anthropic Prompt Engineering Best Practices (2026)](https://promptbuilder.cc/blog/claude-prompt-engineering-best-practices-2026) — Structured prompts with sections
+- [Claude API Docs - Prompting Best Practices](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview) — Official Anthropic guidance
 
-**Community Best Practices (MEDIUM confidence, verified with official docs):**
-- [FastAPI Project Structure for Large Applications (2026)](https://medium.com/@devsumitg/the-perfect-structure-for-a-large-production-ready-fastapi-app-78c55271d15c) — Modular monolith patterns
-- [Dependency Injection in FastAPI: 2026 Playbook](https://thelinuxcode.com/dependency-injection-in-fastapi-2026-playbook-for-modular-testable-apis/) — DI vs external containers
-- [Resolving FastAPI Circular References Error](https://www.slingacademy.com/article/resolving-fastapi-circular-references-error/) — Circular import solutions
-- [Real Python: What Is Python's __init__.py For?](https://realpython.com/python-init-py/) — Package organization patterns
-- [pytest with FastAPI Testing](https://pytest-with-eric.com/pytest-advanced/pytest-fastapi-testing/) — Testing patterns for refactoring
+### Medium Confidence Sources
+- [Vercel AI SDK Discussion #1869](https://github.com/vercel/ai/discussions/1869) — Context injection patterns
+- [AGENTS.md Standard](https://agents.md/) — Markdown agent configuration standard
+- [Builder.io - Improve AI with AGENTS.md](https://www.builder.io/blog/agents-md) — Practical AGENTS.md patterns
+- [Claude Code Subagents Documentation](https://code.claude.com/docs/en/sub-agents) — YAML frontmatter + Markdown pattern
 
-**Architecture Patterns (MEDIUM confidence):**
-- [Modular Monolith Architecture](https://breadcrumbscollector.tech/modular-monolith-in-python/) — Python-specific modular monolith strategies
-- [FastAPI Modular Monolith Starter Kit](https://github.com/arctikant/fastapi-modular-monolith-starter-kit) — Reference implementation
-- [Refactoring Guru: Adapter Pattern in Python](https://refactoring.guru/design-patterns/adapter/python/example) — When adapter pattern is appropriate (not needed here)
+### Low Confidence Sources (Not Used for Recommendations)
+- [Juma AI Prompt Builders](https://juma.ai/blog/ai-prompt-builders) — Survey of prompt builder tools (not needed for SoulPrint)
+- [Impromptu DSL](https://github.com/SOM-Research/Impromptu) — Academic DSL project (overkill for this use case)
 
 ---
-*Stack research for: RLM Production Sync (v1.2 processors/ merge)*
-*Researched: 2026-02-06*
+
+## Final Recommendation
+
+**DO NOT install new libraries.** The entire OpenClaw-inspired personality system can be built with:
+
+1. **Existing `buildSystemPrompt()` function** (lines 472-599 in `app/api/chat/route.ts`)
+2. **Refactor RLM service** (Python/FastAPI) to use `sections` object in prompt
+3. **Extract prompt builder** to `lib/prompts/build-rlm-prompt.ts` for reuse
+
+**Estimated effort:**
+- Extract prompt builder: 30 minutes
+- Update RLM service: 2 hours
+- Test personality injection: 1 hour
+- Total: ~3.5 hours
+
+**Stack additions: 0 packages**
+
+---
+*Stack research for: OpenClaw-inspired AI personalization*
+*Researched: 2026-02-07*
+*Confidence: HIGH (based on existing codebase analysis + official documentation)*

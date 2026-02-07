@@ -1,261 +1,261 @@
 # Project Research Summary
 
-**Project:** RLM Production Sync (v1.2 Processors Merge)
-**Domain:** FastAPI Modular Code Merge
-**Researched:** 2026-02-06
+**Project:** SoulPrint v1.4 Chat Personalization Quality
+**Domain:** AI Chat Personalization with OpenClaw-inspired Personality Injection
+**Researched:** 2026-02-07
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This project merges v1.2's modular processor architecture (5 Python modules: conversation chunking, parallel fact extraction, MEMORY generation, and v2 section regeneration) into the existing 3603-line production FastAPI monolith. The core challenge is integrating a 10-30 minute background processing pipeline into a system where users expect immediate chat availability after quick-pass soulprint generation. Research confirms that an adapter layer pattern with progressive availability (v1 sections immediately, v2 upgrade after fact extraction) is the only viable approach that preserves both user experience and code modularity.
+SoulPrint v1.4 requires implementing OpenClaw-inspired personality injection into the existing chat system. The good news: **no new libraries needed**. The existing stack (Vercel AI SDK, Anthropic, TypeScript) already contains everything required. The gap is architectural, not technological — sections exist in the database, but the RLM service doesn't properly compose them into personality-aware prompts, and the Next.js fallback diverges from the RLM implementation.
 
-The recommended approach uses Python packages with explicit `__init__.py` exposure rather than dependency injection containers or direct monolith refactoring. Create an adapter layer (`adapters/supabase_adapter.py`) that extracts production's inline Supabase calls into reusable functions, allowing processors to import from the adapter instead of `main.py`. This breaks circular import dependencies while keeping the 3603-line monolith intact until processors are proven stable. All required technologies (Python 3.12, FastAPI 0.109+, Anthropic SDK, httpx) are already present—only testing tools (pytest 8.0+, pytest-asyncio 0.23+) need addition.
+The recommended approach is a two-phase build: **Phase 1** fixes prompt composition consistency (extracting shared builders, filtering "not enough data" placeholders, implementing token budgets), and **Phase 2** enhances quality (section validation, quality scoring, name generation improvements). This order avoids the dual-service prompt divergence pitfall while establishing a foundation for personality injection that actually works.
 
-The critical risk is circular imports causing runtime failures—processors importing from `main.py` while `main.py` imports processors creates a deadlock that only manifests when users trigger the code path, not at build time. Secondary risks include Dockerfile not copying the `processors/` directory (builds succeed but crash at runtime), database schema mismatches on `chunk_tier` enum values, and memory spikes from unbounded API concurrency (10 parallel Anthropic calls on 512MB RAM causes OOM). All risks have proven mitigation strategies: extract shared code to `lib/`, add explicit Dockerfile verification, query production schema before merge, and use environment-aware concurrency limits (3 for Render Starter tier).
+The critical risk is context window bloat. With 7 sections + conversation history + retrieved memory + web search results, prompts can easily balloon to 30k-60k tokens per request, creating unsustainable costs ($180-360/month per heavy user) and performance degradation. Prevention requires token budgeting from day one, progressive context loading based on message complexity, and Anthropic's prompt caching for static sections. The second major risk is prompt injection via conversation imports — user uploads can contain jailbreak instructions that get extracted into behavioral rules and persist across all future chats, requiring sanitization at import time and section output validation.
 
 ## Key Findings
 
 ### Recommended Stack
 
-Production already has the complete stack required for v1.2 merge. **No new core dependencies needed**—only testing infrastructure. The modular monolith pattern using Python packages with `__init__.py` exposure is FastAPI's recommended approach for scaling from single-file to multi-module applications without microservices complexity.
+**No additions required.** The current stack already supports OpenClaw-style personality injection:
 
-**Core technologies (already present):**
-- **Python 3.12**: Runtime — current production version, stable for FastAPI async operations
-- **FastAPI >=0.109.0**: Web framework — built-in dependency injection, async-first, automatic API docs
-- **Uvicorn >=0.27.0**: ASGI server — production-ready async server for FastAPI
-- **Anthropic >=0.18.0**: LLM API — Claude models for soulprint generation, fact extraction
-- **httpx >=0.26.0**: Async HTTP — required for Supabase calls and external API integrations
+**Sufficient technologies:**
+- **Vercel AI SDK (^6.0.72)**: Dynamic system prompts via template literals — supports the OpenClaw pattern natively
+- **Anthropic API (@ai-sdk/anthropic ^3.0.36)**: Direct Claude Sonnet 4 access with streaming and prompt caching
+- **TypeScript (^5.x)**: Native template literals are optimal for prompt composition (faster and safer than Handlebars/Mustache)
+- **Supabase (^2.93.1)**: Already stores 7 structured sections (soul_md, identity_md, user_md, agents_md, tools_md, memory_md, ai_name)
+- **Zod (^4.3.6)**: Request validation — extend for prompt section validation
 
-**New dependencies (testing only):**
-- **pytest >=8.0.0**: Test framework — test all 14 endpoints after merge to ensure backwards compatibility
-- **pytest-asyncio >=0.23.0**: Async test support — required for testing async FastAPI endpoints
+**What NOT to add:**
+- Template engines (Handlebars, Mustache) — adds complexity for simple string composition
+- Prompt DSLs (Impromptu, PromptML) — overkill for this use case
+- LangChain — heavy dependency not needed when Vercel AI SDK + native templates suffice
+- Markdown parsers — sections stored as JSON, converted to markdown at prompt time
 
-**Merge strategy:** Use adapter layer pattern with Python packages. Create `adapters/supabase_adapter.py` to extract production's inline database calls into reusable functions. Processors import from adapter instead of `main.py`, breaking circular dependencies. Dockerfile already supports multi-file structure via `COPY . .` but needs explicit verification with `RUN ls -la /app/processors/` to catch silent exclusions.
+**The gap:** The existing `buildSystemPrompt()` function (lines 472-599 in `app/api/chat/route.ts`) already implements the OpenClaw pattern but has two problems: (1) RLM service has a separate implementation that doesn't filter placeholders consistently, and (2) sections aren't being fully utilized in prompts.
 
 ### Expected Features
 
-v1.2 introduces a sophisticated fact extraction and memory generation pipeline that must coexist with production's quick-pass soulprint generation without blocking users. The research confirms that progressive availability (chat immediately with v1 sections, upgrade to v2 when fact extraction completes) is table stakes—users cannot wait 10-30 minutes for processing.
+**Must have (P1 — this milestone):**
+- **Personality injection from 7 sections** — Build system prompt that includes SOUL/IDENTITY/USER/AGENTS/TOOLS/MEMORY/daily context (essential: transforms generic AI into YOUR AI)
+- **Context-aware greeting** — First message uses IDENTITY.md to craft personalized welcome (essential: first impression sets tone)
+- **AI self-identification with generated name** — Use `ai_name` from database, refer to self naturally (essential: "I'm Echo" vs "I am an AI assistant")
+- **Anti-generic language instructions** — System prompt explicitly forbids chatbot clichés (essential: breaks generic feel)
+- **Natural language personality definition** — System prompt uses values/principles from SOUL.md, not robotic rules (essential: OpenClaw pattern, creates human-like AI)
+- **Memory context in responses** — System prompt instructs model to USE retrieved conversation chunks naturally (essential: "Like we discussed..." vs ignoring context)
+- **Consistent tone across sessions** — Personality doesn't reset per-conversation (essential: trust building)
 
-**Must have (table stakes):**
-- **Background fact extraction** — 10-30 minute processing cannot block user chat access
-- **Progressive availability** — Users chat with quick-pass soulprint while v1.2 processes in background
-- **Graceful v1.2 failure** — If fact extraction fails, quick-pass soulprint remains functional
-- **Status tracking** — Add `full_pass_status` column to track processing/complete/failed states
-- **Chunk compatibility** — v1.2 chunks must match production's schema (include `chunk_tier: "medium"`)
+**Should have (P2 — post-launch iteration):**
+- Conversation topic detection (analyze message, influence AGENTS.md behavior)
+- Personality refinement UI (let users manually edit SOUL.md/IDENTITY.md if AI doesn't match)
+- Enhanced AI name generation (use all 7 sections + archetype, not just soulprint_text slice)
+- Response format preferences (extract from TOOLS.md: bullet points vs paragraphs)
 
-**Should have (competitive):**
-- **Parallel fact extraction** — 10x faster than sequential (10-30 min vs 100-300 min for large exports)
-- **MEMORY section generation** — Human-readable summary of extracted facts, contextualizes v2 sections
-- **V2 section regeneration** — Enriches v1 sections with top 200 conversations + MEMORY context
-- **Conversation size threshold** — Only trigger v1.2 for 50+ conversations (avoid API waste on small imports)
-- **Email notification** — Notify users when v2 upgrade completes
-
-**Defer (v2+):**
-- **MEMORY section UI** — Display MEMORY in profile view (currently only in soulprint_text)
-- **Incremental fact extraction** — Re-run v1.2 when user uploads new export, merge facts
-- **Multi-tier chunking** — Production uses small/medium/large tiers; v1.2 uses medium only. Single-tier adequate for fact extraction, but multi-tier provides better retrieval precision long-term
-- **Admin dashboard** — Track v1.2 processing stats (success rate, avg time, failures)
+**Defer (v2+ — after product-market fit):**
+- Real-time tone mirroring (sentiment analysis → dynamic warmth/formality adjustment)
+- Progressive learning from chats (trigger fact extraction monthly, merge into MEMORY.md)
+- Multi-workspace personas (separate AGENTS.md behaviors per project)
+- Voice personalization (entirely different tech stack)
 
 ### Architecture Approach
 
-The adapter layer pattern is the only approach that safely integrates v1.2's modular processors into the 3603-line production monolith without high-risk refactoring. Create a new `adapters/` directory containing `supabase_adapter.py` that extracts production's inline httpx database calls into standalone functions (`download_conversations()`, `update_user_profile()`, `save_chunks_batch()`). Processors import from the adapter, `main.py` calls processors, and the adapter handles all infrastructure concerns.
+The system has three layers: **Next.js chat route** parses sections from Supabase and passes them to **RLM service** which builds the system prompt and calls **Anthropic API**. When RLM is unavailable, Next.js has a **Bedrock fallback** that composes prompts locally. The critical architectural gap: two different prompt builders (Next.js `buildSystemPrompt()` vs RLM `build_rlm_system_prompt()`) that must produce identical output but currently diverge.
 
 **Major components:**
-1. **Adapter Layer** (`adapters/supabase_adapter.py`) — Provides clean interface for processors to interact with production systems. Wraps existing httpx calls from monolith without modifying production code. Handles all Supabase REST API calls, storage downloads, and user profile updates.
 
-2. **Processor Modules** (`processors/`) — Business logic for chunking, fact extraction, memory generation, v2 regeneration. Copy from v1.2, modify imports to use adapter instead of `main.py`. Each processor remains standalone and testable. Orchestrated by `full_pass.py` which coordinates the 9-step pipeline.
+1. **Section Parser** — Convert DB strings (JSON) → typed objects (Next.js route.ts lines 311-322, already implemented)
+2. **Section Validator** — Check for "not enough data" placeholders, filter empty fields (NEW — prevents prompt pollution)
+3. **Section Composer** — Convert section object → markdown with consistent formatting (exists: `sectionToMarkdown()` in quick-pass.ts, needs extraction for reuse)
+4. **Prompt Builder** — Assemble final system prompt from composed sections (exists in both Next.js + RLM but needs consistency)
+5. **Token Budget Monitor** — Track context size, implement progressive loading (NEW — prevents cost explosion)
 
-3. **Background Tasks** — Orchestrate pipeline execution, job recovery, progress tracking. Keep existing production code intact. New `/process-full-v2` endpoint runs parallel to existing `/process-full`, allowing gradual cutover (10% → 50% → 100% traffic) with instant rollback capability.
-
-4. **FastAPI Endpoints** — HTTP interface, request validation, background task dispatch. Keep existing endpoints unchanged. Add new v2 endpoint that calls processors via adapter. Both v1 and v2 pipelines coexist during migration.
-
-**Integration strategy:** Build in phases—adapter layer first (no production code changes), processors second (modify imports only), new endpoint third (parallel deployment), gradual cutover fourth (monitor and shift traffic), cleanup fifth (extract remaining monolithic code after v2 proven stable). This de-risks migration by keeping rollback options available at every step.
+**Build order recommendation:**
+1. Fix prompt consistency (extract shared composition helpers, ensure Next.js and RLM produce identical prompts)
+2. Add section validation (filter "not enough data", implement quality scoring)
+3. Implement token budgeting (monitor usage, progressive context loading, prompt caching)
+4. Enhance name generation (multi-candidate selection with validation, offensive pattern detection)
 
 ### Critical Pitfalls
 
-1. **Circular Import Deadlock at Runtime** — Processors import from `main.py` (`from main import download_conversations`) while `main.py` imports processors (`from processors.full_pass import run_full_pass_pipeline`). This creates a circular dependency that fails at runtime when background tasks execute, not at startup. Python sees partially-initialized modules and raises `ImportError: cannot import name 'X' from partially initialized module 'main'`. **Prevention:** Extract shared functions to `lib/storage.py` so both main and processors import from there, breaking the circular chain. Alternative: lazy imports inside functions or dependency injection via parameters.
+1. **Context Window Bloat Leading to Cost Explosion** — 7 sections + history + memory + web search = 30k-60k tokens per request → $180-360/month per heavy user. Prevention: token budgets from day one, progressive context loading based on query complexity, Anthropic prompt caching for static sections (90% cost reduction), dense formatting (bullets not verbose markdown). Warning signs: avg request cost >$0.05, token count grows unbounded with user history, no token monitoring in logs.
 
-2. **Dockerfile Not Copying `processors/` Directory** — Production Dockerfile uses `COPY . .` which should copy all files, but if `.dockerignore` excludes `processors/` or the directory doesn't exist at build time, the container builds successfully but crashes at runtime with `ModuleNotFoundError: No module named 'processors'`. Health checks pass until a user triggers the code path. **Prevention:** Add explicit verification in Dockerfile with `RUN ls -la /app/processors/ || (echo "ERROR: processors/ not copied!" && exit 1)` and `RUN python -c "import processors.full_pass; print('✓ processors.full_pass')" || exit 1`. Test locally with `docker build` and `docker run` before deploying.
+2. **Dual-Service Prompt Divergence** — Next.js and RLM build prompts differently → personality shifts during fallback, bug fixes don't propagate. Prevention: shared prompt template in `.planning/prompts/base.md`, cross-service consistency tests, prompt hash monitoring to detect divergence. Warning signs: user reports "AI changed" after RLM downtime, string manipulation in code instead of template files, different section ordering in logs.
 
-3. **Database Schema Mismatch (`chunk_tier` Enum Values)** — Production database expects specific `chunk_tier` values (likely `small`, `medium`, `large` from multi-tier chunking), but v1.2 only generates `medium` (single-tier chunking). If production has enum constraints, INSERT operations fail with `constraint violation: invalid chunk_tier value`. **Prevention:** Query production schema with `SELECT enumlabel FROM pg_enum WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = 'chunk_tier_enum')` before merge. Verify v1.2 chunks use values matching production. Add `chunking_version` field to database for future migrations.
+3. **AI-Generated Names Producing Offensive Results** — Haiku generates "ChadGPT", "MasterMind", "Daddy" → user recoils, loses trust. Prevention: multi-candidate generation with validation, forbidden pattern detection (daddy/master/chad/etc), moderation API safety check, user-friendly rename flow. Warning signs: support tickets asking "can I change name?", names from generic list (Echo/Atlas/Nova), no validation before saving to DB.
 
-4. **No Rollback Plan for Render Auto-Deploy Failures** — Render auto-deploys on every `git push` to main. If new deployment crashes (circular import, missing module, schema mismatch), Render's health checks may pass (if they only test `/health` endpoint which doesn't import processors) but the deploy marks as "live" while users experience 500 errors on `/process-full`. **Prevention:** Enhance health check to import all processor modules and verify database connectivity. Create smoke test script that validates endpoints after deploy. Document rollback procedure: `git revert <commit> && git push origin main` (Render auto-deploys revert within 2-3 minutes).
+4. **Quick Pass Section Quality Too Low** — Haiku generates generic sections ("helpful, curious") that provide no actual personalization → user notices AI sounds identical to base Claude. Prevention: section quality scoring (detect generic phrases, count "not enough data"), threshold enforcement (don't save if quality <60), hybrid quick/deep pass (upgrade to Sonnet if quality poor), user feedback loop. Warning signs: sections contain "helpful, curious, friendly", AI responses indistinguishable from base model, users ask "is personalization working?"
 
-5. **Memory/CPU Spike from 10 Concurrent Haiku Calls** — Fact extractor uses `asyncio.gather()` with `concurrency=10` to parallelize Anthropic API calls. Each concurrent call consumes ~200MB memory for response buffering. On Render's Starter tier (512MB RAM), this causes OOM errors and service crashes. **Prevention:** Use environment-aware concurrency limits. Set `FACT_EXTRACTION_CONCURRENCY=3` for Starter tier (512MB RAM), `=5` for Pro tier (2GB RAM). Implement adaptive concurrency using `psutil` to calculate safe limits based on available memory. Consider job queue pattern (Celery + Redis) for true background processing at scale.
+5. **Memory-Based Prompt Injection** — User uploads ChatGPT export containing jailbreak instructions → extracted into behavioral rules → persists across all chats. Prevention: sanitization at import (regex filter injection patterns), section output validation (detect keywords in behavioral_rules), prompt firewall in chat endpoint, sandbox system constraints. Warning signs: no sanitization in upload pipeline, sections saved without security validation, web search results injected directly into prompt.
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure follows a safe, incremental migration pattern that prioritizes rollback capability and de-risks integration:
+Based on research, suggested phase structure:
 
-### Phase 1: Dependency Extraction
-**Rationale:** Must break circular import dependency before processors can be imported. This phase has zero production impact—creates new files without modifying existing code. Establishes foundation for all subsequent work.
+### Phase 1: Prompt Foundation & Token Management
 
-**Delivers:**
-- `adapters/supabase_adapter.py` with extracted functions (`download_conversations()`, `update_user_profile()`, `save_chunks_batch()`)
-- `lib/storage.py` or similar for shared utilities (if extracting from main.py)
-- Unit tests for adapter functions with 100% coverage
-- Database schema verification (query production `chunk_tier` enum values)
-
-**Addresses:**
-- Circular import deadlock (Pitfall 1) — shared code extracted to neutral location
-- Database schema mismatch (Pitfall 3) — schema audited before merge
-- Import path breaking tests (Pitfall 7) — tests updated alongside refactor
-
-**Avoids:**
-- Refactoring production monolith prematurely (defer until v2 proven stable)
-- Touching existing endpoints or business logic (zero production risk)
-- Modifying v1 quick-pass pipeline (users unaffected)
-
-### Phase 2: Copy & Modify Processors
-**Rationale:** With adapter layer in place, processors can be safely copied and imported. Modify v1.2 processors to import from adapter instead of `main.py`. Test processors in isolation before integration.
+**Rationale:** Must fix dual-service divergence and implement token budgeting before any other work. Context bloat affects all downstream features, and prompt inconsistency makes testing unreliable. These are foundational issues that block quality improvements.
 
 **Delivers:**
-- `processors/` directory with 5 modules copied from v1.2
-- Modified imports: `from adapters.supabase_adapter import download_conversations`
-- Processor unit tests (with mocked adapter)
-- Dockerfile updates with explicit `COPY processors/` and import verification
-- Testing dependencies installed (`pytest>=8.0.0`, `pytest-asyncio>=0.23.0`)
+- Shared prompt template in `.planning/prompts/base.md` used by both Next.js and RLM
+- Section validation helper that filters "not enough data" placeholders
+- Token budget system with progressive context loading
+- Anthropic prompt caching implementation (90% cost reduction on static content)
+- Cross-service consistency tests (verify Next.js and RLM produce identical prompts)
 
-**Uses:**
-- Python packages with `__init__.py` exposure (recommended stack pattern)
-- Relative imports within processors, absolute imports from adapter
-- pytest + TestClient for endpoint compatibility testing
+**Addresses (from FEATURES.md):**
+- Consistent tone across sessions (prompt doesn't diverge)
+- Memory context in responses (proper section injection)
 
-**Implements:**
-- Processor modules component from architecture (business logic layer)
-- Service layer pattern (processors = "what to do", adapter = "how to do it")
+**Avoids (from PITFALLS.md):**
+- Context window bloat (token budgeting prevents)
+- Dual-service prompt divergence (shared template fixes)
 
-**Avoids:**
-- Direct imports from `main.py` (uses adapter instead)
-- Module-level environment variable capture (use lazy getters)
-- Mixed Anthropic client initialization (centralized factory)
+**Research flag:** Standard implementation — no additional research needed. Patterns well-documented in Anthropic docs and existing codebase.
 
-### Phase 3: Wire New Endpoint (Parallel Deployment)
-**Rationale:** Add `/process-full-v2` endpoint alongside existing `/process-full` without touching old code. Both pipelines coexist, allowing A/B testing and instant rollback. This is the strangler fig pattern—new functionality wraps old, gradual cutover, eventual deprecation.
+### Phase 2: Name Generation & Section Quality
+
+**Rationale:** With prompt foundation solid, improve input quality (section generation) and user-facing outputs (AI names). Name generation happens during import and affects first impression. Section quality affects every chat message. Both are user-facing quality issues that should be addressed early.
 
 **Delivers:**
-- New endpoint `/process-full-v2` calling `processors.full_pass.run_full_pass_pipeline()`
-- Background task `run_full_pass_v2()` for non-blocking execution
-- Enhanced health check importing all processor modules
-- Smoke test script validating endpoints post-deploy
-- Documented rollback procedure
+- AI name validation pipeline (forbidden patterns, genericness detection, moderation API check)
+- Multi-candidate name generation (generate 5, score and rank, select best)
+- Curated fallback names (safe alternatives to generic Echo/Atlas/Nova)
+- User-friendly rename UI in settings
+- Section quality scorer (detect generic phrases, count placeholders, compute 0-100 score)
+- Quality threshold enforcement (don't save if score <60)
 
-**Addresses:**
-- No rollback plan (Pitfall 4) — parallel deployment allows instant revert to v1
-- Deployment safety — comprehensive health checks catch import failures before traffic switches
+**Addresses (from FEATURES.md):**
+- AI self-identification with generated name (improved quality)
+- Personality injection from sections (validated quality)
 
-**Avoids:**
-- Modifying existing `/process-full` endpoint (keeps v1 pipeline intact)
-- Big bang migration (gradual cutover instead)
-- Silent failures (health check tests all modules)
+**Avoids (from PITFALLS.md):**
+- AI names producing offensive results (validation prevents)
+- Quick pass quality too low (scoring detects)
 
-### Phase 4: Gradual Cutover & Monitoring
-**Rationale:** Shift traffic from v1 to v2 pipeline incrementally, monitoring for issues at each step. This phase proves v2 in production with real users while maintaining ability to rollback.
+**Research flag:** Standard patterns — name validation and quality scoring are established practices. No research needed.
 
-**Delivers:**
-- Feature flag or user_id-based routing (10% → 50% → 100% v2 traffic)
-- Monitoring dashboard tracking error rates, processing times, completion rates
-- Memory and CPU usage metrics during background processing
-- User feedback loop (email surveys on v2 quality)
-- Production validation of all table-stakes features
+### Phase 3: Personality Injection & Anti-Generic Language
 
-**Addresses:**
-- Memory/CPU spike (Pitfall 5) — monitor resource usage, tune `FACT_EXTRACTION_CONCURRENCY`
-- Progressive availability feature — verify users can chat immediately while v2 processes
-- Graceful failure feature — verify v1 sections remain if v2 fails
-
-**Avoids:**
-- 100% cutover before validation (incremental reduces risk)
-- Ignoring resource constraints (monitor memory on Render Starter tier)
-- Losing rollback capability (keep v1 endpoint until v2 proven)
-
-### Phase 5: Cleanup & Optimization (Post-Launch)
-**Rationale:** After v2 handles 100% of traffic for 30+ days without issues, deprecate v1 endpoint and refactor remaining monolithic code. This phase improves maintainability without impacting production.
+**Rationale:** With foundation and quality in place, implement the core personalization features. This is where OpenClaw patterns get applied — composing sections into prompts that create "YOUR AI" feeling rather than generic assistant.
 
 **Delivers:**
-- Deprecated `/process-full` v1 endpoint (remove old code)
-- Extracted embedding logic into `processors/embedder.py`
-- Standardized logging across all modules (replace `print()` with logger)
-- Integration tests for full pipeline end-to-end
-- Migration script for existing users (re-chunk with v2 strategy)
+- System prompt builder using OpenClaw pattern (SOUL → IDENTITY → USER → AGENTS → TOOLS → MEMORY → CONTEXT)
+- Anti-generic language instructions (explicit prohibition of "I'd be happy to help!")
+- Context-aware greeting generation (uses IDENTITY.md, not generic "Hello")
+- Natural language personality definition (values/principles, not robotic rules)
+- Memory context usage instructions (direct model to USE retrieved chunks naturally)
 
-**Addresses:**
-- Logging differences (Pitfall 10) — shared logger from `lib/logger.py`
-- No integration tests (Pitfall 11) — full pipeline test with real data
-- Duplicate chunking strategies (Pitfall 6) — single source of truth
+**Addresses (from FEATURES.md):**
+- Personality injection from 7 sections ✓
+- Context-aware greetings ✓
+- Anti-generic language instructions ✓
+- Natural language personality definition ✓
+- Memory context in responses ✓
 
-**Avoids:**
-- Premature cleanup (wait for v2 stability before removing v1)
-- Breaking backward compatibility (migrate existing data before schema changes)
-- Losing debugging capability (structured logging before removing print statements)
+**Avoids (from PITFALLS.md):**
+- Generic prompts that create robotic responses
+- Ignoring retrieved context (explicit instruction to USE memories)
+
+**Research flag:** Standard implementation — OpenClaw patterns documented, existing `buildSystemPrompt()` already partially implements this.
+
+### Phase 4: Security & Injection Prevention
+
+**Rationale:** Before exposing to more users, implement security measures. Prompt injection is a critical vulnerability that can persist in long-term memory and affect all future chats. This phase addresses the highest-severity security risk identified in PITFALLS.md.
+
+**Delivers:**
+- Conversation sanitization at import (regex filter jailbreak patterns)
+- Section output validation (detect injection keywords in behavioral_rules)
+- Prompt firewall in chat endpoint (detect injection attempts in user messages)
+- Sandbox system constraints (safety rules that override user preferences)
+- Web search result sanitization (mark as untrusted, filter adversarial content)
+
+**Addresses (from FEATURES.md):**
+- Privacy-first memory (prevents weaponization of stored data)
+
+**Avoids (from PITFALLS.md):**
+- Memory-based prompt injection attacks (sanitization prevents)
+
+**Research flag:** Needs review of latest prompt injection techniques during planning — attack vectors evolve rapidly in 2026.
 
 ### Phase Ordering Rationale
 
-- **Dependency extraction comes first** because circular imports block all subsequent work. Cannot import processors without resolving the `main.py` ↔ `full_pass.py` circular dependency. Zero production risk—only adds new files.
+- **Phase 1 first** because prompt divergence contaminates all testing (can't validate personality if Bedrock fallback produces different results). Token budgeting prevents cost explosion that would make iteration expensive.
 
-- **Processor modification comes second** because it depends on adapter layer existing. Tests can run in isolation (mocked adapter) before touching production endpoints. Dockerfile verification catches missing module errors at build time.
+- **Phase 2 before 3** because section quality and name quality directly affect user perception of personalization. If sections are generic, even perfect prompt composition won't create "YOUR AI" feeling.
 
-- **Parallel endpoint deployment comes third** because it requires processors to be importable. Strangler fig pattern (new wraps old) is the lowest-risk migration approach for production systems. Keeps rollback option available.
+- **Phase 3 is core value** — this is where OpenClaw patterns get applied and users experience true personalization. Can't do this until foundation (Phase 1) and quality (Phase 2) are solid.
 
-- **Gradual cutover comes fourth** because it proves v2 with real users while maintaining safety net. Incremental traffic shift (10% → 50% → 100%) allows detecting issues before they affect all users. Resource monitoring catches memory spikes before OOM crashes.
-
-- **Cleanup comes last** because refactoring monolithic code is only safe after v2 proven stable. Premature cleanup loses rollback capability. This phase is optional—system fully functional without it.
+- **Phase 4 before public launch** because prompt injection is a critical security vulnerability. Can defer during beta with small trusted users, but must implement before scaling.
 
 ### Research Flags
 
-**Phases likely needing deeper research during planning:**
-- **Phase 1: Dependency Extraction** — May need research on Supabase schema inspection if production database has complex constraints or triggers. Document schema migration patterns if `chunk_tier` enum needs changes.
-- **Phase 5: Cleanup & Optimization** — May need research on Celery/ARQ job queues if scaling beyond Render's background task limits. Research structured logging best practices (JSON format for log aggregation).
+**Phases needing deeper research during planning:**
+- **Phase 4 (Security):** Prompt injection techniques evolve rapidly. Need fresh research on 2026 attack vectors, updated sanitization patterns, and Anthropic's latest safety recommendations.
 
 **Phases with standard patterns (skip research-phase):**
-- **Phase 2: Copy & Modify Processors** — Python package imports are well-documented. FastAPI testing patterns are standard. Dockerfile multi-stage builds are established practice.
-- **Phase 3: Wire New Endpoint** — FastAPI routing and background tasks follow official documentation. Health check patterns are standard. Rollback via git revert is established DevOps practice.
-- **Phase 4: Gradual Cutover** — Feature flags and A/B testing are well-documented patterns. Render monitoring dashboard provides built-in metrics. No novel techniques required.
+- **Phase 1 (Prompt Foundation):** Template extraction, token counting, prompt caching — all well-documented in Anthropic docs
+- **Phase 2 (Quality):** Name validation, quality scoring — established patterns in existing codebase
+- **Phase 3 (Personality):** OpenClaw implementation already partially exists in `buildSystemPrompt()` — refactor not research
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All technologies verified in both codebases. No new dependencies except testing tools (pytest). Python package patterns are FastAPI-recommended approach. |
-| Features | HIGH | All features verified through code inspection. Progressive availability pattern matches production quick-pass design. Background processing already implemented via FastAPI.BackgroundTasks. |
-| Architecture | HIGH | Adapter layer pattern is standard design pattern. Modular monolith architecture well-documented for FastAPI. Integration points identified in production code. All 9 pipeline steps mapped to existing infrastructure. |
-| Pitfalls | HIGH | All pitfalls verified through codebase analysis and official documentation. Circular import deadlock confirmed by checking import statements in both v1.2 and production. Docker module errors documented in Render deployment guides. Schema mismatch risk confirmed by production database structure. |
+| Stack | HIGH | Based on direct codebase analysis. No new packages needed — everything exists. |
+| Features | HIGH | Based on OpenClaw documentation, Custom GPTs patterns, Character.ai research. P1 features well-defined. |
+| Architecture | HIGH | Based on existing SoulPrint codebase analysis. Current implementation ~60% complete, gaps identified precisely. |
+| Pitfalls | HIGH | Based on 2026 industry research (context engineering, LLM security, cost management) and real-world production AI patterns. |
 
 **Overall confidence:** HIGH
 
-This research is based on direct codebase inspection (v1.2 at 355 lines, production at 3603 lines), official FastAPI documentation, and production deployment best practices. All architectural decisions verified against FastAPI's recommended patterns for scaling from monolith to modular structure. All pitfalls have documented mitigation strategies with concrete code examples. The adapter layer pattern is proven in production FastAPI applications and directly addresses the circular import challenge.
-
 ### Gaps to Address
 
-- **Environment-specific configuration validation**: Production may have additional environment variables or Bedrock configuration not visible in codebase. Need to audit Render dashboard environment variables before deployment to ensure adapter can access all required credentials.
+**Token counting accuracy:** Need to implement actual token counting (not just character estimates) to validate budget thresholds. Use `@anthropic-ai/tokenizer` or API token counting. Address during Phase 1 planning.
 
-- **Actual production database schema**: Research assumes `chunk_tier` is an enum based on codebase patterns, but need to query live production database to confirm exact enum values and constraints. SQL query provided in PITFALLS.md Phase 1 should be executed before merge.
+**Prompt caching effectiveness:** Anthropic's prompt caching is theoretically 90% cost reduction, but need to measure actual savings with SoulPrint's specific prompt structure. Monitor during Phase 1 execution.
 
-- **AWS Bedrock vs. Direct Anthropic API**: Production may use AWS Bedrock for some calls and direct Anthropic SDK for others. Need to audit which endpoints use which client type and create unified client factory that handles both. Research provides factory pattern in PITFALLS.md Pitfall 8, but actual production usage needs verification.
+**Section schema evolution:** Quick pass generates v1 sections, full pass regenerates as v2. Need schema versioning strategy to handle users with mixed versions. Address during Phase 2 — add `sections_version` column.
 
-- **Existing chunk data migration strategy**: If production has existing users with multi-tier chunks and v1.2 uses single-tier, need to decide whether to migrate existing data or support both versions via `chunking_version` field. Migration script provided in PITFALLS.md Pitfall 6, but decision on when/how to migrate needs product input.
-
-- **Rate limiting and abuse prevention**: `/process-full` endpoint should have rate limiting to prevent users from triggering multiple expensive 10-30 minute background jobs. Research doesn't cover existing rate limiting infrastructure. Need to audit production endpoints to match rate limit strategy.
+**Injection detection false positives:** Regex-based injection detection may flag legitimate conversation content (e.g., user discussing prompt engineering). Need balanced approach during Phase 4 — consider LLM-based detection alongside regex.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- **Codebase inspection**: `/home/drewpullen/clawd/soulprint-landing/rlm-service/` (v1.2 processors, 5 modules totaling ~1500 lines) and implied production `main.py` (3603 lines, 14 endpoints)
-- **FastAPI Official Documentation**: [Bigger Applications - Multiple Files](https://fastapi.tiangolo.com/tutorial/bigger-applications/), [Dependencies](https://fastapi.tiangolo.com/tutorial/dependencies/), [Background Tasks](https://fastapi.tiangolo.com/tutorial/background-tasks/), [Testing](https://fastapi.tiangolo.com/tutorial/testing/)
-- **Python Official Documentation**: [Modules](https://docs.python.org/3/tutorial/modules.html) — `__init__.py`, `__all__`, package organization
-- **Render Official Documentation**: [Deploy FastAPI](https://render.com/docs/deploy-fastapi), [Deploys](https://render.com/docs/deploys)
+
+**Stack research:**
+- OpenClaw GitHub AGENTS.md — Modular prompt pattern reference
+- OpenClaw System Prompt Study — Detailed analysis of bootstrap injection
+- Vercel AI SDK Documentation (ai-sdk.dev/docs/foundations/prompts) — Official guidance on template literals
+- Anthropic Prompt Engineering Best Practices (2026) — Structured prompts with sections
+- Direct codebase analysis (app/api/chat/route.ts, rlm-service/main.py, lib/soulprint/quick-pass.ts)
+
+**Features research:**
+- OpenClaw System Prompt Architecture (docs.openclaw.ai) — Bootstrap injection, SOUL.md pattern
+- OpenAI Custom GPTs Documentation — Personality presets, tone controls
+- Character.ai 2026 Features Guide (autoppt.com) — Personality design, greeting messages
+- Perplexity AI Assistants with Memory — Context retrieval vs training data
+- AWS RAG Documentation — Authoritative knowledge base retrieval patterns
+
+**Pitfalls research:**
+- LLM Context Management (eval.16x.engineer) — Token budgeting, progressive loading strategies
+- Context Window Overflow 2026 (redis.io) — Performance degradation patterns
+- Understanding LLM Cost Per Token (silicondata.com) — 2026 pricing guide
+- Schneier on Security: Why AI Keeps Falling for Prompt Injection — Attack vectors and mitigations
+- LLM Security Risks 2026 (sombrainc.com) — RAG security, shadow AI risks
 
 ### Secondary (MEDIUM confidence)
-- **FastAPI Best Practices**: [zhanymkanov/fastapi-best-practices](https://github.com/zhanymkanov/fastapi-best-practices) — Service layer, project structure, dependency injection patterns
-- **Modular Monolith Architecture**: [Modular Monolith in Python](https://breadcrumbscollector.tech/modular-monolith-in-python/) — Python-specific strategies for internal modularity
-- **Circular Import Solutions**: [Python Circular Import: Causes, Fixes, and Best Practices | DataCamp](https://www.datacamp.com/tutorial/python-circular-import), [Avoiding Circular Imports in Python | Brex](https://medium.com/brexeng/avoiding-circular-imports-in-python-7c35ec8145ed)
-- **Docker Python Module Imports**: [Debugging ImportError and ModuleNotFoundErrors in Docker](https://pythonspeed.com/articles/importerror-docker/)
-- **FastAPI Production Deployment**: [FastAPI production deployment best practices | Render](https://render.com/articles/fastapi-production-deployment-best-practices)
 
-### Tertiary (LOW confidence, needs validation)
-- **Background Processing at Scale**: [FastAPI BackgroundTasks vs ARQ](https://davidmuraya.com/blog/fastapi-background-tasks-arq-vs-built-in/) — Recommendations for migrating to Redis-backed job queue if scaling beyond Render's BackgroundTasks. Not needed for this milestone but relevant for future.
-- **Supabase Database Migrations**: [Database Migrations | Supabase Docs](https://supabase.com/docs/guides/deployment/database-migrations) — Recommended patterns if schema changes needed. Not yet verified against actual production database structure.
+- PsychAdapter personality matching (94.5% accuracy Big Five traits) — Tone mirroring future feature
+- Dream Companion layered memory architecture — Emotional intelligence patterns
+- Conversational AI design 2026 (botpress.com) — Tone consistency best practices
+- Data Consistency in Microservices (oreateai.com) — Multi-service prompt divergence prevention
+
+### Tertiary (LOW confidence, deferred)
+
+- Voice AI trends 2026 (elevenlabs.io) — Deferred to v2+ (out of scope for this milestone)
+- Universal AI long-term memory (plurality.network) — Interesting but speculative (not actionable)
 
 ---
-*Research completed: 2026-02-06*
+
+*Research completed: 2026-02-07*
 *Ready for roadmap: yes*

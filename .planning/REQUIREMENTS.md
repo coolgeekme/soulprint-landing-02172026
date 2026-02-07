@@ -1,98 +1,74 @@
-# Requirements: SoulPrint v1.3
+# Requirements: SoulPrint v1.4
 
 **Defined:** 2026-02-07
-**Core Value:** The import-to-chat flow must work reliably every time on production
+**Core Value:** The AI must feel like YOUR AI — personalized chat using structured sections, not generic responses.
 
-## v1.3 Requirements
+## v1.4 Requirements
 
-### Code Merge
+### Prompt System
 
-- [x] **MERGE-01**: v1.2 processors/ directory (5 modules) copied to production soulprint-rlm repo with modified imports
-- [x] **MERGE-02**: Adapter layer extracts shared functions (download_conversations, update_user_profile, save_chunks_batch) from production main.py into reusable module
-- [x] **MERGE-03**: Circular import between full_pass.py and main.py resolved — processors import from adapter, not main
-- [x] **MERGE-04**: Dockerfile copies processors/ and adapters/ directories with import verification at build time
+- [ ] **PROMPT-01**: AI chat uses all 7 structured sections (SOUL/IDENTITY/USER/AGENTS/TOOLS/MEMORY) in system prompt, not generic filler
+- [ ] **PROMPT-02**: RLM `/query` endpoint and Next.js Bedrock fallback use a shared prompt template so personality is consistent regardless of which path handles the request
+- [ ] **PROMPT-03**: System prompt uses OpenClaw-inspired natural language personality (values/principles, not robotic "NEVER do X" rules)
+- [ ] **PROMPT-04**: System prompt includes anti-generic instructions — no "Great question!", "I'd be happy to help!", or "How can I assist you today?"
 
-### Pipeline
+### AI Identity
 
-- [x] **PIPE-01**: New /process-full-v2 endpoint dispatches fact extraction, MEMORY generation, and v2 section regeneration as background task
-- [x] **PIPE-02**: Full pass pipeline completes: chunk conversations → extract facts (parallel) → consolidate → generate MEMORY → regenerate v2 sections → save to DB
-- [x] **PIPE-03**: Pipeline handles large exports (5000+ conversations) via hierarchical fact reduction without OOM
-- [x] **PIPE-04**: Pipeline failure is non-fatal — v1 soulprint sections remain functional for chat
+- [ ] **IDENT-01**: AI refers to itself by its generated name (e.g., "I'm Echo") naturally in conversation
+- [ ] **IDENT-02**: First message uses personality sections to craft a personalized greeting, not a generic "Hello"
 
-### Deployment
+### Memory & Context
 
-- [x] **DEPLOY-01**: Health check validates all processor modules import correctly at startup
-- [x] **DEPLOY-02**: All 14 existing production endpoints continue working after merge (zero breaking changes)
-- [ ] **DEPLOY-03**: Production RLM deployed to Render with v1.2 capabilities via git push
-- [x] **DEPLOY-04**: Rollback procedure documented — git revert + push restores previous version
+- [ ] **MEM-01**: System prompt instructs model to reference retrieved conversation chunks naturally ("Like we discussed..." not ignoring context)
+- [ ] **MEM-02**: Section validation filters "not enough data" placeholders before prompt composition
 
-### Monitoring
+### Infrastructure
 
-- [x] **MON-01**: full_pass_status field tracks pipeline state (processing/complete/failed) in user_profiles
-- [x] **MON-02**: Concurrency limit configurable via environment variable (FACT_EXTRACTION_CONCURRENCY, default 3)
-- [x] **MON-03**: Pipeline errors logged with context for debugging (user_id, step, error)
+- [ ] **INFRA-01**: Pending DB migrations executed (section columns exist in production)
+- [ ] **INFRA-02**: Updated RLM deployed to Render with new prompt system
 
-### Cutover
+## Future Requirements (deferred)
 
-- [ ] **CUT-01**: Traffic can route to v1 or v2 pipeline based on configuration (gradual cutover)
-- [ ] **CUT-02**: v2 pipeline validated with real user data on production before full cutover
-- [ ] **CUT-03**: v1 /process-full endpoint deprecated after v2 handles 100% traffic
-
-## Future Requirements
-
-### Post-Merge Optimization
-
-- **OPT-01**: Conversation size threshold — only trigger v1.2 for 50+ conversations
-- **OPT-02**: MEMORY section UI — display MEMORY in profile view
-- **OPT-03**: Incremental fact extraction — re-run when user uploads new export
-- **OPT-04**: Admin dashboard — track processing stats (success rate, avg time, failures)
+- Token budget system with progressive context loading — measure usage first, optimize later
+- Section quality scoring and threshold enforcement — get personalization working first
+- Multi-candidate name generation with validation pipeline — existing name gen is sufficient for beta
+- Prompt injection sanitization at import time — acceptable risk for small trusted beta
+- Conversation topic detection influencing AGENTS behavior
+- Personality refinement UI for manual section editing
+- Response format preferences from TOOLS section
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Multi-tier chunking in v1.2 | Single medium tier adequate for fact extraction |
-| Replace quick pass with v1.2 | v1.2 complements, doesn't replace — users need immediate chat |
-| Blocking v1.2 processing | 10-30 min wait breaks UX promise |
-| Multi-language fact extraction | v2+ feature, English-first |
-| Interactive fact review | v2+ feature, needs frontend work |
-| Celery/Redis job queue | FastAPI BackgroundTasks sufficient for current scale |
+| Voice personalization | Entirely different tech stack |
+| Real-time tone mirroring | Sentiment analysis, v2+ |
+| Multi-workspace personas | v2+ |
+| Personality presets/sharing | Not needed for beta |
+| Progressive learning from chats | v2+ |
+| Token budgeting | Measure first, optimize later |
+| Prompt injection prevention | Small trusted beta |
 
 ## Traceability
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| MERGE-01 | Phase 2 | Complete |
-| MERGE-02 | Phase 1 | Complete |
-| MERGE-03 | Phase 1 | Complete |
-| MERGE-04 | Phase 2 | Complete |
-| PIPE-01 | Phase 3 | Complete |
-| PIPE-02 | Phase 4 | Complete |
-| PIPE-03 | Phase 4 | Complete |
-| PIPE-04 | Phase 4 | Complete |
-| DEPLOY-01 | Phase 3 | Complete |
-| DEPLOY-02 | Phase 3 | Complete |
-| DEPLOY-03 | Phase 5 | Pending |
-| DEPLOY-04 | Phase 3 | Complete |
-| MON-01 | Phase 4 | Complete |
-| MON-02 | Phase 4 | Complete |
-| MON-03 | Phase 4 | Complete |
-| CUT-01 | Phase 5 | Pending |
-| CUT-02 | Phase 5 | Pending |
-| CUT-03 | Phase 5 | Pending |
+| Requirement | Phase | Plan(s) | Status |
+|-------------|-------|---------|--------|
+| PROMPT-01 | — | — | Pending |
+| PROMPT-02 | — | — | Pending |
+| PROMPT-03 | — | — | Pending |
+| PROMPT-04 | — | — | Pending |
+| IDENT-01 | — | — | Pending |
+| IDENT-02 | — | — | Pending |
+| MEM-01 | — | — | Pending |
+| MEM-02 | — | — | Pending |
+| INFRA-01 | — | — | Pending |
+| INFRA-02 | — | — | Pending |
 
 **Coverage:**
-- v1.3 requirements: 18 total
-- Mapped to phases: 18
-- Unmapped: 0
-
-**Phase Distribution:**
-- Phase 1 (Dependency Extraction): 2 requirements
-- Phase 2 (Copy & Modify Processors): 2 requirements
-- Phase 3 (Wire New Endpoint): 4 requirements
-- Phase 4 (Pipeline Integration): 6 requirements
-- Phase 5 (Gradual Cutover): 4 requirements
+- v1.4 requirements: 10 total
+- Mapped to phases: 0
+- Unmapped: 10
 
 ---
-*Requirements defined: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 4 complete*
+*10 requirements across 4 categories*
+*Last updated: 2026-02-07*
