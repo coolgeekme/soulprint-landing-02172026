@@ -36,15 +36,18 @@ The import-to-chat flow must work reliably every time on production — no stuck
 - ✓ noUncheckedIndexedAccess enabled — v1.1
 - ✓ 90 passing tests (unit + integration + E2E) — v1.1
 - ✓ Playwright E2E for import-to-chat flow — v1.1
+- ✓ 7-section structured context (SOUL, IDENTITY, USER, AGENTS, TOOLS, MEMORY, daily memory) — v1.2
+- ✓ Two-pass generation: quick pass (~30s, Haiku 4.5) + full pass (RLM background) — v1.2
+- ✓ System prompt composed from all 7 sections + daily memory + dynamic chunks — v1.2
+- ✓ Chat gated on quick pass completion with "Analyzing..." loading screen — v1.2
+- ✓ Import email removed; users redirect to chat immediately — v1.2
+- ✓ V2 sections silently upgrade after full pass completes — v1.2
+- ✓ Memory progress indicator during background processing — v1.2
+- ✓ 112 passing tests (unit + integration + E2E) — v1.2
 
 ### Active
 
-- [ ] 7-section structured context (OpenClaw-inspired): SOUL, IDENTITY, USER, AGENTS, TOOLS, MEMORY, daily memory
-- [ ] Two-pass generation: quick pass (Haiku 4.5, ~30s) for SOUL/IDENTITY/USER/AGENTS/TOOLS, full pass (RLM) for MEMORY + v2 regeneration
-- [ ] System prompt composed from all 7 sections + dynamic chunks
-- [ ] Gate chat on quick pass completion (brief "Analyzing..." loading screen)
-- [ ] Remove "SoulPrint is ready" email from import flow (keep waitlist email)
-- [ ] After full pass, silently upgrade all sections to v2 with complete data
+None — define next milestone with `/gsd:new-milestone`
 
 ### Out of Scope
 
@@ -60,27 +63,30 @@ The import-to-chat flow must work reliably every time on production — no stuck
 
 ## Context
 
-### Current State (after v1.1)
+### Current State (after v1.2)
 
-- **Codebase:** ~84K lines TypeScript, Next.js 16 App Router, Supabase, deployed on Vercel
-- **Test coverage:** 90 Vitest tests (2.3s), 10 Playwright E2E tests
+- **Codebase:** ~86K lines TypeScript + Python, Next.js 16 App Router, Supabase, deployed on Vercel
+- **RLM service:** FastAPI on Render with full pass pipeline (conversation chunking, fact extraction, MEMORY generation, v2 regeneration)
+- **Test coverage:** 112 Vitest tests, 10 Playwright E2E tests
 - **Security:** CSRF + rate limiting + Zod validation + RLS scripts ready
 - **Observability:** Pino structured logging, /api/health with dependency checks
 - **Type safety:** noUncheckedIndexedAccess, zero `any` in import/chat flows
+- **AI pipeline:** Two-pass generation — quick pass (Haiku 4.5 on Bedrock, ~30s) + full pass (Haiku 4.5 on Anthropic API, background)
 
 ### Known Issues
 
 - 10 test mock type errors in complete.test.ts (pre-existing, runtime works)
 - RLS scripts need manual execution in Supabase SQL Editor
+- Database migrations pending: `20260206_add_tools_md.sql`, `20260207_full_pass_schema.sql`
 - Some routes use console.log instead of Pino
 - lib/retry.ts has no dedicated unit tests
 
 ### Key Fragile Areas (mostly addressed)
 
 - Import pipeline has 4 stages — now with error handling, logging, and duplicate detection
-- RLM service is external on Render — now with 15s timeout and circuit breaker
+- RLM service is external on Render — now with 15s timeout, circuit breaker, and full pass pipeline
 - Chat component — race conditions fixed with AbortController and sequence tracking
-- Test framework — now established with Vitest + MSW + Playwright
+- Full pass failure is non-fatal — v1 sections stay, user can chat
 
 ## Constraints
 
@@ -105,9 +111,9 @@ The import-to-chat flow must work reliably every time on production — no stuck
 | noUncheckedIndexedAccess | Prevent undefined access bugs | ✓ Good — caught 57 issues |
 | Zod boundary validation | Validate external API responses at parse boundary | ✓ Good — catches malformed data |
 
-| Remove email gate for import | Users are already chatting by the time email arrives — unnecessary wait | — Pending |
-| OpenClaw-inspired structured context | Modular SOUL/USER/MEMORY sections vs monolithic soulprint_text blob | — Pending |
-| Generate SOUL+USER on server during import | Gate chat on these two, let memory build in background | — Pending |
+| Remove email gate for import | Users are already chatting by the time email arrives — unnecessary wait | ✓ Good — users go straight to chat |
+| OpenClaw-inspired structured context | Modular SOUL/USER/MEMORY sections vs monolithic soulprint_text blob | ✓ Good — 7 sections, clean composition |
+| Two-pass pipeline | Quick pass for speed, full pass for depth | ✓ Good — ~30s to chat, v2 upgrade in background |
 
 ---
-*Last updated: 2026-02-06 after v1.2 milestone started*
+*Last updated: 2026-02-07 after v1.2 milestone complete*
