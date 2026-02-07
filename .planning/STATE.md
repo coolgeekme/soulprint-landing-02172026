@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 ## Current Position
 
 Phase: 3 of 5 (Wire New Endpoint)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-02-07 — Phase 2 (Copy & Modify Processors) complete, verified
+Plan: 1 of 1 in current phase
+Status: Phase complete
+Last activity: 2026-02-07 — Completed 03-01-PLAN.md
 
-Progress: [████░░░░░░] 40%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3 (v1.3)
-- Average duration: 3.1 minutes
-- Total execution time: 0.16 hours
+- Total plans completed: 4 (v1.3)
+- Average duration: 3.2 minutes
+- Total execution time: 0.21 hours
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [████░░░░░░] 40%
 |-------|-------|-------|----------|
 | 01-dependency-extraction | 1 | 4 min | 4 min |
 | 02-copy-modify-processors | 2 | 5 min | 2.5 min |
+| 03-wire-new-endpoint | 1 | 3.5 min | 3.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4min), 02-01 (3min), 02-02 (2min)
-- Trend: Improving velocity
+- Last 5 plans: 01-01 (4min), 02-01 (3min), 02-02 (2min), 03-01 (3.5min)
+- Trend: Stable velocity
 
 *Updated after each plan completion*
 
@@ -55,6 +56,11 @@ Recent decisions affecting current work:
 | TEST-01 | Test only pure functions in unit tests | Functions calling external APIs require complex mocking, defer to integration tests | Unit tests focus on business logic without HTTP mocks | 02-02 |
 | TEST-02 | Use simplified message format in test data | Tests can use messages list instead of full ChatGPT export mapping | Test data more readable and maintainable | 02-02 |
 | TEST-03 | Mock ANTHROPIC_API_KEY in conftest.py autouse fixture | Processor modules create Anthropic clients at module level | All tests have ANTHROPIC_API_KEY available, no import errors | 02-02 |
+| WIRE-01 | Use FastAPI lifespan instead of @app.on_event("startup") | FastAPI ignores ALL @app.on_event decorators when lifespan is set | All 3 startup handlers migrated to single lifespan context manager | 03-01 |
+| WIRE-02 | Add processor import validation in lifespan startup | Fail-fast on missing/broken processor modules prevents silent failures | App crashes at startup if processors missing | 03-01 |
+| WIRE-03 | Enhance /health with processors_available check | Enables runtime validation for Render auto-restart | Health check returns 503 if processor imports fail | 03-01 |
+| WIRE-04 | Require storage_path for v2 endpoint | v2 processors designed for scalable storage-based flow | v2 endpoint returns 400 if storage_path not provided | 03-01 |
+| WIRE-05 | Reuse ProcessFullRequest model for v2 endpoint | Minimizes changes, leverages existing job tracking | v1 and v2 share same request schema and job system | 03-01 |
 
 **Project-level decisions:**
 - v1.3: Separate soulprint-rlm repo — Production RLM deploys from Pu11en/soulprint-rlm, not soulprint-landing/rlm-service/ (Pending)
@@ -67,13 +73,15 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-None - Phase 2 complete, processors copied to production repo with comprehensive test coverage.
+None - Phase 3 complete, /process-full-v2 endpoint wired and ready for Vercel integration.
+
+**Note:** Processors not yet tested end-to-end with real Supabase data. Phase 4 should include smoke test.
 
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Phase 2 complete, ready to plan Phase 3
+Stopped at: Completed 03-01-PLAN.md - Phase 3 complete
 Resume file: None
 
 ---
-*Last updated: 2026-02-07 after Phase 2 execution and verification*
+*Last updated: 2026-02-07 after Phase 3 Plan 1 execution*
