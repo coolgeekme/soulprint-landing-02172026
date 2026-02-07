@@ -10,24 +10,25 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 ## Current Position
 
 Phase: 2 of 3 (Full Pass Pipeline)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-02-07 -- Phase 1 complete (3/3 plans, verified)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-02-07 -- Completed 02-01-PLAN.md
 
-Progress: [###.......] 30% (3/10 plans)
+Progress: [####......] 40% (4/10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 3.7min
-- Total execution time: 11min
+- Total plans completed: 4
+- Average duration: 3.3min
+- Total execution time: 13min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Schema + Quick Pass Pipeline | 3/3 | 11min | 3.7min |
+| 2. Full Pass Pipeline | 1/3 | 2min | 2min |
 
 ## Accumulated Context
 
@@ -45,10 +46,14 @@ Recent decisions affecting current work:
 - 01-02: Store sections as JSON.stringify'd strings in TEXT *_md columns
 - 01-02: Quick pass runs synchronously between conversation parsing and RLM fire-and-forget
 - 01-02: Replaced local type duplicates in process-server with shared imports
+- 02-01: Use FastAPI BackgroundTasks for async dispatch (cleaner than asyncio.create_task)
+- 02-01: Status updates to Supabase are best-effort (log errors, don't throw)
+- 02-01: Stub marks status as 'complete' after 1s sleep (Plan 02-02 will add real processing)
 
 ### Pending Todos
 
 - Run `supabase/migrations/20260206_add_tools_md.sql` in Supabase SQL Editor
+- Run `supabase/migrations/20260207_full_pass_schema.sql` in Supabase SQL Editor (MUST execute before deploying Plans 02-02/02-03)
 - Run `scripts/rls-audit.sql` in Supabase SQL Editor (from v1.1 Phase 4)
 - Verify CSRF middleware rejects unauthenticated POSTs on production
 
@@ -59,7 +64,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Phase 1 complete, ready to plan Phase 2
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None
 
 ---
