@@ -20,7 +20,7 @@ export async function GET() {
     // Check user_profiles for soulprint
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
-      .select('import_status, import_error, processing_started_at, total_conversations, total_messages, soulprint_generated_at, soulprint_locked, locked_at, embedding_status, embedding_progress, total_chunks, processed_chunks, memory_status')
+      .select('import_status, import_error, processing_started_at, total_conversations, total_messages, soulprint_generated_at, soulprint_locked, locked_at, embedding_status, embedding_progress, total_chunks, processed_chunks, memory_status, full_pass_status, full_pass_error')
       .eq('user_id', user.id)
       .single();
 
@@ -52,6 +52,8 @@ export async function GET() {
       // "building" = SoulPrint ready, embeddings in progress (chat works, memory improving)
       // "ready" = Full memory available (embeddings complete)
       memoryStatus: profile?.memory_status || (profile?.embedding_status === 'complete' ? 'ready' : 'building'),
+      fullPassStatus: profile?.full_pass_status || 'pending',
+      fullPassError: profile?.full_pass_error || null,
       stats: profile ? {
         totalConversations: profile.total_conversations,
         totalMessages: profile.total_messages,
