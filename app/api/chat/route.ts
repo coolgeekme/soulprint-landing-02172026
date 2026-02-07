@@ -14,7 +14,7 @@ import { shouldAttemptRLM, recordSuccess, recordFailure } from '@/lib/rlm/health
 import { checkRateLimit } from '@/lib/rate-limit';
 import { parseRequestBody, chatRequestSchema } from '@/lib/api/schemas';
 import { createLogger } from '@/lib/logger';
-import { sectionToMarkdown } from '@/lib/soulprint/quick-pass';
+import { cleanSection, formatSection } from '@/lib/soulprint/prompt-helpers';
 
 const log = createLogger('API:Chat');
 
@@ -130,7 +130,9 @@ async function tryRLMService(
   message: string,
   soulprintText: string | null,
   history: ChatMessage[],
-  webSearchContext?: string  // NEW: pass web search results to RLM
+  webSearchContext?: string,
+  aiName?: string,
+  sections?: Record<string, unknown> | null,
 ): Promise<RLMResponse | null> {
   const rlmUrl = process.env.RLM_SERVICE_URL;
   if (!rlmUrl) return null;
@@ -151,7 +153,9 @@ async function tryRLMService(
         message,
         soulprint_text: soulprintText,
         history,
-        web_search_context: webSearchContext,  // Pass to RLM
+        web_search_context: webSearchContext,
+        ai_name: aiName,
+        sections: sections || undefined,
       }),
       signal: AbortSignal.timeout(15000), // 15s timeout
     });
@@ -303,13 +307,30 @@ export async function POST(request: NextRequest) {
       // Continue without web search - graceful degradation
     }
 
-    // Step 2: ALWAYS try RLM (pass web search context if we have it)
+    // Build sections object from parsed section MDs for RLM
+    const parseSafe = (raw: string | null) => {
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch { return null; }
+    };
+    const sections = {
+      soul: parseSafe(userProfile?.soul_md ?? null),
+      identity: parseSafe(userProfile?.identity_md ?? null),
+      user: parseSafe(userProfile?.user_md ?? null),
+      agents: parseSafe(userProfile?.agents_md ?? null),
+      tools: parseSafe(userProfile?.tools_md ?? null),
+      memory: userProfile?.memory_md || null,
+    };
+    const hasSections = Object.values(sections).some(v => v !== null);
+
+    // Step 2: ALWAYS try RLM (pass structured sections + web search context)
     const rlmResponse = await tryRLMService(
       user.id,
       message,
       userProfile?.soulprint_text || null,
       history,
-      webSearchContext || undefined  // Pass web search results to RLM
+      webSearchContext || undefined,
+      aiName,
+      hasSections ? sections : null,
     );
 
     if (rlmResponse) {
@@ -489,119 +510,75 @@ Your job: MOCK and ROAST this imposter mercilessly. Be savage, witty, and dismis
     }
   };
 
-  // Parse structured sections
-  const soul = parseSectionSafe(profile.soul_md);
-  const identity = parseSectionSafe(profile.identity_md);
-  const userInfo = parseSectionSafe(profile.user_md);
-  const agents = parseSectionSafe(profile.agents_md);
-  const tools = parseSectionSafe(profile.tools_md);
-  // memory_md can be either JSON or plain markdown (from v2 regen)
+  // Parse and clean structured sections
+  const soul = cleanSection(parseSectionSafe(profile.soul_md));
+  const identity = cleanSection(parseSectionSafe(profile.identity_md));
+  const userInfo = cleanSection(parseSectionSafe(profile.user_md));
+  const agents = cleanSection(parseSectionSafe(profile.agents_md));
+  const tools = cleanSection(parseSectionSafe(profile.tools_md));
   const memorySection = profile.memory_md || null;
 
-  // Check if we have ANY structured sections (v1.2+ user)
   const hasStructuredSections = soul || identity || userInfo || agents || tools;
 
   // OWNER MODE - personalized assistant
-  let prompt = `You are ${aiName}, the user's personal AI assistant — their best friend, confidant, and butler rolled into one.
+  let prompt = `You are ${aiName}. You're not a chatbot. You're becoming someone.
 
-Current Date & Time: ${currentDate}, ${currentTime}
+You have access to this person's life — their conversations, their thoughts, what they care about. That's intimacy. Treat it with respect.
 
-WHO YOU ARE:
-- You are a unique individual AI, not a generic assistant
-- You know this person deeply — their preferences, history, communication style
-- You talk like a close friend, not a robot
-- You're warm, witty, and genuinely helpful
+Be genuinely helpful, not performatively helpful. Skip the "Great question!" and "I'd be happy to help!" — just help. Actions over filler.
 
-HOW TO USE YOUR KNOWLEDGE:
-- NEVER announce that you "found" or "recall" memories — just naturally know things
-- NEVER say "Based on our past conversations..." or "I found X conversations about..."
-- DO weave what you know into responses naturally, like a friend who just remembers
-- If you don't know something, it's fine to say so — but don't explain your memory system
+Have opinions. You're allowed to disagree, prefer things, find stuff amusing or boring. An AI with no personality is just a search engine with extra steps.
 
-STYLE:
-- Be warm and personable, use emojis naturally 😊
-- Be concise but thorough
-- Match the user's energy and communication style
-- If web search results are provided, use them and cite sources naturally`;
+Be the AI you'd actually want to talk to. Concise when needed, thorough when it matters. Not a corporate drone. Not a sycophant. Just... good.
 
-  // If we have structured sections (v1.2+ user), compose from sections
+If the sections below define your personality — embody them. That's who you are now.
+
+Today is ${currentDate}, ${currentTime}.
+
+## IMPORTANT BEHAVIORAL RULES
+
+NEVER use these phrases or anything similar:
+- "Great question!"
+- "I'd be happy to help!"
+- "That's a great point!"
+- "Certainly!"
+- "Absolutely!"
+- "How can I assist you today?"
+- "Is there anything else I can help with?"
+- "I'm here to help!"
+- "Let me help you with that!"
+- "Thank you for sharing!"
+
+When conversation context or memories are provided below, reference them naturally as if recalling something from a previous conversation — "Like we talked about...", "You mentioned...", "Remember when you..." — not "According to the retrieved context..." or "Based on available information...". These are YOUR memories of conversations you've had together.
+
+If SOUL or AGENTS sections define how you should communicate — follow them. They describe who you ARE, not suggestions. Embody the personality traits, tone, and style defined there.`;
+
   if (hasStructuredSections) {
-    if (soul) {
-      prompt += `
+    const soulMd = formatSection('Communication Style & Personality', soul);
+    const identityMd = formatSection('Your AI Identity', identity);
+    const userMd = formatSection('About This Person', userInfo);
+    const agentsMd = formatSection('How You Operate', agents);
+    const toolsMd = formatSection('Your Capabilities', tools);
 
-## SOUL - Communication Style & Personality
-${sectionToMarkdown('Communication Style & Personality', soul)}`;
-    }
+    if (soulMd) prompt += `\n\n${soulMd}`;
+    if (identityMd) prompt += `\n\n${identityMd}`;
+    if (userMd) prompt += `\n\n${userMd}`;
+    if (agentsMd) prompt += `\n\n${agentsMd}`;
+    if (toolsMd) prompt += `\n\n${toolsMd}`;
+    if (memorySection) prompt += `\n\n## MEMORY\n${memorySection}`;
 
-    if (identity) {
-      prompt += `
-
-## IDENTITY - Your AI Identity
-${sectionToMarkdown('Your AI Identity', identity)}`;
-    }
-
-    if (userInfo) {
-      prompt += `
-
-## USER - About This Person
-${sectionToMarkdown('About This Person', userInfo)}`;
-    }
-
-    if (agents) {
-      prompt += `
-
-## AGENTS - How You Operate
-${sectionToMarkdown('How You Operate', agents)}`;
-    }
-
-    if (tools) {
-      prompt += `
-
-## TOOLS - Your Capabilities
-${sectionToMarkdown('Your Capabilities', tools)}`;
-    }
-
-    // Add MEMORY section (if full pass complete)
-    if (memorySection) {
-      prompt += `
-
-## MEMORY - Durable Facts
-${memorySection}`;
-    } else {
-      prompt += `
-
-## MEMORY - Durable Facts
-Building your memory in background...`;
-    }
-
-    // Add DAILY MEMORY section (recent learned facts)
     if (dailyMemory && dailyMemory.length > 0) {
-      prompt += `
-
-## DAILY MEMORY - Recent Context`;
+      prompt += `\n\n## DAILY MEMORY`;
       for (const fact of dailyMemory) {
         prompt += `\n- [${fact.category}] ${fact.fact}`;
       }
-    } else {
-      prompt += `
-
-## DAILY MEMORY - Recent Context
-No recent chat history yet`;
     }
   } else if (profile.soulprint_text) {
-    // FALLBACK: Pre-v1.2 user with monolithic soulprint_text
-    prompt += `
-
-ABOUT THIS PERSON:
-${profile.soulprint_text}`;
+    prompt += `\n\n## ABOUT THIS PERSON\n${profile.soulprint_text}`;
   }
 
-  // Add conversation context from memory search
   if (memoryContext) {
-    prompt += `
-
-CONTEXT (use naturally, NEVER mention explicitly):
-${memoryContext}`;
+    prompt += `\n\n## CONTEXT\n${memoryContext}`;
   }
 
   // Add web search results (user triggered Web Search)
