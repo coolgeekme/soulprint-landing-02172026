@@ -79,6 +79,12 @@ export async function DELETE() {
         soulprint_text: null,
         import_error: null,
         processing_started_at: null,
+        soul_md: null,
+        identity_md: null,
+        user_md: null,
+        agents_md: null,
+        tools_md: null,
+        ai_name: null,
       })
       .eq('user_id', userId);
     results.user_profiles = profileError ? profileError.message : 'reset';

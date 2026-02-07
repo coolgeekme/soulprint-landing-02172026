@@ -14,6 +14,8 @@ import { gzipSync } from 'zlib';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
 import { chatGPTExportSchema, ChatGPTRawConversation } from '@/lib/api/schemas';
+import { generateQuickPass, sectionsToSoulprintText } from '@/lib/soulprint/quick-pass';
+import type { ParsedConversation, ConversationMessage } from '@/lib/soulprint/types';
 
 const log = createLogger('API:ImportProcessServer');
 
@@ -28,18 +30,6 @@ function getSupabaseAdmin() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
-}
-
-interface ConversationMessage {
-  role: string;
-  content: string;
-}
-
-interface ParsedConversation {
-  id: string;
-  title: string;
-  messages: ConversationMessage[];
-  createdAt: string;
 }
 
 export async function POST(request: Request) {
@@ -288,31 +278,71 @@ export async function POST(request: Request) {
       activeDays: Math.ceil((Date.now() - new Date(conversations[conversations.length - 1]?.createdAt || Date.now()).getTime()) / (1000 * 60 * 60 * 24)),
     };
     
-    // ASYNC SOULPRINT: Skip RLM here, generate after embeddings complete
-    // Placeholder soulprint - will be replaced by /api/soulprint/generate
-    const soulprint = {
-      archetype: 'Analyzing...',
-      soulprint_text: `Analyzing ${totalMessages.toLocaleString()} messages across ${conversations.length.toLocaleString()} conversations. Your personalized SoulPrint is being created...`,
-      stats,
-      pending: true, // Flag for async generation
-    };
-    const archetype = 'Analyzing...';
+    // === QUICK PASS: Generate structured context sections via Haiku 4.5 ===
+    reqLog.info({ conversationCount: conversations.length }, 'Starting quick pass generation');
+    const quickPassStart = Date.now();
 
-    reqLog.debug('Placeholder soulprint set - async generation will follow after embeddings');
-    
-    // Save soulprint to user profile
+    const quickPassResult = await generateQuickPass(conversations);
+
+    const quickPassDuration = Date.now() - quickPassStart;
+    reqLog.info({ quickPassDuration, success: !!quickPassResult }, 'Quick pass complete');
+
+    // Build soulprint data
+    let soulprintText: string;
+    let aiName: string;
+    let archetype: string;
+    let soulMd: string | null = null;
+    let identityMd: string | null = null;
+    let userMd: string | null = null;
+    let agentsMd: string | null = null;
+    let toolsMd: string | null = null;
+
+    if (quickPassResult) {
+      // Quick pass succeeded -- use structured sections
+      soulprintText = sectionsToSoulprintText(quickPassResult);
+      aiName = quickPassResult.identity.ai_name || 'Soul';
+      archetype = quickPassResult.identity.archetype || 'Your AI';
+
+      // Store each section as JSON string in its *_md column
+      soulMd = JSON.stringify(quickPassResult.soul);
+      identityMd = JSON.stringify(quickPassResult.identity);
+      userMd = JSON.stringify(quickPassResult.user);
+      agentsMd = JSON.stringify(quickPassResult.agents);
+      toolsMd = JSON.stringify(quickPassResult.tools);
+    } else {
+      // Quick pass failed -- use placeholder (user can still chat)
+      soulprintText = `Analyzing ${totalMessages.toLocaleString()} messages across ${conversations.length.toLocaleString()} conversations. Your personalized SoulPrint is being created...`;
+      aiName = 'Soul';
+      archetype = 'Analyzing...';
+      reqLog.warn('Quick pass failed, using placeholder soulprint');
+    }
+
+    const soulprint = {
+      archetype,
+      soulprint_text: soulprintText,
+      stats,
+      pending: !quickPassResult, // true if still needs generation
+    };
+
+    // Save soulprint to user profile with structured sections
     await adminSupabase.from('user_profiles').upsert({
       user_id: userId,
       soulprint: soulprint,
-      soulprint_text: soulprint.soulprint_text || '',
+      soulprint_text: soulprintText,
       archetype,
+      ai_name: aiName,
+      soul_md: soulMd,
+      identity_md: identityMd,
+      user_md: userMd,
+      agents_md: agentsMd,
+      tools_md: toolsMd,
       import_status: 'quick_ready',
       import_error: null,
       total_conversations: conversations.length,
       total_messages: totalMessages,
       soulprint_generated_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      raw_export_path: rawExportPath, // Store path to compressed original JSON
+      raw_export_path: rawExportPath,
     }, { onConflict: 'user_id' });
     
     // Update profile status - RLM will do chunking + embedding + soulprint
@@ -405,8 +435,11 @@ export async function POST(request: Request) {
         stats,
       },
       archetype,
+      aiName,
       totalConversations: conversations.length,
       totalMessages,
+      quickPassDuration,
+      quickPassSuccess: !!quickPassResult,
     });
     
   } catch (error) {
