@@ -380,12 +380,28 @@ export async function POST(request: Request) {
     // Call RLM with storage path (not full conversations - handles 10,000+ conversations)
     // IMPORTANT: Fire-and-forget! Don't await - RLM processes async and updates DB when done
     const rlmUrl = process.env.RLM_API_URL || 'https://soulprint-landing.onrender.com';
+
+    // V2_ROLLOUT_PERCENT: Percentage-based traffic routing for gradual cutover
+    const v2RolloutPct = Math.max(0, Math.min(100,
+      parseInt(process.env.V2_ROLLOUT_PERCENT || '0', 10) || 0
+    ));
+
+    const useV2Pipeline = Math.random() * 100 < v2RolloutPct;
+    const rlmEndpoint = useV2Pipeline ? '/process-full-v2' : '/process-full';
+
+    reqLog.info({
+      endpoint: rlmEndpoint,
+      v2RolloutPercent: v2RolloutPct,
+      userId,
+      conversationCount: conversations.length
+    }, 'Routing import request to RLM pipeline');
+
     try {
       // Use a short timeout just to confirm RLM accepted the job
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s to accept job
-      
-      const rlmResponse = await fetch(`${rlmUrl}/process-full`, {
+
+      const rlmResponse = await fetch(`${rlmUrl}${rlmEndpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -402,10 +418,10 @@ export async function POST(request: Request) {
       // We only check if RLM accepted the job - actual processing is async
       if (!rlmResponse.ok) {
         const errorText = await rlmResponse.text().catch(() => 'Unknown error');
-        reqLog.error({ status: rlmResponse.status, error: errorText }, 'RLM returned error');
+        reqLog.error({ endpoint: rlmEndpoint, status: rlmResponse.status, error: errorText }, 'RLM returned error');
         reqLog.warn('RLM may be slow - user can start chatting while processing continues');
       } else {
-        reqLog.info('RLM accepted job');
+        reqLog.info({ endpoint: rlmEndpoint }, 'RLM accepted job');
       }
     } catch (e: unknown) {
       // Even if RLM call fails/times out, don't block the user
