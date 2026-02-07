@@ -62,7 +62,7 @@ This milestone merges v1.2's modular processor architecture into the production 
 **Plans**: 1 plan
 
 Plans:
-- [ ] 01-01-PLAN.md — TDD: Supabase adapter layer with 100% test coverage
+- [x] 01-01-PLAN.md — TDD: Supabase adapter layer with 100% test coverage
 
 ### Phase 2: Copy & Modify Processors
 **Goal**: v1.2 processor modules are integrated and Dockerfile can build container with all modules verified
@@ -129,11 +129,11 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Dependency Extraction | v1.3 | 0/TBD | Not started | - |
+| 1. Dependency Extraction | v1.3 | 1/1 | Complete | 2026-02-06 |
 | 2. Copy & Modify Processors | v1.3 | 0/TBD | Not started | - |
 | 3. Wire New Endpoint | v1.3 | 0/TBD | Not started | - |
 | 4. Pipeline Integration | v1.3 | 0/TBD | Not started | - |
 | 5. Gradual Cutover | v1.3 | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-02-06 after v1.3 roadmap created*
+*Last updated: 2026-02-06 after Phase 1 execution complete*
