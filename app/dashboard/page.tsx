@@ -18,7 +18,7 @@ export default function DashboardPage() {
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         if (user) {
           setUserEmail(user.email || null);
           // Load AI name and stats from user_profiles
@@ -27,12 +27,12 @@ export default function DashboardPage() {
             .select('ai_name, total_messages, total_conversations')
             .eq('user_id', user.id)
             .single();
-          
+
           if (profile) {
             setAiName(profile.ai_name || null);
-            setStats({ 
-              messages: profile.total_messages || 0, 
-              memories: profile.total_conversations || 0 
+            setStats({
+              messages: profile.total_messages || 0,
+              memories: profile.total_conversations || 0
             });
           }
         }
@@ -42,6 +42,20 @@ export default function DashboardPage() {
       setLoading(false);
     };
     loadData();
+
+    // Handle browser back/forward cache (bfcache) restoration
+    // When user navigates away and back, the page is restored from cache with stale state
+    // This ensures we reload fresh data when that happens
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        // Page was restored from bfcache - reload data
+        setLoading(true);
+        loadData();
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
   }, []);
 
   const handleRename = async () => {
