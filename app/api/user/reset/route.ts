@@ -68,6 +68,7 @@ export async function DELETE() {
     results.raw_conversations = rawError ? rawError.message : `${rawCount ?? 0} deleted`;
 
     // 5. Reset user profile (don't delete, just reset import status + stats)
+    // Core fields first (always exist) — this MUST succeed
     const { error: profileError } = await adminSupabase
       .from('user_profiles')
       .update({
@@ -79,15 +80,25 @@ export async function DELETE() {
         soulprint_text: null,
         import_error: null,
         processing_started_at: null,
+        ai_name: null,
+      })
+      .eq('user_id', userId);
+    results.user_profiles = profileError ? profileError.message : 'reset';
+
+    // v1.2 section columns (may not exist if migration not run yet)
+    const { error: sectionsError } = await adminSupabase
+      .from('user_profiles')
+      .update({
         soul_md: null,
         identity_md: null,
         user_md: null,
         agents_md: null,
         tools_md: null,
-        ai_name: null,
       })
       .eq('user_id', userId);
-    results.user_profiles = profileError ? profileError.message : 'reset';
+    if (sectionsError) {
+      console.log(`[UserReset] v1.2 sections reset skipped (columns may not exist): ${sectionsError.message}`);
+    }
 
     // 6. Reset gamification stats
     const { error: statsError } = await adminSupabase
