@@ -47,7 +47,12 @@ The import-to-chat flow must work reliably every time on production — no stuck
 
 ### Active
 
-None — define next milestone with `/gsd:new-milestone`
+#### v1.3 RLM Production Sync
+
+- [ ] v1.2 processor modules (fact extraction, memory generation, v2 regeneration) merged into production soulprint-rlm repo
+- [ ] Full pass pipeline (/process-full endpoint) works end-to-end on production RLM
+- [ ] Import incompatibilities resolved (function signatures, chunking tier mismatch, missing embeddings)
+- [ ] Production RLM deployed to Render with v1.2 capabilities
 
 ### Out of Scope
 
@@ -93,7 +98,7 @@ None — define next milestone with `/gsd:new-milestone`
 - **Deployment**: Vercel — 5-minute function timeout, serverless execution
 - **Testing**: User tests on deployed production, not localhost
 - **Database**: Supabase schema changes should be avoided if possible (per CLAUDE.md)
-- **External services**: RLM service is external — call it, don't modify it
+- **External services**: RLM service deploys from separate repo (Pu11en/soulprint-rlm) to Render
 - **Auth flow**: Working, don't touch it
 
 ## Key Decisions
@@ -115,5 +120,8 @@ None — define next milestone with `/gsd:new-milestone`
 | OpenClaw-inspired structured context | Modular SOUL/USER/MEMORY sections vs monolithic soulprint_text blob | ✓ Good — 7 sections, clean composition |
 | Two-pass pipeline | Quick pass for speed, full pass for depth | ✓ Good — ~30s to chat, v2 upgrade in background |
 
+| Separate soulprint-rlm repo | Production RLM deploys from Pu11en/soulprint-rlm, not soulprint-landing/rlm-service/ | — Pending |
+| Hybrid merge for RLM sync | Add v1.2 processors to production without breaking existing endpoints | — Pending |
+
 ---
-*Last updated: 2026-02-07 after v1.2 milestone complete*
+*Last updated: 2026-02-07 after v1.3 milestone started*
