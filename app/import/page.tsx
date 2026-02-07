@@ -385,11 +385,11 @@ function ImportPageContent() {
           if (currentProgress < 65) {
             setProgressStage('Downloading and extracting...');
           } else if (currentProgress < 75) {
-            setProgressStage('Parsing conversations...');
+            setProgressStage('Reading your conversations...');
           } else if (currentProgress < 85) {
-            setProgressStage('Creating your SoulPrint...');
+            setProgressStage('Analyzing your personality...');
           } else {
-            setProgressStage('Almost done...');
+            setProgressStage('Building your profile...');
           }
         }, 1000);
 
@@ -437,11 +437,11 @@ function ImportPageContent() {
         const result = await queueRes.json();
         console.log('[Import] Processing complete:', result);
 
-      // Success! Show completion - DO NOT redirect, user waits for email
-      setProgressStage('Complete! We\'ll email you when ready.');
+      // Success! Quick pass is complete, redirect to chat
+      setProgressStage('Analysis complete! Opening chat...');
       setProgress(100);
-      setStatus('success');
-      setCurrentStep('done');
+      await new Promise(r => setTimeout(r, 800)); // Brief pause for UX
+      router.push('/chat');
     } catch (err) {
       console.error('Import error:', err);
       // Map technical errors to user-friendly messages
@@ -782,8 +782,8 @@ function ImportPageContent() {
                   strokeWidth={5}
                 />
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">Creating your SoulPrint</h2>
-              <p className="text-white/50 text-xs sm:text-sm">{progressStage || 'Analyzing your conversations...'}</p>
+              <h2 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">Analyzing your conversations...</h2>
+              <p className="text-white/50 text-xs sm:text-sm">{progressStage || 'Building your profile...'}</p>
 
               {progress < 60 && (
                 <p className="text-orange-400/80 text-xs mt-2">
@@ -826,15 +826,9 @@ function ImportPageContent() {
               >
                 <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-green-500" />
               </motion.div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 sm:mb-2">Upload Complete!</h2>
-              <p className="text-white/50 text-xs sm:text-sm mb-4">We&apos;re generating your personalized SoulPrint. This takes a few minutes.</p>
-              <div className="flex items-center justify-center gap-2 text-orange-400 mb-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
-                <Mail className="w-5 h-5" />
-                <span className="font-medium text-sm">We&apos;ll email you when it&apos;s ready!</span>
-              </div>
-              <p className="text-white/40 text-xs">
-                You can close this page. We&apos;ll send you a notification when your SoulPrint is complete.
-              </p>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 sm:mb-2">Analysis Complete!</h2>
+              <p className="text-white/50 text-xs sm:text-sm mb-4">Opening your personalized chat...</p>
+              <div className="w-6 h-6 border-2 border-[#EA580C] border-t-transparent rounded-full animate-spin mx-auto" />
             </motion.div>
           )}
         </AnimatePresence>
