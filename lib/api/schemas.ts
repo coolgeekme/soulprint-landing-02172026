@@ -21,6 +21,24 @@ export const saveMessageSchema = z.object({
     message: 'Role must be "user" or "assistant"',
   }),
   content: z.string().min(1, 'Content is required').max(100000, 'Message too long (max 100,000 chars)'),
+  conversation_id: z.string().uuid('Invalid conversation ID'),
+});
+
+// ============================================
+// Conversation Schemas
+// ============================================
+
+export const createConversationSchema = z.object({
+  title: z.string().min(1).max(200).optional().default('New Chat'),
+});
+
+export const updateConversationSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(200, 'Title too long').trim(),
+});
+
+export const generateTitleSchema = z.object({
+  userMessage: z.string().min(1).max(1000),
+  aiMessage: z.string().min(1).max(1000),
 });
 
 // ============================================
