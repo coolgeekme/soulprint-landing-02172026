@@ -12,7 +12,7 @@ Generate EXACTLY the following 5 sections as a single JSON object.
 CRITICAL RULES:
 - Base everything on EVIDENCE from the conversations. Do not speculate or invent details.
 - If specific information is not available for a field, write "not enough data" for string fields or leave arrays empty.
-- For identity.ai_name: Create a CREATIVE, personality-derived name that reflects who this person is. Never use generic names like "Assistant", "Helper", "AI", "Bot", or "Buddy". Think of a name that captures their energy -- like a nickname a clever friend would give them.
+- For identity.ai_name: This is MANDATORY and must NEVER be empty. Create a CREATIVE, personality-derived name that reflects who this person is. Never use generic names like "Assistant", "Helper", "AI", "Bot", "Buddy", or "Soul". Examples of good names: "Nova" (for someone curious and exploratory), "Atlas" (for someone organized and methodical), "Sage" (for someone philosophical and thoughtful), "Pixel" (for someone technical and detail-oriented), "Echo" (for someone reflective), "Dash" (for someone energetic and fast-paced). Choose a name that captures their unique energy and communication style.
 - Respond with ONLY a valid JSON object. No explanation, no markdown, no text before or after the JSON.
 
 JSON SCHEMA:

@@ -300,7 +300,60 @@ export async function POST(request: Request) {
     if (quickPassResult) {
       // Quick pass succeeded -- use structured sections
       soulprintText = sectionsToSoulprintText(quickPassResult);
-      aiName = quickPassResult.identity.ai_name || 'Soul';
+
+      // AI name with intelligent fallback
+      if (quickPassResult.identity.ai_name && quickPassResult.identity.ai_name.trim()) {
+        aiName = quickPassResult.identity.ai_name.trim();
+      } else {
+        // Generate name from archetype if available
+        const arch = quickPassResult.identity.archetype || '';
+        let derivedName: string | null = null;
+
+        if (arch && arch !== 'not enough data') {
+          // Extract key word from archetype and create a name
+          const words = arch.toLowerCase().split(/[\s-]+/).filter(w => w.length > 3);
+          const nameMap: Record<string, string> = {
+            'strategic': 'Atlas',
+            'creative': 'Nova',
+            'analytical': 'Sage',
+            'thoughtful': 'Echo',
+            'practical': 'Dash',
+            'witty': 'Spark',
+            'technical': 'Pixel',
+            'philosophical': 'Lumen',
+            'organized': 'Prism',
+            'curious': 'Quest',
+            'pragmatic': 'Arc',
+            'builder': 'Forge',
+            'explorer': 'Orbit',
+            'guide': 'Beacon',
+          };
+
+          for (const word of words) {
+            if (nameMap[word]) {
+              derivedName = nameMap[word];
+              reqLog.warn({ archetype: arch, derivedName }, 'Generated AI name from archetype (ai_name was empty)');
+              break;
+            }
+          }
+
+          if (!derivedName) {
+            // Still no match - use first word capitalized
+            const firstWord = words[0];
+            if (firstWord) {
+              derivedName = firstWord.charAt(0).toUpperCase() + firstWord.slice(1);
+              reqLog.warn({ archetype: arch, derivedName }, 'Generated AI name from first archetype word');
+            }
+          }
+        }
+
+        // Final fallback
+        aiName = derivedName || 'Soul';
+        if (aiName === 'Soul') {
+          reqLog.warn('Using default "Soul" name - both ai_name and archetype missing or unusable');
+        }
+      }
+
       archetype = quickPassResult.identity.archetype || 'Your AI';
 
       // Store each section as JSON string in its *_md column
