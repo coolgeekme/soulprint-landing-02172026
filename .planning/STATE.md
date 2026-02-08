@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 ## Current Position
 
 Phase: 11 of 13 (Rich Rendering & Dark Mode)
-Plan: 1 of 3 complete (11-01 - Dark Mode Infrastructure & Markdown Dependencies)
-Status: In progress
-Last activity: 2026-02-08 - Completed 11-01-PLAN.md (Dark Mode Infrastructure & Markdown Dependencies)
+Plan: 3 of 3 complete (11-03 - Telegram Chat Dark Mode Integration)
+Status: Phase complete
+Last activity: 2026-02-08 - Completed 11-03-PLAN.md (Telegram Chat Dark Mode Integration)
 
-Progress: [=======>...] 71% (8/13 phases complete across all milestones)
+Progress: [========>..] 75% (9/13 phases complete across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 41
-- Average duration: ~27 min
-- Total execution time: ~20.5 hours across 6 milestones
+- Total plans completed: 44
+- Average duration: ~26 min
+- Total execution time: ~21 hours across 6 milestones
 
 **By Milestone:**
 
@@ -32,7 +32,7 @@ Progress: [=======>...] 71% (8/13 phases complete across all milestones)
 | v1.2 Import UX | 3 | 9 | Shipped |
 | v1.3 RLM Sync | 5 | 5 | Shipped |
 | v1.4 Personalization | 2 | 7 | Shipped |
-| v1.5 Full Chat | 6 | 2 | In Progress |
+| v1.5 Full Chat | 6 | 5 | In Progress |
 
 *Metrics updated: 2026-02-08*
 
@@ -50,6 +50,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - ESM imports for react-syntax-highlighter (not CJS - TypeScript compatibility)
 - User messages as plain text, AI messages as markdown (ChatGPT/Claude pattern)
 - next-themes for dark mode with system preference detection
+- Tailwind CSS variable system for theme-aware UI (bg-background, text-foreground, etc.)
+- Mounted guard pattern for theme toggle to prevent hydration mismatch
 
 ### Pending Todos
 
@@ -59,13 +61,12 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 - Streaming requires changes to both RLM service and Next.js chat route
 - Web search (smartSearch) exists but citations not validated against hallucination
-- Hard-coded colors may cause dark mode issues -- audit needed in Phase 11
 
 ## Session Continuity
 
 Last session: 2026-02-08
-Stopped at: Completed 11-01-PLAN.md (Dark Mode Infrastructure & Markdown Dependencies)
+Stopped at: Completed 11-03-PLAN.md (Telegram Chat Dark Mode Integration) - Phase 11 COMPLETE
 Resume file: None
 
 ---
-*Last updated: 2026-02-08 -- Phase 11 (Rich Rendering & Dark Mode) in progress, Plan 11-01 complete*
+*Last updated: 2026-02-08 -- Phase 11 (Rich Rendering & Dark Mode) complete, 3/3 plans shipped*
