@@ -37,6 +37,15 @@ export async function GET() {
                    hasSoulprint ? 'ready' : 
                    profile?.import_status === 'processing' ? 'processing' : 'none';
 
+    // Full pass status logic:
+    // - Legacy imports (completed before full_pass_status column existed) have full_pass_status='pending' (migration default)
+    // - Treat 'pending' as 'complete' if import is already done (import_status='complete' or 'quick_ready')
+    // - This prevents "Building deep memory..." loop for legacy imports
+    const rawFullPassStatus = profile?.full_pass_status;
+    const fullPassStatus =
+      rawFullPassStatus === 'pending' && hasSoulprint ? 'complete' :  // Legacy import fix
+      rawFullPassStatus || (hasSoulprint ? 'complete' : 'pending');    // Original null fallback
+
     return NextResponse.json({
       status,
       hasSoulprint,
@@ -52,8 +61,7 @@ export async function GET() {
       // "building" = SoulPrint ready, embeddings in progress (chat works, memory improving)
       // "ready" = Full memory available (embeddings complete)
       memoryStatus: profile?.memory_status || (profile?.embedding_status === 'complete' ? 'ready' : 'building'),
-      // v1 pipeline doesn't set full_pass_status — treat null as complete when import is done
-      fullPassStatus: profile?.full_pass_status || (hasSoulprint ? 'complete' : 'pending'),
+      fullPassStatus,
       fullPassError: profile?.full_pass_error || null,
       stats: profile ? {
         totalConversations: profile.total_conversations,

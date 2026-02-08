@@ -317,4 +317,62 @@ describe('GET /api/memory/status', () => {
       },
     });
   });
+
+  it('treats full_pass_status="pending" as "complete" for legacy imports', async () => {
+    // Legacy scenario: User completed import before full_pass_status column was added
+    // Migration added column with DEFAULT 'pending', causing infinite "Building deep memory..." loop
+    const { createClient } = await import('@/lib/supabase/server');
+    vi.mocked(createClient).mockReturnValueOnce({
+      auth: {
+        getUser: vi.fn(() => ({
+          data: { user: { id: 'legacy-user-id', email: 'legacy@example.com' } },
+          error: null,
+        })),
+      },
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => ({
+              data: {
+                user_id: 'legacy-user-id',
+                import_status: 'complete',
+                import_error: null,
+                processing_started_at: '2024-01-01T00:00:00Z',
+                total_conversations: 10,
+                total_messages: 50,
+                soulprint_generated_at: '2024-01-01T00:00:00Z',
+                soulprint_locked: false,
+                locked_at: null,
+                embedding_status: 'complete',
+                embedding_progress: 100,
+                total_chunks: 100,
+                processed_chunks: 100,
+                memory_status: 'ready',
+                full_pass_status: 'pending', // Legacy: set by migration DEFAULT
+                full_pass_error: null,
+              },
+              error: null,
+            })),
+          })),
+        })),
+      })),
+    } as any);
+
+    await testApiHandler({
+      appHandler,
+      async test({ fetch }) {
+        const response = await fetch({
+          method: 'GET',
+        });
+
+        expect(response.status).toBe(200);
+
+        const body = await response.json();
+        expect(body.status).toBe('ready');
+        expect(body.hasSoulprint).toBe(true);
+        // Key assertion: fullPassStatus should be 'complete', not 'pending'
+        expect(body.fullPassStatus).toBe('complete');
+      },
+    });
+  });
 });
