@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import {
   BedrockRuntimeClient,
   ConverseCommand,
+  ConverseStreamCommand,
   ContentBlock,
   Message,
 } from '@aws-sdk/client-bedrock-runtime';
@@ -17,6 +18,9 @@ import { createLogger } from '@/lib/logger';
 import { cleanSection, formatSection } from '@/lib/soulprint/prompt-helpers';
 
 const log = createLogger('API:Chat');
+
+// Vercel function timeout configuration for long-running streaming
+export const maxDuration = 60;
 
 // Initialize Bedrock client
 const bedrockClient = new BedrockRuntimeClient({
@@ -341,23 +345,46 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      const duration = Date.now() - startTime;
       reqLog.info({
-        duration,
-        status: 200,
         method: rlmResponse.method,
         chunksUsed: rlmResponse.chunks_used,
         responseLength: rlmResponse.response.length
-      }, 'Chat request completed (RLM)');
+      }, 'RLM success - streaming response');
 
-      // Return SSE format
+      // Stream RLM response in ~20-char chunks for progressive rendering
       const stream = new ReadableStream({
-        start(controller) {
-          const content = `data: ${JSON.stringify({ content: rlmResponse.response })}\n\n`;
-          controller.enqueue(new TextEncoder().encode(content));
-          const done = `data: [DONE]\n\n`;
-          controller.enqueue(new TextEncoder().encode(done));
-          controller.close();
+        async start(controller) {
+          try {
+            const fullText = rlmResponse.response;
+            const chunkSize = 20;
+
+            for (let i = 0; i < fullText.length; i += chunkSize) {
+              // Check if client disconnected
+              if (request.signal.aborted) {
+                reqLog.debug('Client disconnected during RLM stream');
+                controller.close();
+                return;
+              }
+
+              const chunk = fullText.slice(i, i + chunkSize);
+              const sseChunk = `data: ${JSON.stringify({ content: chunk })}\n\n`;
+              controller.enqueue(new TextEncoder().encode(sseChunk));
+
+              // Small delay for progressive rendering effect
+              await new Promise(resolve => setTimeout(resolve, 10));
+            }
+
+            const done = `data: [DONE]\n\n`;
+            controller.enqueue(new TextEncoder().encode(done));
+
+            const duration = Date.now() - startTime;
+            reqLog.info({ duration, status: 200 }, 'RLM stream completed');
+
+            controller.close();
+          } catch (error) {
+            reqLog.error({ error: error instanceof Error ? error.message : String(error) }, 'RLM stream error');
+            controller.error(error);
+          }
         },
       });
 
@@ -370,7 +397,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 3: Bedrock FALLBACK (only if RLM failed)
-    reqLog.info('RLM failed, falling back to Bedrock');
+    reqLog.info('RLM failed, falling back to Bedrock streaming');
 
     const systemPrompt = buildSystemPrompt(
       userProfile || { soulprint_text: null, import_status: 'none', ai_name: null, soul_md: null, identity_md: null, user_md: null, agents_md: null, tools_md: null, memory_md: null },
@@ -394,10 +421,8 @@ export async function POST(request: NextRequest) {
       },
     ];
 
-    // Simple call - no tool loop needed (search only via Deep Search toggle)
-    reqLog.debug('Calling Bedrock');
-
-    const command = new ConverseCommand({
+    // Use streaming command for token-by-token response
+    const command = new ConverseStreamCommand({
       modelId: process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-3-5-haiku-20241022-v1:0',
       system: [{ text: systemPrompt }],
       messages: converseMessages,
@@ -406,44 +431,61 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const response = await bedrockClient.send(command);
-    const outputMessage = response.output?.message;
-
-    if (!outputMessage) {
-      reqLog.error('No output message from Bedrock');
-      throw new Error('No response from model');
-    }
-
-    // Extract text response
-    const textBlocks = outputMessage.content?.filter(
-      (block): block is ContentBlock.TextMember => 'text' in block
-    ) || [];
-
-    const finalResponse = textBlocks.map(b => b.text).join('');
-    const duration = Date.now() - startTime;
-
-    reqLog.info({
-      duration,
-      status: 200,
-      responseLength: finalResponse.length,
-      fallback: 'bedrock'
-    }, 'Chat request completed (Bedrock fallback)');
-
-    // Learn from this conversation asynchronously
-    if (finalResponse.length > 0) {
-      learnFromChat(user.id, message, finalResponse).catch(err => {
-        reqLog.warn({ error: err instanceof Error ? err.message : String(err) }, 'Learning failed (non-blocking)');
-      });
-    }
-
-    // Return SSE format that frontend expects
+    // Stream Bedrock response token-by-token
     const stream = new ReadableStream({
-      start(controller) {
-        const content = `data: ${JSON.stringify({ content: finalResponse })}\n\n`;
-        controller.enqueue(new TextEncoder().encode(content));
-        const done = `data: [DONE]\n\n`;
-        controller.enqueue(new TextEncoder().encode(done));
-        controller.close();
+      async start(controller) {
+        try {
+          reqLog.debug('Starting Bedrock stream');
+          const response = await bedrockClient.send(command);
+          let fullResponse = '';
+
+          if (!response.stream) {
+            throw new Error('No stream in Bedrock response');
+          }
+
+          // Iterate through streaming events
+          for await (const event of response.stream) {
+            // Check if client disconnected
+            if (request.signal.aborted) {
+              reqLog.debug('Client disconnected during Bedrock stream');
+              controller.close();
+              return;
+            }
+
+            // Handle content block delta (the actual tokens)
+            if (event.contentBlockDelta?.delta && 'text' in event.contentBlockDelta.delta) {
+              const text = event.contentBlockDelta.delta.text;
+              fullResponse += text;
+
+              const sseChunk = `data: ${JSON.stringify({ content: text })}\n\n`;
+              controller.enqueue(new TextEncoder().encode(sseChunk));
+            }
+          }
+
+          // Send completion marker
+          const done = `data: [DONE]\n\n`;
+          controller.enqueue(new TextEncoder().encode(done));
+
+          const duration = Date.now() - startTime;
+          reqLog.info({
+            duration,
+            status: 200,
+            responseLength: fullResponse.length,
+            fallback: 'bedrock'
+          }, 'Bedrock stream completed');
+
+          // Learn from this conversation asynchronously
+          if (fullResponse.length > 0) {
+            learnFromChat(user.id, message, fullResponse).catch(err => {
+              reqLog.warn({ error: err instanceof Error ? err.message : String(err) }, 'Learning failed (non-blocking)');
+            });
+          }
+
+          controller.close();
+        } catch (error) {
+          reqLog.error({ error: error instanceof Error ? error.message : String(error) }, 'Bedrock stream error');
+          controller.error(error);
+        }
       },
     });
 
