@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Koulen, Geist, Inter, Host_Grotesk, Cinzel } from "n
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { AchievementToastProvider } from "@/components/AchievementToast";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 
 const plusJakarta = Plus_Jakarta_Sans({ 
   subsets: ["latin"],
@@ -66,7 +67,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -81,9 +82,16 @@ export default function RootLayout({
         hostGrotesk.variable,
         cinzel.variable
       )}>
-        <AchievementToastProvider>
-          {children}
-        </AchievementToastProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AchievementToastProvider>
+            {children}
+          </AchievementToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
