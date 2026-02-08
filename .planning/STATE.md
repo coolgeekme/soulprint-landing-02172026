@@ -5,21 +5,21 @@
 See: .planning/PROJECT.md (updated 2026-02-08)
 
 **Core value:** The AI must feel like YOUR AI -- personalized chat with full-featured UX.
-**Current focus:** v1.5 Full Chat Experience -- Phase 8 (DB Schema & Migration)
+**Current focus:** v1.5 Full Chat Experience -- Phase 11 (Rich Rendering & Dark Mode)
 
 ## Current Position
 
-Phase: 8 of 13 (DB Schema & Migration)
-Plan: 1 of 1 complete
-Status: Phase complete
-Last activity: 2026-02-08 - Completed 08-01-PLAN.md (Multi-Conversation Schema Migration)
+Phase: 11 of 13 (Rich Rendering & Dark Mode)
+Plan: 1 of 3 complete (11-02 - Rich Markdown Rendering)
+Status: In progress
+Last activity: 2026-02-08 - Completed 11-02-PLAN.md (Rich Markdown Rendering)
 
 Progress: [=======>...] 71% (8/13 phases complete across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 39
+- Total plans completed: 40
 - Average duration: ~28 min
 - Total execution time: ~20.4 hours across 6 milestones
 
@@ -47,6 +47,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - Sonnet 4.5 on Bedrock for chat quality (switched from Nova Lite)
 - OpenClaw-style prompt: minimal preamble, sections define personality
 - Focus on RLM primary path, not Bedrock fallback
+- CJS imports for react-syntax-highlighter (Next.js build compatibility)
+- User messages as plain text, AI messages as markdown (ChatGPT/Claude pattern)
 
 ### Pending Todos
 
@@ -61,8 +63,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-08
-Stopped at: Completed 08-01-PLAN.md, Phase 8 complete
+Stopped at: Completed 11-02-PLAN.md (Rich Markdown Rendering)
 Resume file: None
 
 ---
-*Last updated: 2026-02-08 -- Phase 8 (DB Schema & Migration) complete*
+*Last updated: 2026-02-08 -- Phase 11 (Rich Rendering & Dark Mode) in progress, Plan 11-02 complete*
