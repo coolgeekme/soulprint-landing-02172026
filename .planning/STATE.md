@@ -9,18 +9,18 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 ## Current Position
 
-Phase: 11 of 13 (Rich Rendering & Dark Mode)
-Plan: 3 of 3 complete (11-03 - Telegram Chat Dark Mode Integration)
+Phase: 9 of 13 (Streaming Responses)
+Plan: 1 of 1 complete (09-01 - Convert to Token-by-Token Streaming)
 Status: Phase complete
-Last activity: 2026-02-08 - Completed 11-03-PLAN.md (Telegram Chat Dark Mode Integration)
+Last activity: 2026-02-08 - Completed 09-01-PLAN.md (Convert to Token-by-Token Streaming)
 
-Progress: [========>..] 75% (9/13 phases complete across all milestones)
+Progress: [========>..] 69% (9/13 phases complete across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 44
-- Average duration: ~26 min
+- Total plans completed: 45
+- Average duration: ~25 min
 - Total execution time: ~21 hours across 6 milestones
 
 **By Milestone:**
@@ -32,7 +32,7 @@ Progress: [========>..] 75% (9/13 phases complete across all milestones)
 | v1.2 Import UX | 3 | 9 | Shipped |
 | v1.3 RLM Sync | 5 | 5 | Shipped |
 | v1.4 Personalization | 2 | 7 | Shipped |
-| v1.5 Full Chat | 6 | 5 | In Progress |
+| v1.5 Full Chat | 6 | 6 | In Progress |
 
 *Metrics updated: 2026-02-08*
 
@@ -52,6 +52,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - next-themes for dark mode with system preference detection
 - Tailwind CSS variable system for theme-aware UI (bg-background, text-foreground, etc.)
 - Mounted guard pattern for theme toggle to prevent hydration mismatch
+- RLM responses chunked in ~20-char increments with 10ms delay for progressive rendering
+- Bedrock uses ConverseStreamCommand for true token-by-token streaming
+- ReadableStream pattern: return Response immediately, async work in start() callback
+- maxDuration=60 for Vercel function timeout on long-running streams
 
 ### Pending Todos
 
@@ -59,14 +63,13 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 ### Blockers/Concerns
 
-- Streaming requires changes to both RLM service and Next.js chat route
 - Web search (smartSearch) exists but citations not validated against hallucination
 
 ## Session Continuity
 
 Last session: 2026-02-08
-Stopped at: Completed 11-03-PLAN.md (Telegram Chat Dark Mode Integration) - Phase 11 COMPLETE
+Stopped at: Completed 09-01-PLAN.md (Convert to Token-by-Token Streaming) - Phase 09 COMPLETE
 Resume file: None
 
 ---
-*Last updated: 2026-02-08 -- Phase 11 (Rich Rendering & Dark Mode) complete, 3/3 plans shipped*
+*Last updated: 2026-02-08 -- Phase 09 (Streaming Responses) complete, 1/1 plans shipped*

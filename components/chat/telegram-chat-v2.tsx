@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, TouchEvent } from 'react';
-import { ArrowLeft, Mic, Send, Moon, Sun, LogOut, Search } from 'lucide-react';
+import { ArrowLeft, Mic, Send, Moon, Sun, LogOut, Search, Square } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { MessageContent } from './message-content';
 import { getCsrfToken } from '@/lib/csrf';
@@ -17,11 +17,13 @@ interface TelegramChatV2Props {
   messages: Message[];
   onSendMessage: (content: string, voiceVerified?: boolean, deepSearch?: boolean) => void;
   isLoading?: boolean;
+  isGenerating?: boolean;
   isDeepSearching?: boolean;
   aiName?: string;
   aiAvatar?: string;
   onBack?: () => void;
   onSettings?: () => void;
+  onStop?: () => void;
 }
 
 // Swipeable message component
@@ -163,11 +165,13 @@ export function TelegramChatV2({
   messages,
   onSendMessage,
   isLoading = false,
+  isGenerating = false,
   isDeepSearching = false,
   aiName = 'SoulPrint',
   aiAvatar,
   onBack,
   onSettings,
+  onStop,
 }: TelegramChatV2Props) {
   const [input, setInput] = useState('');
   const [deepSearchEnabled, setDeepSearchEnabled] = useState(false);
@@ -335,7 +339,7 @@ export function TelegramChatV2({
               {aiName}
             </span>
             <span className="text-[13px] text-muted-foreground transition-colors">
-              online
+              {isGenerating ? 'typing...' : 'online'}
             </span>
           </div>
 
@@ -410,8 +414,8 @@ export function TelegramChatV2({
             );
           })}
 
-          {/* Loading indicator */}
-          {isLoading && (
+          {/* Loading indicator - only show during pre-streaming wait */}
+          {isLoading && !isGenerating && (
             <div className="flex justify-start">
               <div className="rounded-[16px_16px_16px_4px] px-4 py-3 shadow-sm bg-muted transition-colors">
                 {isDeepSearching ? (
@@ -490,8 +494,17 @@ export function TelegramChatV2({
             />
           </div>
 
-          {/* Send/Mic Button */}
-          {input.trim() ? (
+          {/* Send/Mic/Stop Button */}
+          {isGenerating ? (
+            <button
+              type="button"
+              onClick={onStop}
+              className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-full bg-red-500 transition-colors active:opacity-70"
+              title="Stop generation"
+            >
+              <Square className="w-5 h-5 text-white fill-white" />
+            </button>
+          ) : input.trim() ? (
             <button
               type="submit"
               disabled={isLoading}
