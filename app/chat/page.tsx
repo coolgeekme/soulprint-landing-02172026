@@ -389,6 +389,7 @@ export default function ChatPage() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setIsGenerating(true);
+    let responseContent = '';
 
     try {
       const history = messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
@@ -409,7 +410,6 @@ export default function ChatPage() {
       const reader = res.body?.getReader();
       if (!reader) throw new Error('No reader');
 
-      let responseContent = '';
       const aiId = (Date.now() + 1).toString();
       setMessages(prev => [...prev, { id: aiId, role: 'assistant', content: '', timestamp: new Date() }]);
 
@@ -440,9 +440,25 @@ export default function ChatPage() {
         }
       }
 
+    } catch (error) {
+      // Handle AbortError gracefully - user stopped generation
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Generation stopped by user');
+        // Partial response is already in messages state, will be saved in finally
+      } else {
+        console.error('Chat error:', error);
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: "Sorry, something went wrong. Try again?",
+          timestamp: new Date(),
+        }]);
+      }
+    } finally {
+      // Save response (full or partial from abort) to database
       if (responseContent) {
         saveMessage('assistant', responseContent);
-        
+
         // If AI name was default, refresh it (may have been auto-generated)
         if (aiName === 'SoulPrint') {
           try {
@@ -458,21 +474,6 @@ export default function ChatPage() {
           }
         }
       }
-    } catch (error) {
-      // Handle AbortError gracefully - user stopped generation
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Generation stopped by user');
-        // Partial response is already in messages state
-      } else {
-        console.error('Chat error:', error);
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: "Sorry, something went wrong. Try again?",
-          timestamp: new Date(),
-        }]);
-      }
-    } finally {
       setIsGenerating(false);
       setIsDeepSearching(false);
       abortControllerRef.current = null;
