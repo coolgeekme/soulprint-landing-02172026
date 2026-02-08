@@ -821,7 +821,7 @@ export default function ChatPage() {
       />
 
       {/* Main Chat Area */}
-      <div className="fixed inset-0 h-screen w-screen md:pl-72">
+      <div className="fixed inset-0 h-screen w-screen">
         <TelegramChatV2
           messages={messages}
           onSendMessage={handleSendMessage}

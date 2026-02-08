@@ -320,7 +320,7 @@ export function TelegramChatV2({
       {/* FIXED Header - ALWAYS visible at top */}
       <header
         ref={headerRef}
-        className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border transition-colors duration-300"
+        className="fixed top-0 left-0 right-0 md:left-72 z-50 bg-card border-b border-border transition-colors duration-300"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
         }}
@@ -411,7 +411,7 @@ export function TelegramChatV2({
 
       {/* Scrollable Messages Area - vertical only */}
       <main
-        className="fixed left-0 right-0 overflow-x-hidden overflow-y-auto overscroll-contain"
+        className="fixed left-0 right-0 md:left-72 overflow-x-hidden overflow-y-auto overscroll-contain"
         style={{
           top: `calc(52px + env(safe-area-inset-top, 0px))`,
           bottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px))`,
@@ -473,7 +473,7 @@ export function TelegramChatV2({
       {/* FIXED Input Area - ALWAYS visible at bottom */}
       <footer
         ref={inputAreaRef}
-        className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border transition-colors duration-300"
+        className="fixed bottom-0 left-0 right-0 md:left-72 z-50 bg-card border-t border-border transition-colors duration-300"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
