@@ -1,113 +1,131 @@
 'use client';
 
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
+import { CodeBlock } from './code-block';
 
 interface MessageContentProps {
   content: string;
-  textColor: string;
+  isUser?: boolean;
 }
 
-export function MessageContent({ content, textColor }: MessageContentProps) {
-  // Parse content for basic formatting
-  const formatText = (text: string) => {
-    // Split into paragraphs (double newline)
-    const paragraphs = text.split(/\n\n+/);
-    
-    return paragraphs.map((paragraph, pIndex) => {
-      // Check if it's a list item
-      const lines = paragraph.split('\n');
-      
-      const formattedLines = lines.map((line, lIndex) => {
-        // Handle bullet points
-        if (line.match(/^[\-\•\*]\s/)) {
-          return (
-            <div key={lIndex} className="flex gap-2 pl-1">
-              <span className="text-[#8E8E93]">•</span>
-              <span>{formatInlineText(line.replace(/^[\-\•\*]\s/, ''))}</span>
-            </div>
-          );
-        }
-        
-        // Handle numbered lists
-        if (line.match(/^\d+[\.\)]\s/)) {
-          const num = line.match(/^(\d+)[\.\)]\s/)?.[1];
-          return (
-            <div key={lIndex} className="flex gap-2 pl-1">
-              <span className="text-[#8E8E93] min-w-[1.2em]">{num}.</span>
-              <span>{formatInlineText(line.replace(/^\d+[\.\)]\s/, ''))}</span>
-            </div>
-          );
-        }
-        
-        // Regular line
-        return (
-          <React.Fragment key={lIndex}>
-            {formatInlineText(line)}
-            {lIndex < lines.length - 1 && <br />}
-          </React.Fragment>
-        );
-      });
-      
-      return (
-        <div key={pIndex} className={pIndex > 0 ? 'mt-3' : ''}>
-          {formattedLines}
-        </div>
-      );
-    });
-  };
-  
-  // Handle inline formatting (bold, italic, code)
-  const formatInlineText = (text: string): React.ReactNode => {
-    // Split by bold markers **text**
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
-    
-    return parts.map((part, i) => {
-      // Bold text
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return (
-          <strong key={i} className="font-semibold">
-            {part.slice(2, -2)}
-          </strong>
-        );
-      }
-      
-      // Check for inline code `text`
-      const codeParts = part.split(/(`[^`]+`)/g);
-      return codeParts.map((codePart, j) => {
-        if (codePart.startsWith('`') && codePart.endsWith('`')) {
-          return (
-            <code 
-              key={`${i}-${j}`} 
-              className="bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded text-[13px] font-mono"
-            >
-              {codePart.slice(1, -1)}
-            </code>
-          );
-        }
-        
-        // Check for _italic_ or *italic*
-        const italicParts = codePart.split(/(_[^_]+_|\*[^*]+\*)/g);
-        return italicParts.map((italicPart, k) => {
-          if ((italicPart.startsWith('_') && italicPart.endsWith('_')) ||
-              (italicPart.startsWith('*') && italicPart.endsWith('*') && !italicPart.startsWith('**'))) {
-            return (
-              <em key={`${i}-${j}-${k}`} className="italic">
-                {italicPart.slice(1, -1)}
-              </em>
-            );
-          }
-          return italicPart;
-        });
-      });
-    });
-  };
+export function MessageContent({ content, isUser }: MessageContentProps) {
+  // User messages render as plain text (no markdown processing)
+  if (isUser) {
+    return (
+      <div
+        className="text-sm leading-relaxed break-words overflow-hidden whitespace-pre-wrap"
+        style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+      >
+        {content}
+      </div>
+    );
+  }
 
+  // AI messages render with full markdown support
   return (
-    <div 
-      className="text-[14px] leading-[1.5] break-words overflow-hidden"
-      style={{ color: textColor, wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+    <div
+      className="text-sm leading-relaxed break-words overflow-hidden [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1"
+      style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
     >
-      {formatText(content)}
+      <ReactMarkdown
+        className="prose prose-sm dark:prose-invert max-w-none"
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeSanitize]}
+        components={{
+          // Code blocks with syntax highlighting
+          code({ node, inline, className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || '');
+            const language = match ? match[1] : '';
+            const value = String(children).replace(/\n$/, '');
+
+            if (!inline && match) {
+              // Fenced code block
+              return <CodeBlock language={language} value={value} />;
+            }
+
+            // Inline code
+            return (
+              <code
+                className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono"
+                {...props}
+              >
+                {children}
+              </code>
+            );
+          },
+
+          // Links with XSS protection
+          a({ node, href, children, ...props }) {
+            // Block javascript: protocol links
+            if (href?.startsWith('javascript:')) {
+              return <>{children}</>;
+            }
+
+            return (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+                {...props}
+              >
+                {children}
+              </a>
+            );
+          },
+
+          // Paragraphs with spacing
+          p({ node, children, ...props }) {
+            return (
+              <p className="mb-2 last:mb-0" {...props}>
+                {children}
+              </p>
+            );
+          },
+
+          // Tables with styling and mobile scroll
+          table({ node, children, ...props }) {
+            return (
+              <div className="overflow-x-auto my-2">
+                <table className="border-collapse w-full" {...props}>
+                  {children}
+                </table>
+              </div>
+            );
+          },
+
+          // Table headers
+          th({ node, children, ...props }) {
+            return (
+              <th
+                className="border border-border px-3 py-1 text-left bg-muted/50 text-sm font-semibold"
+                {...props}
+              >
+                {children}
+              </th>
+            );
+          },
+
+          // Table cells
+          td({ node, children, ...props }) {
+            return (
+              <td className="border border-border px-3 py-1 text-sm" {...props}>
+                {children}
+              </td>
+            );
+          },
+
+          // Pre tags (let CodeBlock handle its own container)
+          pre({ node, children, ...props }) {
+            return <>{children}</>;
+          },
+        }}
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
 }
