@@ -523,11 +523,11 @@ function ImportPageContent() {
     <main className="h-[100dvh] bg-black flex flex-col overflow-hidden relative">
       <BackgroundBeams />
 
-      {/* Header - Compact */}
-      <header className="relative z-10 flex items-center justify-between px-4 py-2 border-b border-white/5 flex-shrink-0 pt-[env(safe-area-inset-top)]">
-        <Link href="/" className="flex items-center gap-2">
-          <img src="/logo.svg" alt="SoulPrint" className="w-5 h-5 sm:w-6 sm:h-6" />
-          <span className="text-white font-semibold text-xs sm:text-sm">SoulPrint</span>
+      {/* Header */}
+      <header className="relative z-10 flex items-center justify-between px-5 sm:px-6 py-3 sm:py-4 border-b border-white/10 flex-shrink-0 pt-[calc(env(safe-area-inset-top,0px)+12px)]">
+        <Link href="/" className="flex items-center gap-2.5">
+          <img src="/logo.svg" alt="SoulPrint" className="w-7 h-7 sm:w-8 sm:h-8" />
+          <span className="text-white font-semibold text-sm sm:text-base">SoulPrint</span>
         </Link>
 
         <div className="flex items-center gap-3">
@@ -536,20 +536,20 @@ function ImportPageContent() {
             <button
               onClick={handleReset}
               disabled={isResetting}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 text-[10px] sm:text-xs disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 text-xs sm:text-sm disabled:opacity-50 transition-colors"
               title="Reset and start fresh"
             >
               {isResetting ? (
-                <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
               ) : (
-                <Settings className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               )}
               <span>{isResetting ? 'Resetting...' : 'Reset'}</span>
             </button>
           )}
-          
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50 text-[10px] sm:text-xs">
-            <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 text-xs sm:text-sm">
+            <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>Private</span>
           </div>
         </div>
@@ -582,7 +582,7 @@ function ImportPageContent() {
       )}
 
       {/* Step Indicator - Horizontal dots */}
-      <div className="relative z-10 flex items-center justify-center gap-2 py-2 sm:py-3 flex-shrink-0">
+      <div className="relative z-10 flex items-center justify-center gap-2 py-3 sm:py-4 flex-shrink-0">
         {steps.map((step, i) => (
           <div key={step.id} className="flex items-center gap-2">
             <div
