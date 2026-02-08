@@ -52,7 +52,8 @@ export async function GET() {
       // "building" = SoulPrint ready, embeddings in progress (chat works, memory improving)
       // "ready" = Full memory available (embeddings complete)
       memoryStatus: profile?.memory_status || (profile?.embedding_status === 'complete' ? 'ready' : 'building'),
-      fullPassStatus: profile?.full_pass_status || 'pending',
+      // v1 pipeline doesn't set full_pass_status — treat null as complete when import is done
+      fullPassStatus: profile?.full_pass_status || (hasSoulprint ? 'complete' : 'pending'),
       fullPassError: profile?.full_pass_error || null,
       stats: profile ? {
         totalConversations: profile.total_conversations,
