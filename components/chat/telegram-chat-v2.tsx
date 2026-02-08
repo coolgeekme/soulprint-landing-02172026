@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, TouchEvent } from 'react';
-import { ArrowLeft, Mic, Send, Moon, Sun, LogOut, Search, Square } from 'lucide-react';
+import { ArrowLeft, Mic, Send, Moon, Sun, LogOut, Search, Square, Menu } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { MessageContent } from './message-content';
 import { getCsrfToken } from '@/lib/csrf';
@@ -24,6 +24,7 @@ interface TelegramChatV2Props {
   onBack?: () => void;
   onSettings?: () => void;
   onStop?: () => void;
+  onMenuClick?: () => void;
 }
 
 // Swipeable message component
@@ -172,6 +173,7 @@ export function TelegramChatV2({
   onBack,
   onSettings,
   onStop,
+  onMenuClick,
 }: TelegramChatV2Props) {
   const [input, setInput] = useState('');
   const [deepSearchEnabled, setDeepSearchEnabled] = useState(false);
@@ -324,14 +326,33 @@ export function TelegramChatV2({
         }}
       >
         <div className="flex items-center justify-between px-3 h-[52px]">
-          {/* Left - Back Button */}
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1 px-2 py-2 -ml-2 min-h-[44px] min-w-[44px] text-primary transition-colors active:opacity-70"
-          >
-            <ArrowLeft className="w-6 h-6" />
-            <span className="text-[17px]">Back</span>
-          </button>
+          {/* Left - Menu (mobile) or Back Button (desktop) */}
+          {onMenuClick ? (
+            <button
+              onClick={onMenuClick}
+              className="flex items-center gap-1 px-2 py-2 -ml-2 min-h-[44px] min-w-[44px] text-primary transition-colors active:opacity-70 md:hidden"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          ) : (
+            <button
+              onClick={onBack}
+              className="flex items-center gap-1 px-2 py-2 -ml-2 min-h-[44px] min-w-[44px] text-primary transition-colors active:opacity-70"
+            >
+              <ArrowLeft className="w-6 h-6" />
+              <span className="text-[17px]">Back</span>
+            </button>
+          )}
+          {/* Desktop: show back button even with menu */}
+          {onMenuClick && onBack && (
+            <button
+              onClick={onBack}
+              className="hidden md:flex items-center gap-1 px-2 py-2 -ml-2 min-h-[44px] min-w-[44px] text-primary transition-colors active:opacity-70"
+            >
+              <ArrowLeft className="w-6 h-6" />
+              <span className="text-[17px]">Back</span>
+            </button>
+          )}
 
           {/* Center - Profile */}
           <div className="flex flex-col items-center">

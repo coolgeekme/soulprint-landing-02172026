@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { TelegramChatV2 } from '@/components/chat/telegram-chat-v2';
+import { ConversationSidebar } from '@/components/chat/conversation-sidebar';
 import { fetchWithRetry } from '@/lib/retry';
 import { AddToHomeScreen } from '@/components/ui/AddToHomeScreen';
 import { getCsrfToken } from '@/lib/csrf';
@@ -20,6 +21,13 @@ type QueuedMessage = {
   content: string;
   voiceVerified?: boolean;
   deepSearch?: boolean;
+};
+
+type Conversation = {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export default function ChatPage() {
@@ -41,11 +49,28 @@ export default function ChatPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Conversation management state
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+
   // Message queue for handling multiple messages while AI is responding
   const messageQueueRef = useRef<QueuedMessage[]>([]);
   const processingPromiseRef = useRef<Promise<void> | null>(null);
   const latestPollIdRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const currentConversationIdRef = useRef<string | null>(null);
+  const conversationsRef = useRef<Conversation[]>([]);
+
+  // Keep refs in sync with state to avoid stale closures
+  useEffect(() => {
+    currentConversationIdRef.current = currentConversationId;
+  }, [currentConversationId]);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   // Load initial state
   useEffect(() => {
@@ -86,29 +111,72 @@ export default function ChatPage() {
           }
         }
 
-        // Load chat history
-        const historyRes = await fetch('/api/chat/messages?limit=100', { signal: controller.signal });
-        if (historyRes.ok) {
-          const data = await historyRes.json();
-          if (data.messages?.length > 0) {
-            setMessages(data.messages.map((m: Message) => ({
-              ...m,
-              timestamp: new Date(),
-            })));
-            // User has conversation history, enable A2HS prompt
-            setHasReceivedAIResponse(true);
+        // Load conversations list
+        const conversationsRes = await fetch('/api/conversations', { signal: controller.signal });
+        if (conversationsRes.ok) {
+          const convData = await conversationsRes.json();
+          if (convData.conversations && convData.conversations.length > 0) {
+            // Sort by updated_at descending (most recent first)
+            const sorted = [...convData.conversations].sort((a, b) =>
+              new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+            );
+            setConversations(sorted);
+
+            // Set the first (most recent) conversation as active
+            const mostRecentConv = sorted[0];
+            setCurrentConversationId(mostRecentConv.id);
+
+            // Load messages for this conversation
+            const historyRes = await fetch(`/api/chat/messages?conversation_id=${mostRecentConv.id}&limit=100`, {
+              signal: controller.signal
+            });
+            if (historyRes.ok) {
+              const data = await historyRes.json();
+              if (data.messages?.length > 0) {
+                setMessages(data.messages.map((m: Message) => ({
+                  ...m,
+                  timestamp: new Date(),
+                })));
+                setHasReceivedAIResponse(true);
+              } else {
+                // Empty conversation - show welcome
+                setMessages([{
+                  id: 'welcome',
+                  role: 'assistant',
+                  content: localGreeting
+                    ? localGreeting
+                    : `Hey! I'm ${localAiName || 'your AI'}. I've got your memories loaded. What's on your mind?`,
+                  timestamp: new Date(),
+                }]);
+                setHasReceivedAIResponse(true);
+              }
+            }
           } else {
-            // Use signature greeting if available, otherwise fall back to default
-            setMessages([{
-              id: 'welcome',
-              role: 'assistant',
-              content: localGreeting
-                ? localGreeting
-                : `Hey! I'm ${localAiName || 'your AI'}. I've got your memories loaded. What's on your mind?`,
-              timestamp: new Date(),
-            }]);
-            // First welcome message counts as AI response
-            setHasReceivedAIResponse(true);
+            // No conversations exist - create first one
+            const csrfToken = await getCsrfToken();
+            const createRes = await fetch('/api/conversations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+              body: JSON.stringify({ title: 'New Chat' }),
+              signal: controller.signal,
+            });
+
+            if (createRes.ok) {
+              const newConv = await createRes.json();
+              setConversations([newConv]);
+              setCurrentConversationId(newConv.id);
+
+              // Show welcome message
+              setMessages([{
+                id: 'welcome',
+                role: 'assistant',
+                content: localGreeting
+                  ? localGreeting
+                  : `Hey! I'm ${localAiName || 'your AI'}. I've got your memories loaded. What's on your mind?`,
+                timestamp: new Date(),
+              }]);
+              setHasReceivedAIResponse(true);
+            }
           }
         }
       } catch (error) {
@@ -129,7 +197,7 @@ export default function ChatPage() {
     loadChatState();
 
     return () => controller.abort();
-  }, [router, aiName]);
+  }, [router]);
 
   // Poll memory/embedding status
   useEffect(() => {
@@ -192,12 +260,18 @@ export default function ChatPage() {
   }, [router]);
 
   const saveMessage = async (role: string, content: string) => {
+    const conversationId = currentConversationIdRef.current;
+    if (!conversationId) {
+      console.error('[Chat] Cannot save message: no conversation ID');
+      return;
+    }
+
     try {
       const csrfToken = await getCsrfToken();
       const response = await fetchWithRetry('/api/chat/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-        body: JSON.stringify({ role, content }),
+        body: JSON.stringify({ role, content, conversation_id: conversationId }),
       });
       if (!response.ok) {
         console.error('[Chat] Failed to save message after retries:', response.status);
@@ -209,6 +283,125 @@ export default function ChatPage() {
     } catch (error) {
       console.error('[Chat] Message save failed after all retries:', error);
       setSaveError('Failed to save message. Your conversation may not be fully saved.');
+    }
+  };
+
+  // Conversation management handlers
+  const handleSelectConversation = async (id: string) => {
+    // Abort any in-flight requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Clear messages immediately
+    setMessages([]);
+    setCurrentConversationId(id);
+    setSidebarOpen(false); // Close sidebar on mobile
+
+    // Fetch messages for new conversation
+    try {
+      const res = await fetch(`/api/chat/messages?conversation_id=${id}&limit=100`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.messages?.length > 0) {
+          setMessages(data.messages.map((m: Message) => ({
+            ...m,
+            timestamp: new Date(),
+          })));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load conversation messages:', error);
+    }
+  };
+
+  const handleCreateConversation = async () => {
+    if (isCreatingConversation) return;
+
+    setIsCreatingConversation(true);
+    try {
+      const csrfToken = await getCsrfToken();
+      const res = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        body: JSON.stringify({ title: 'New Chat' }),
+      });
+
+      if (res.ok) {
+        const newConv = await res.json();
+        setConversations(prev => [newConv, ...prev]);
+        setCurrentConversationId(newConv.id);
+        setMessages([]); // Clear messages
+        setSidebarOpen(false); // Close sidebar on mobile
+      }
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+    } finally {
+      setIsCreatingConversation(false);
+    }
+  };
+
+  const handleRenameConversation = async (id: string, newTitle: string) => {
+    // Optimistic update
+    const oldConversations = conversations;
+    setConversations(prev =>
+      prev.map(c => c.id === id ? { ...c, title: newTitle } : c)
+    );
+
+    try {
+      const csrfToken = await getCsrfToken();
+      const res = await fetch(`/api/conversations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        body: JSON.stringify({ title: newTitle }),
+      });
+
+      if (!res.ok) {
+        // Revert on failure
+        setConversations(oldConversations);
+        console.error('Failed to rename conversation');
+      }
+    } catch (error) {
+      // Revert on failure
+      setConversations(oldConversations);
+      console.error('Failed to rename conversation:', error);
+    }
+  };
+
+  const handleDeleteConversation = async (id: string) => {
+    // Optimistic removal
+    const oldConversations = conversations;
+    const updatedConversations = conversations.filter(c => c.id !== id);
+    setConversations(updatedConversations);
+
+    // If deleting active conversation, switch to most recent or create new
+    if (id === currentConversationId) {
+      const nextConv = updatedConversations[0];
+      if (nextConv) {
+        await handleSelectConversation(nextConv.id);
+      } else {
+        // No conversations left - create a new one
+        await handleCreateConversation();
+      }
+    }
+
+    // Delete on server
+    try {
+      const csrfToken = await getCsrfToken();
+      const res = await fetch(`/api/conversations/${id}`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-Token': csrfToken },
+      });
+
+      if (!res.ok) {
+        // Revert on failure
+        setConversations(oldConversations);
+        console.error('Failed to delete conversation');
+      }
+    } catch (error) {
+      // Revert on failure
+      setConversations(oldConversations);
+      console.error('Failed to delete conversation:', error);
     }
   };
 
@@ -473,6 +666,40 @@ export default function ChatPage() {
             console.error('Failed to refresh AI name:', e);
           }
         }
+
+        // Auto-title generation: if this is first exchange and title is still "New Chat"
+        const convId = currentConversationIdRef.current;
+        const currentConvs = conversationsRef.current;
+        const currentConv = currentConvs.find(c => c.id === convId);
+
+        if (currentConv && currentConv.title === 'New Chat' && content && responseContent) {
+          // Fire-and-forget title generation (non-blocking)
+          (async () => {
+            try {
+              const titleCsrfToken = await getCsrfToken();
+              const titleRes = await fetch(`/api/conversations/${convId}/title`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': titleCsrfToken },
+                body: JSON.stringify({
+                  userMessage: content.slice(0, 1000),
+                  aiMessage: responseContent.slice(0, 1000),
+                }),
+              });
+
+              if (titleRes.ok) {
+                const titleData = await titleRes.json();
+                if (titleData.title) {
+                  // Update conversation title in state
+                  setConversations(prev =>
+                    prev.map(c => c.id === convId ? { ...c, title: titleData.title } : c)
+                  );
+                }
+              }
+            } catch (e) {
+              console.error('[Chat] Auto-title generation failed:', e);
+            }
+          })();
+        }
       }
       setIsGenerating(false);
       setIsDeepSearching(false);
@@ -509,6 +736,12 @@ export default function ChatPage() {
 
   // Public handler - adds message to queue and starts processing
   const handleSendMessage = useCallback((content: string, voiceVerified?: boolean, deepSearch?: boolean) => {
+    // Guard: ensure we have a conversation to send to
+    if (!currentConversationIdRef.current) {
+      console.error('[Chat] Cannot send message: no active conversation');
+      return;
+    }
+
     // Immediately add user message to UI
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -575,7 +808,20 @@ export default function ChatPage() {
 
   return (
     <>
-      <div className="fixed inset-0 h-screen w-screen">
+      {/* Conversation Sidebar */}
+      <ConversationSidebar
+        conversations={conversations}
+        activeConversationId={currentConversationId}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onSelect={handleSelectConversation}
+        onCreateNew={handleCreateConversation}
+        onRename={handleRenameConversation}
+        onDelete={handleDeleteConversation}
+      />
+
+      {/* Main Chat Area */}
+      <div className="fixed inset-0 h-screen w-screen md:pl-72">
         <TelegramChatV2
           messages={messages}
           onSendMessage={handleSendMessage}
@@ -587,6 +833,7 @@ export default function ChatPage() {
           onBack={handleBack}
           onSettings={() => setShowSettings(true)}
           onStop={handleStop}
+          onMenuClick={() => setSidebarOpen(true)}
         />
       </div>
 
