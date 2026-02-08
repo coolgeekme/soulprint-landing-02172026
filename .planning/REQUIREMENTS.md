@@ -25,10 +25,10 @@ Requirements for the Full Chat Experience milestone. Each maps to roadmap phases
 
 ### Rich Rendering
 
-- [ ] **RNDR-01**: AI responses render markdown (headers, lists, bold, italic, links, tables)
-- [ ] **RNDR-02**: Code blocks render with syntax highlighting
-- [ ] **RNDR-03**: Code blocks have a one-click copy button
-- [ ] **RNDR-04**: Markdown rendering is XSS-safe (rehype-sanitize, no javascript: links)
+- [x] **RNDR-01**: AI responses render markdown (headers, lists, bold, italic, links, tables)
+- [x] **RNDR-02**: Code blocks render with syntax highlighting
+- [x] **RNDR-03**: Code blocks have a one-click copy button
+- [x] **RNDR-04**: Markdown rendering is XSS-safe (rehype-sanitize, no javascript: links)
 
 ### Web Search
 
@@ -38,9 +38,9 @@ Requirements for the Full Chat Experience milestone. Each maps to roadmap phases
 
 ### Dark Mode
 
-- [ ] **DARK-01**: User can toggle between dark and light themes
-- [ ] **DARK-02**: Theme respects system preference on first visit
-- [ ] **DARK-03**: All UI components render correctly in both themes (no invisible text, broken contrast)
+- [x] **DARK-01**: User can toggle between dark and light themes
+- [x] **DARK-02**: Theme respects system preference on first visit
+- [x] **DARK-03**: All UI components render correctly in both themes (no invisible text, broken contrast)
 
 ### Voice Input
 
@@ -92,16 +92,16 @@ Deferred to future release. Tracked but not in current roadmap.
 | STRM-01 | Phase 9 | Pending |
 | STRM-02 | Phase 9 | Pending |
 | STRM-03 | Phase 9 | Pending |
-| RNDR-01 | Phase 11 | Pending |
-| RNDR-02 | Phase 11 | Pending |
-| RNDR-03 | Phase 11 | Pending |
-| RNDR-04 | Phase 11 | Pending |
+| RNDR-01 | Phase 11 | Complete |
+| RNDR-02 | Phase 11 | Complete |
+| RNDR-03 | Phase 11 | Complete |
+| RNDR-04 | Phase 11 | Complete |
 | SRCH-01 | Phase 12 | Pending |
 | SRCH-02 | Phase 12 | Pending |
 | SRCH-03 | Phase 12 | Pending |
-| DARK-01 | Phase 11 | Pending |
-| DARK-02 | Phase 11 | Pending |
-| DARK-03 | Phase 11 | Pending |
+| DARK-01 | Phase 11 | Complete |
+| DARK-02 | Phase 11 | Complete |
+| DARK-03 | Phase 11 | Complete |
 | VOIC-01 | Phase 13 | Pending |
 | VOIC-02 | Phase 13 | Pending |
 | VOIC-03 | Phase 13 | Pending |
