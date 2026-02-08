@@ -177,11 +177,14 @@ function ImportPageContent() {
           router.push('/chat');
           return;
         }
-        // Also redirect if import is still processing (let them see progress in chat)
-        // But allow re-import if explicitly requested
-        if (!isReimport && data.status === 'processing') {
-          router.push('/chat');
-          return;
+        // DO NOT redirect if processing - user should stay on import page to see progress (Rick Roll)
+        // This prevents redirect loop with chat page
+        // Set the step to 'processing' so user sees the progress screen
+        if (data.status === 'processing') {
+          setCurrentStep('processing');
+          setStatus('processing');
+          setProgressStage('Processing your conversations...');
+          // Don't set checkingExisting to false yet - let the normal flow continue
         }
 
         // If re-importing, mark as returning user to show appropriate UI
