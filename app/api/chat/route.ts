@@ -9,6 +9,8 @@ import {
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { smartSearch, SmartSearchResult } from '@/lib/search/smart-search';
+import { validateCitations } from '@/lib/search/citation-validator';
+import { formatCitationsForDisplay } from '@/lib/search/citation-formatter';
 import { getMemoryContext } from '@/lib/memory/query';
 import { learnFromChat } from '@/lib/memory/learning';
 import { shouldAttemptRLM, recordSuccess, recordFailure } from '@/lib/rlm/health';
@@ -303,13 +305,30 @@ export async function POST(request: NextRequest) {
       });
 
       if (searchResult.performed) {
+        // Validate citations before passing to LLM
+        const validation = await validateCitations(searchResult.citations, {
+          timeout: 3000
+        });
+
+        // Log validation metrics
+        if (validation.invalid.length > 0) {
+          reqLog.warn({
+            invalid: validation.invalid.length,
+            errors: validation.errors
+          }, 'Some citations invalid, filtering');
+        }
+
+        // Only use validated citations
         webSearchContext = searchResult.context;
-        webSearchCitations = searchResult.citations;
+        webSearchCitations = validation.valid;
+
         reqLog.info({
           source: searchResult.source,
           reason: searchResult.reason,
-          citationCount: searchResult.citations.length
-        }, 'Smart search performed');
+          totalCitations: searchResult.citations.length,
+          validCitations: validation.valid.length,
+          invalidCitations: validation.invalid.length
+        }, 'Smart search performed with citation validation');
       } else if (searchResult.needed) {
         // Search was needed but failed
         reqLog.warn({
