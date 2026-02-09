@@ -16,9 +16,9 @@ Requirements for the Hardening & Integration milestone. Closes known gaps from v
 
 ### Test Quality
 
-- [ ] **TEST-01**: Cross-language sync tests compile without type errors (EmotionalState, PromptBuilderProfile)
-- [ ] **TEST-02**: Integration test mocks (complete.test.ts, process-server.test.ts) compile without type errors
-- [ ] **TEST-03**: All test files pass TypeScript strict mode checks (zero errors in `npx tsc --noEmit`)
+- [x] **TEST-01**: Cross-language sync tests compile without type errors (EmotionalState, PromptBuilderProfile)
+- [x] **TEST-02**: Integration test mocks (complete.test.ts, process-server.test.ts) compile without type errors
+- [x] **TEST-03**: All test files pass TypeScript strict mode checks (zero errors in `npx tsc --noEmit`)
 
 ### Web Search Validation
 
@@ -44,9 +44,9 @@ Requirements for the Hardening & Integration milestone. Closes known gaps from v
 | RLEI-02 | Phase 1 | ✓ Complete |
 | RLEI-03 | Phase 1 | ✓ Complete |
 | RLEI-04 | Phase 1 | ✓ Complete |
-| TEST-01 | Phase 2 | Pending |
-| TEST-02 | Phase 2 | Pending |
-| TEST-03 | Phase 2 | Pending |
+| TEST-01 | Phase 2 | ✓ Complete |
+| TEST-02 | Phase 2 | ✓ Complete |
+| TEST-03 | Phase 2 | ✓ Complete |
 | WSRV-01 | Phase 3 | Pending |
 | WSRV-02 | Phase 3 | Pending |
 | WSRV-03 | Phase 3 | Pending |
