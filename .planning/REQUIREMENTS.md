@@ -23,9 +23,9 @@ Requirements for the AI Quality & Personalization milestone. Each maps to roadma
 
 ### Emotional Intelligence
 
-- [ ] **EMOT-01**: AI detects user frustration, satisfaction, and confusion from text patterns and adapts response style
-- [ ] **EMOT-02**: AI acknowledges uncertainty explicitly ("I don't have enough info about X") instead of hallucinating
-- [ ] **EMOT-03**: Relationship arc adapts tone based on conversation history depth (cautious early, confident later)
+- [x] **EMOT-01**: AI detects user frustration, satisfaction, and confusion from text patterns and adapts response style
+- [x] **EMOT-02**: AI acknowledges uncertainty explicitly ("I don't have enough info about X") instead of hallucinating
+- [x] **EMOT-03**: Relationship arc adapts tone based on conversation history depth (cautious early, confident later)
 
 ### Quality
 
@@ -96,9 +96,9 @@ Deferred to future release.
 | PRMT-02 | Phase 2 | ✓ Done |
 | PRMT-03 | Phase 2 | ✓ Done |
 | PRMT-04 | Phase 2 | ✓ Done |
-| EMOT-01 | Phase 3 | Pending |
-| EMOT-02 | Phase 3 | Pending |
-| EMOT-03 | Phase 3 | Pending |
+| EMOT-01 | Phase 3 | ✓ Done |
+| EMOT-02 | Phase 3 | ✓ Done |
+| EMOT-03 | Phase 3 | ✓ Done |
 | QUAL-01 | Phase 4 | Pending |
 | QUAL-02 | Phase 4 | Pending |
 | QUAL-03 | Phase 4 | Pending |
@@ -113,4 +113,4 @@ Deferred to future release.
 
 ---
 *Requirements defined: 2026-02-08*
-*Last updated: 2026-02-09 -- Phase 2 complete (PRMT-01 through PRMT-04 satisfied)*
+*Last updated: 2026-02-09 -- Phase 3 complete (EMOT-01 through EMOT-03 satisfied)*
