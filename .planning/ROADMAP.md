@@ -111,8 +111,8 @@ Phase 1 must complete before Phase 2 (need evaluation framework to validate prom
 **Plans:** 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- Core evaluation library (datasets + judges)
-- [ ] 01-02-PLAN.md -- Experiment runner + baseline + CLI scripts
+- [x] 01-01-PLAN.md -- Core evaluation library (datasets + judges)
+- [x] 01-02-PLAN.md -- Experiment runner + baseline + CLI scripts
 
 ### Phase 2: Prompt Template System
 
@@ -201,11 +201,11 @@ Phases execute: 1 → 2 → (3 + 4 parallel) → 5
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Evaluation Foundation | v2.0 | 0/2 | Planned | - |
+| 1. Evaluation Foundation | v2.0 | 2/2 | ✓ Complete | 2026-02-08 |
 | 2. Prompt Template System | v2.0 | 0/TBD | Not started | - |
 | 3. Emotional Intelligence | v2.0 | 0/TBD | Not started | - |
 | 4. Quality Scoring | v2.0 | 0/TBD | Not started | - |
 | 5. Integration Validation | v2.0 | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-02-08 -- v2.0 roadmap created, ready for phase planning*
+*Last updated: 2026-02-08 -- Phase 1 (Evaluation Foundation) complete, ready for Phase 2 planning*

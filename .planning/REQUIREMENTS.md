@@ -9,10 +9,10 @@ Requirements for the AI Quality & Personalization milestone. Each maps to roadma
 
 ### Evaluation
 
-- [ ] **EVAL-01**: Opik evaluation datasets exist for personality consistency, factuality, and tone matching
-- [ ] **EVAL-02**: LLM-as-judge scoring rubrics evaluate prompt quality with >70% human agreement
-- [ ] **EVAL-03**: Experiment runner can compare prompt variants with aggregate scores
-- [ ] **EVAL-04**: Baseline metrics are recorded for current v1 prompt system before any changes
+- [x] **EVAL-01**: Opik evaluation datasets exist for personality consistency, factuality, and tone matching
+- [x] **EVAL-02**: LLM-as-judge scoring rubrics evaluate prompt quality with >70% human agreement
+- [x] **EVAL-03**: Experiment runner can compare prompt variants with aggregate scores
+- [x] **EVAL-04**: Baseline metrics are recorded for current v1 prompt system before any changes
 
 ### Prompts
 
@@ -88,10 +88,10 @@ Deferred to future release.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| EVAL-01 | Phase 1 | Pending |
-| EVAL-02 | Phase 1 | Pending |
-| EVAL-03 | Phase 1 | Pending |
-| EVAL-04 | Phase 1 | Pending |
+| EVAL-01 | Phase 1 | ✓ Done |
+| EVAL-02 | Phase 1 | ✓ Done |
+| EVAL-03 | Phase 1 | ✓ Done |
+| EVAL-04 | Phase 1 | ✓ Done |
 | PRMT-01 | Phase 2 | Pending |
 | PRMT-02 | Phase 2 | Pending |
 | PRMT-03 | Phase 2 | Pending |
@@ -113,4 +113,4 @@ Deferred to future release.
 
 ---
 *Requirements defined: 2026-02-08*
-*Last updated: 2026-02-08 after roadmap creation*
+*Last updated: 2026-02-08 -- Phase 1 complete (EVAL-01 through EVAL-04 satisfied)*
