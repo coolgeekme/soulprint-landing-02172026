@@ -17,6 +17,12 @@
  */
 
 import { cleanSection, formatSection } from '@/lib/soulprint/prompt-helpers';
+import {
+  EmotionalState,
+  buildUncertaintyInstructions,
+  buildRelationshipArcInstructions,
+  buildAdaptiveToneInstructions,
+} from '@/lib/soulprint/emotional-intelligence';
 
 // ============================================
 // Types
@@ -55,6 +61,15 @@ export interface PromptParams {
   currentDate?: string;
   /** Override current time string (for cross-language testing). */
   currentTime?: string;
+}
+
+/**
+ * Extended parameters for emotionally intelligent prompts.
+ * Adds optional emotional state and relationship arc for adaptive tone.
+ */
+export interface EmotionallyIntelligentPromptParams extends PromptParams {
+  emotionalState?: EmotionalState;
+  relationshipArc?: { stage: 'early' | 'developing' | 'established'; messageCount: number };
 }
 
 // ============================================
@@ -377,5 +392,50 @@ Use the web search results above to answer. Cite sources naturally in your respo
     } catch {
       return null;
     }
+  }
+
+  // ============================================
+  // Emotionally Intelligent Prompt
+  // ============================================
+
+  /**
+   * Build an emotionally intelligent system prompt.
+   *
+   * Composes base prompt (v1 or v2) with emotional intelligence sections:
+   * 1. Base prompt (buildSystemPrompt)
+   * 2. Uncertainty acknowledgment (ALWAYS included - EMOT-02)
+   * 3. Relationship arc instructions (if relationshipArc provided - EMOT-03)
+   * 4. Adaptive tone instructions (if emotionalState provided AND confidence >= 0.6 - EMOT-01)
+   *
+   * Order matters: adaptive tone goes LAST so it's the freshest instruction.
+   *
+   * @param params - Extended prompt params with optional emotional state and relationship arc
+   * @returns Complete emotionally intelligent system prompt
+   */
+  buildEmotionallyIntelligentPrompt(params: EmotionallyIntelligentPromptParams): string {
+    // Start with base prompt (v1 or v2 depending on PROMPT_VERSION)
+    let prompt = this.buildSystemPrompt(params);
+
+    // ALWAYS include uncertainty acknowledgment (EMOT-02)
+    prompt += `\n\n${buildUncertaintyInstructions()}`;
+
+    // Add relationship arc instructions if provided (EMOT-03)
+    if (params.relationshipArc) {
+      const arcInstructions = buildRelationshipArcInstructions(params.relationshipArc);
+      if (arcInstructions) {
+        prompt += `\n\n${arcInstructions}`;
+      }
+    }
+
+    // Add adaptive tone ONLY if emotional state has sufficient confidence (EMOT-01)
+    // Pitfall 3 from research: only apply if confidence >= 0.6
+    if (params.emotionalState && params.emotionalState.confidence >= 0.6) {
+      const toneInstructions = buildAdaptiveToneInstructions(params.emotionalState);
+      if (toneInstructions) {
+        prompt += `\n\n${toneInstructions}`;
+      }
+    }
+
+    return prompt;
   }
 }
