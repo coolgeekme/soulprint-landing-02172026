@@ -39,10 +39,6 @@ vi.mock('zlib', async (importOriginal) => {
   const actual = await importOriginal<typeof import('zlib')>();
   return {
     ...actual,
-    default: {
-      ...actual.default,
-      gzipSync: vi.fn((buffer) => Buffer.from('compressed-data')),
-    },
     gzipSync: vi.fn((buffer) => Buffer.from('compressed-data')),
   };
 });
@@ -197,7 +193,7 @@ describe('POST /api/import/process-server', () => {
         error: null,
       })),
       remove: vi.fn(() => ({ catch: vi.fn() })),
-    }));
+    })) as any;
     vi.mocked(createClient).mockReturnValueOnce(mockClient as any);
 
     const request = new Request('http://localhost/api/import/process-server', {
@@ -225,7 +221,7 @@ describe('POST /api/import/process-server', () => {
         data: null,
         error: { message: 'File not found' },
       })),
-    }));
+    })) as any;
     vi.mocked(createClient).mockReturnValueOnce(mockClient as any);
 
     const request = new Request('http://localhost/api/import/process-server', {
@@ -285,7 +281,7 @@ describe('POST /api/import/process-server', () => {
         error: null,
       })),
       remove: vi.fn(() => ({ catch: vi.fn() })),
-    }));
+    })) as any;
     vi.mocked(createClient).mockReturnValueOnce(mockClient as any);
 
     const request = new Request('http://localhost/api/import/process-server', {
@@ -314,7 +310,7 @@ describe('POST /api/import/process-server', () => {
         error: null,
       })),
       remove: vi.fn(() => ({ catch: vi.fn() })),
-    }));
+    })) as any;
     vi.mocked(createClient).mockReturnValueOnce(mockClient as any);
 
     const request = new Request('http://localhost/api/import/process-server', {
