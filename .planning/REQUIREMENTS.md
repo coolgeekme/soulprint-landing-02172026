@@ -35,9 +35,9 @@ Requirements for the AI Quality & Personalization milestone. Each maps to roadma
 
 ### Validation
 
-- [ ] **VALD-01**: Prompt regression test suite catches personality degradation before deploy
-- [ ] **VALD-02**: Long-session testing (10+ messages) validates no uncanny valley or personality drift
-- [ ] **VALD-03**: Async observability adds <100ms P95 latency overhead
+- [x] **VALD-01**: Prompt regression test suite catches personality degradation before deploy
+- [x] **VALD-02**: Long-session testing (10+ messages) validates no uncanny valley or personality drift
+- [x] **VALD-03**: Async observability adds <100ms P95 latency overhead
 
 ## v2.1 Requirements
 
@@ -102,15 +102,16 @@ Deferred to future release.
 | QUAL-01 | Phase 4 | ✓ Done |
 | QUAL-02 | Phase 4 | ✓ Done |
 | QUAL-03 | Phase 4 | ✓ Done |
-| VALD-01 | Phase 5 | Pending |
-| VALD-02 | Phase 5 | Pending |
-| VALD-03 | Phase 5 | Pending |
+| VALD-01 | Phase 5 | ✓ Done |
+| VALD-02 | Phase 5 | ✓ Done |
+| VALD-03 | Phase 5 | ✓ Done |
 
 **Coverage:**
 - v2.0 requirements: 16 total
 - Mapped to phases: 16/16 (100%)
+- Satisfied: 16/16 (100%)
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-08*
-*Last updated: 2026-02-09 -- Phase 4 complete (QUAL-01 through QUAL-03 satisfied)*
+*Last updated: 2026-02-09 -- All v2.0 requirements satisfied (16/16)*
