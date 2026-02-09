@@ -129,10 +129,14 @@ See: Previous active milestone content (collapsed)
 3. Import completes successfully for 300MB+ exports that previously failed on Vercel
 4. Database shows progress updates (progress_percent) throughout RLM processing pipeline
 
-**Plans:** TBD
+**Plans:** 5 plans in 4 waves
 
 Plans:
-- [ ] TBD during planning
+- [ ] 01-01-PLAN.md — Database schema + RLM streaming dependencies (Wave 1)
+- [ ] 01-02-PLAN.md — Port quick pass logic to Python (Wave 1, parallel with 01-01)
+- [ ] 01-03-PLAN.md — RLM streaming import endpoint (Wave 2)
+- [ ] 01-04-PLAN.md — Vercel thin proxy integration (Wave 3)
+- [ ] 01-05-PLAN.md — End-to-end verification (Wave 4, checkpoint)
 
 ### Phase 2: Parsing Quality - DAG Traversal and Content Handling
 **Goal:** Conversation parsing uses DAG traversal for accurate history and handles all content types correctly
@@ -177,9 +181,9 @@ Phases execute sequentially: 1 → 2 → 3. Each phase builds on the previous in
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Migration | 0/TBD | Not started | - |
+| 1. Core Migration | 0/5 | Not started | - |
 | 2. Parsing Quality | 0/TBD | Not started | - |
 | 3. UX Enhancement | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-02-09 -- v2.2 roadmap created, awaiting Phase 1 planning*
+*Last updated: 2026-02-09 -- Phase 1 plans created, ready for execution*
