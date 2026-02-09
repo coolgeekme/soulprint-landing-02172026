@@ -6,23 +6,23 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 **Core value:** The AI must feel like YOUR AI -- genuinely human, deeply personalized, systematically evaluated.
 
-**Current focus:** Phase 2 - Prompt Template System (Plan 2 of 3 complete)
+**Current focus:** Phase 2 - Prompt Template System (COMPLETE)
 
 ## Current Position
 
 Phase: 2 of 5 (Prompt Template System)
-Plan: 2 of 3 in phase
-Status: In progress
-Last activity: 2026-02-09 - Completed 02-02-PLAN.md (Python PromptBuilder + cross-language sync tests)
+Plan: 3 of 3 in phase
+Status: Phase complete
+Last activity: 2026-02-09 - Completed 02-03-PLAN.md (v2 prompt variant wired to evaluation)
 
-Progress: [███████░░░] 70% (Phase 1 complete, Phase 2 plan 2/3 complete)
+Progress: [████████░░] 80% (Phases 1-2 complete, 3 plans in Phase 2)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 50 (from v1.0-v2.0)
-- Average duration: ~22 min
-- Total execution time: ~21 hours across 6 milestones
+- Total plans completed: 51 (from v1.0-v2.0)
+- Average duration: ~20 min
+- Total execution time: ~21.03 hours across 6 milestones
 
 **By Milestone:**
 
@@ -34,7 +34,7 @@ Progress: [███████░░░] 70% (Phase 1 complete, Phase 2 plan 2
 | v1.3 RLM Sync | 5 | 5 | Shipped |
 | v1.4 Personalization | 2 | 7 | Shipped |
 | v1.5 Full Chat | 6 | 8 | Shipped |
-| v2.0 AI Quality | 5 | 3 | In Progress |
+| v2.0 AI Quality | 5 | 4 | In Progress |
 
 *Metrics updated: 2026-02-09*
 
@@ -82,6 +82,13 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - _sections_to_profile helper bridges legacy sections dict to PromptBuilder profile format
 - JSON blob serialization pattern for subprocess param passing avoids shell escaping issues
 
+**From 02-03 (Wire v2 to Evaluation):**
+- v2 builder uses simplified PromptParams (no dailyMemory/memoryContext) for style comparison
+- recordBaseline() accepts optional variant parameter (non-breaking change, defaults to v1)
+- v1 baseline remains frozen (not refactored to use PromptBuilder) for historical accuracy
+- ChatEvalItem structured sections JSON.stringify into PromptBuilder *_md fields
+- VARIANTS map in CLI scripts for variant registry and name-based selection
+
 ### Pending Todos
 
 - Run `scripts/rls-audit.sql` in Supabase SQL Editor (from v1.1 Phase 4)
@@ -98,8 +105,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-09
-Stopped at: Completed 02-02-PLAN.md (Python PromptBuilder + cross-language sync tests)
+Stopped at: Completed 02-03-PLAN.md (v2 prompt variant wired to evaluation framework)
 Resume file: None
 
 ---
-*Last updated: 2026-02-09 -- Phase 2 Plan 2 complete (Python PromptBuilder mirroring TS, 8 cross-lang tests passing)*
+*Last updated: 2026-02-09 -- Phase 2 COMPLETE (PromptBuilder class, Python sync, evaluation integration)*
