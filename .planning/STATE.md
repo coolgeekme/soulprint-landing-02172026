@@ -35,7 +35,7 @@ Progress: [██████████] 100% (3/3 phases complete)
 | v1.4 Personalization | 2 | 7 | Shipped |
 | v1.5 Full Chat | 6 | 8 | Shipped |
 | v2.0 AI Quality | 5 | 14 | Shipped |
-| v2.1 Hardening | 3 | TBD | In progress |
+| v2.1 Hardening | 3 | 4 | Complete |
 
 *Metrics updated: 2026-02-09*
 
@@ -79,7 +79,7 @@ Known gaps addressed by v2.1:
 Last session: 2026-02-09
 Stopped at: Completed 03-02-PLAN.md (Frontend Citation Display)
 Resume file: None
-Next step: Phase 3 complete - v2.1 Hardening & Integration milestone complete
+Next step: All phases complete — run /gsd:audit-milestone or /gsd:complete-milestone
 
 ---
 *Last updated: 2026-02-09 -- Phase 3 complete (citation validation pipeline end-to-end)*

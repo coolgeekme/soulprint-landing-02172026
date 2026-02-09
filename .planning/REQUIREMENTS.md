@@ -22,9 +22,9 @@ Requirements for the Hardening & Integration milestone. Closes known gaps from v
 
 ### Web Search Validation
 
-- [ ] **WSRV-01**: Web search citations are validated against source content before surfacing to user
-- [ ] **WSRV-02**: Hallucinated or unreachable citations are filtered out or flagged
-- [ ] **WSRV-03**: User sees citation source indicators (domain name) alongside search-informed responses
+- [x] **WSRV-01**: Web search citations are validated against source content before surfacing to user
+- [x] **WSRV-02**: Hallucinated or unreachable citations are filtered out or flagged
+- [x] **WSRV-03**: User sees citation source indicators (domain name) alongside search-informed responses
 
 ## Out of Scope
 
@@ -47,9 +47,9 @@ Requirements for the Hardening & Integration milestone. Closes known gaps from v
 | TEST-01 | Phase 2 | ✓ Complete |
 | TEST-02 | Phase 2 | ✓ Complete |
 | TEST-03 | Phase 2 | ✓ Complete |
-| WSRV-01 | Phase 3 | Pending |
-| WSRV-02 | Phase 3 | Pending |
-| WSRV-03 | Phase 3 | Pending |
+| WSRV-01 | Phase 3 | ✓ Complete |
+| WSRV-02 | Phase 3 | ✓ Complete |
+| WSRV-03 | Phase 3 | ✓ Complete |
 
 **Coverage:**
 - v2.1 requirements: 10 total
@@ -63,4 +63,4 @@ Requirements for the Hardening & Integration milestone. Closes known gaps from v
 
 ---
 *Requirements defined: 2026-02-09*
-*Traceability updated: 2026-02-09*
+*Traceability updated: 2026-02-09 -- All 10/10 requirements complete*
