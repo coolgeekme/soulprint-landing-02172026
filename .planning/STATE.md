@@ -11,16 +11,16 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 ## Current Position
 
 Phase: 1 of 3 (Core Migration - RLM Pipeline with Streaming)
-Plan: 3 of 5 complete
+Plan: 4 of 5 complete
 Status: In progress
-Last activity: 2026-02-09 -- Completed 01-03-PLAN.md (RLM Streaming Import Endpoint)
+Last activity: 2026-02-09 -- Completed 01-04-PLAN.md (Vercel Thin Proxy + Frontend Progress Polling)
 
-Progress: [██████░░░░] 60%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 74 (across v1.0-v2.2 milestones)
+- Total plans completed: 75 (across v1.0-v2.2 milestones)
 - Average duration: ~17 min
 - Total execution time: ~21.25 hours across 8 milestones
 
@@ -36,7 +36,7 @@ Progress: [██████░░░░] 60%
 | v1.5 Full Chat | 6 | 8 | Shipped |
 | v2.0 AI Quality | 5 | 14 | Shipped |
 | v2.1 Hardening | 3 | 4 | Shipped |
-| v2.2 Imports | 3 | 3 | In progress |
+| v2.2 Imports | 3 | 4 | In progress |
 
 *Metrics updated: 2026-02-09*
 
@@ -58,6 +58,9 @@ Recent decisions affecting current work:
 - 01-03: Temp file streaming approach (httpx -> disk -> ijson) for constant-memory import processing
 - 01-03: JSONResponse(status_code=202) for proper HTTP 202 Accepted in FastAPI
 - 01-03: Quick pass failure sets import_status='failed' (not 'quick_ready') to allow retry
+- 01-04: 10s RLM acceptance timeout, AbortError non-fatal (fire-and-forget pattern)
+- 01-04: Frontend polls user_profiles every 2s for real progress from RLM
+- 01-04: Check both quick_ready and complete status for RLM completion
 
 ### Pending Todos
 
@@ -79,10 +82,10 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-09T22:36:09Z
-Stopped at: Completed 01-03-PLAN.md (RLM Streaming Import Endpoint)
+Last session: 2026-02-09T22:40:50Z
+Stopped at: Completed 01-04-PLAN.md (Vercel Thin Proxy + Frontend Progress Polling)
 Resume file: None
-Next step: Execute remaining plans in Phase 1 (01-04 through 01-05)
+Next step: Execute Plan 01-05 (final plan in Phase 1)
 
 ---
-*Last updated: 2026-02-09 -- Phase 1 Plan 3 complete, streaming import endpoint ready*
+*Last updated: 2026-02-09 -- Phase 1 Plan 4 complete, thin proxy + frontend polling wired*
