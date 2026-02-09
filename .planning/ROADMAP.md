@@ -195,10 +195,12 @@ Plans:
 4. Zero critical regressions compared to v1 baseline metrics
 5. Quality scores correlate r>0.7 with user satisfaction metrics
 
-**Plans:** TBD (will be determined during plan-phase)
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD during plan-phase
+- [ ] 05-01-PLAN.md -- Prompt regression CLI + statistical validation + baseline comparison
+- [ ] 05-02-PLAN.md -- Long-session E2E tests + latency benchmark
+- [ ] 05-03-PLAN.md -- CI/CD regression workflow + quality correlation validation
 
 ## Progress
 
@@ -211,7 +213,7 @@ Phases execute: 1 → 2 → (3 + 4 parallel) → 5
 | 2. Prompt Template System | v2.0 | 3/3 | ✓ Complete | 2026-02-09 |
 | 3. Emotional Intelligence | v2.0 | 3/3 | ✓ Complete | 2026-02-09 |
 | 4. Quality Scoring | v2.0 | 3/3 | ✓ Complete | 2026-02-09 |
-| 5. Integration Validation | v2.0 | 0/TBD | Not started | - |
+| 5. Integration Validation | v2.0 | 0/3 | Not started | - |
 
 ---
-*Last updated: 2026-02-09 -- Phase 4 complete (3/3 plans, verified 7/8 must-haves, human migration pending)*
+*Last updated: 2026-02-09 -- Phase 5 planned (3 plans in 2 waves)*
