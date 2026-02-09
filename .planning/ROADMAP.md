@@ -106,7 +106,7 @@ Phase 1 must complete before Phase 2 (need evaluation framework to validate prom
 2. Developer can run offline experiments comparing prompt variants with aggregate scores
 3. LLM-as-judge scoring rubrics produce results with >70% human agreement
 4. Baseline metrics exist for personality consistency, factuality, and tone matching of current v1 prompts
-5. Async Opik tracing adds <100ms P95 latency overhead
+5. ~~Async Opik tracing adds <100ms P95 latency overhead~~ **Deferred to Phase 5 (Integration Validation)** — latency benchmarking requires load testing infrastructure and concurrent request simulation, which is the explicit purpose of Phase 5 Success Criterion #3. Phase 1 focuses on offline evaluation infrastructure, not production latency.
 
 **Plans:** 2 plans
 
