@@ -274,11 +274,11 @@ function ImportPageContent() {
     const isMobile = isMobileDevice();
     const fileSizeMB = file.size / 1024 / 1024;
 
-    // Mobile can't handle large files - warn early
-    if (isMobile && fileSizeMB > 100) {
+    // Mobile browsers struggle with very large files (JSZip + memory pressure)
+    if (isMobile && fileSizeMB > 500) {
       setErrorMessage(
         `Your export is ${fileSizeMB.toFixed(0)}MB — too large for mobile upload. ` +
-        `Please use a desktop/laptop browser for files over 100MB.`
+        `Please use a desktop/laptop browser for files over 500MB.`
       );
       setStatus('error');
       return;
@@ -367,8 +367,10 @@ function ImportPageContent() {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const contentType = uploadFilename.endsWith('.json') ? 'application/json' : 'application/zip';
         
-        // Use chunked upload for files > 100MB, otherwise direct upload
-        const CHUNKED_THRESHOLD = 100 * 1024 * 1024; // 100MB
+        // Use chunked upload only for very large files (>2GB)
+        // Direct XHR upload to Supabase storage is faster and more reliable
+        // Supabase bucket limit is 10GB, so direct upload covers most cases
+        const CHUNKED_THRESHOLD = 2 * 1024 * 1024 * 1024; // 2GB
         let storagePath: string;
 
         if (uploadBlob.size > CHUNKED_THRESHOLD) {
@@ -513,8 +515,8 @@ function ImportPageContent() {
           userMessage = 'Network error. Please check your connection and try again.';
         } else if (msg.includes('timeout')) {
           userMessage = 'Upload timed out. Try with a smaller file or better connection.';
-        } else if (msg.includes('size') || msg.includes('large') || msg.includes('entity too large')) {
-          userMessage = 'File is too large. Maximum size is 500MB.';
+        } else if (msg.includes('entity too large')) {
+          userMessage = 'Upload rejected by server — file too large. Try from a desktop browser if you are on mobile.';
         } else if (msg.includes('chatgpt export') || msg.includes("doesn't look like")) {
           // New validation error - pass through as-is (it's already user-friendly)
           userMessage = err.message;

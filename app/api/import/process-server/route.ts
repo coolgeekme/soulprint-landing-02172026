@@ -23,7 +23,10 @@ const log = createLogger('API:ImportProcessServer');
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes
 
-const MAX_FILE_SIZE_MB = 500; // Vercel memory constraint
+// Vercel functions get ~1GB RAM; we need headroom for parsing + soulprint generation.
+// conversations.json is typically 3-10x smaller than the ZIP, and desktop clients
+// pre-extract it. Allow up to 2GB to handle power users with years of ChatGPT history.
+const MAX_FILE_SIZE_MB = 2000;
 
 function getSupabaseAdmin() {
   return createAdminClient(

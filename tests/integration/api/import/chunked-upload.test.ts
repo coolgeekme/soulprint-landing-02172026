@@ -2,6 +2,23 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { POST } from '@/app/api/import/chunked-upload/route';
 import { NextRequest } from 'next/server';
 
+// Store uploaded chunks for assembly verification
+const storedChunks = new Map<string, Buffer>();
+
+const mockUpload = vi.fn(async (path: string, data: Buffer | Uint8Array) => {
+  storedChunks.set(path, Buffer.from(data));
+  return { data: { path }, error: null };
+});
+
+const mockDownload = vi.fn(async (path: string) => {
+  const buf = storedChunks.get(path);
+  if (!buf) return { data: null, error: { message: 'Not found' } };
+  const blob = new Blob([buf]);
+  return { data: blob, error: null };
+});
+
+const mockRemove = vi.fn(async () => ({ data: null, error: null }));
+
 // Mock modules
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => ({
@@ -11,9 +28,16 @@ vi.mock('@/lib/supabase/server', () => ({
         error: null,
       })),
     },
+  })),
+}));
+
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn(() => ({
     storage: {
       from: vi.fn(() => ({
-        upload: vi.fn(() => ({ data: { path: 'test-path.json' }, error: null })),
+        upload: mockUpload,
+        download: mockDownload,
+        remove: mockRemove,
       })),
     },
   })),
@@ -41,6 +65,7 @@ vi.mock('@/lib/logger', () => ({
 describe('POST /api/import/chunked-upload', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    storedChunks.clear();
   });
 
   it('returns 401 when not authenticated', async () => {
@@ -149,25 +174,12 @@ describe('POST /api/import/chunked-upload', () => {
     expect(body2.size).toBe(chunk1.length + chunk2.length);
   });
 
-  it('handles storage upload error', async () => {
-    // Override storage mock to return error
-    const { createClient } = await import('@/lib/supabase/server');
-    vi.mocked(createClient).mockReturnValueOnce({
-      auth: {
-        getUser: vi.fn(() => ({
-          data: { user: { id: 'test-user-id' } },
-          error: null,
-        })),
-      },
-      storage: {
-        from: vi.fn(() => ({
-          upload: vi.fn(() => ({
-            data: null,
-            error: { message: 'Storage quota exceeded' },
-          })),
-        })),
-      },
-    } as any);
+  it('handles storage upload error on chunk', async () => {
+    // Make the first chunk upload fail
+    mockUpload.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Storage quota exceeded' },
+    });
 
     const uploadId = 'test-upload-error';
     const chunkData = Buffer.from('test data');
@@ -187,7 +199,7 @@ describe('POST /api/import/chunked-upload', () => {
     expect(response.status).toBe(500);
 
     const body = await response.json();
-    expect(body.error).toContain('Storage upload failed');
+    expect(body.error).toContain('Chunk upload failed');
   });
 
   it('handles out-of-order chunks', async () => {
