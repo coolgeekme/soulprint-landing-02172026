@@ -455,57 +455,30 @@ function ImportPageContent() {
         setProgressStage('Upload complete! Starting processing...');
         setProgress(52);
 
-        setProgressStage('Analyzing your conversations...');
+        setProgressStage('Starting analysis...');
         setProgress(55);
 
         // Small delay to let browser settle after large upload
         await new Promise(r => setTimeout(r, 500));
 
-        // Start progress animation for server processing (55% -> 95%)
-        let currentProgress = 55;
-        progressIntervalRef.current = setInterval(() => {
-          // Slow progress that never quite reaches 100%
-          currentProgress = Math.min(currentProgress + 0.5, 95);
-          setProgress(Math.round(currentProgress));
-
-          // Update stage text based on progress
-          if (currentProgress < 65) {
-            setProgressStage('Downloading and extracting...');
-          } else if (currentProgress < 75) {
-            setProgressStage('Reading your conversations...');
-          } else if (currentProgress < 85) {
-            setProgressStage('Analyzing your personality...');
-          } else {
-            setProgressStage('Building your profile...');
-          }
-        }, 1000);
-
-        // Process on server - NO timeout, let it complete (up to 5 min)
-        let queueRes;
+        // Trigger RLM import via thin proxy (returns 202 immediately)
+        let triggerRes;
         try {
           const csrfToken = await getCsrfToken();
-          queueRes = await fetch('/api/import/queue-processing', {
+          triggerRes = await fetch('/api/import/trigger', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
             credentials: 'include',
-            body: JSON.stringify({
-              storagePath,
-              filename: uploadFilename,
-              fileSize: uploadBlob.size,
-              isExtracted: uploadFilename.endsWith('.json'), // Tell server if we pre-extracted
-            }),
+            body: JSON.stringify({ storagePath }),
           });
         } catch (e) {
-          if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-          console.error('[Import] queue-processing failed:', e);
+          console.error('[Import] trigger failed:', e);
           throw new Error('Processing failed. Please try again.');
         }
 
-        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-
         // Handle duplicate import (409 Conflict) specifically
-        if (queueRes.status === 409) {
-          const dupData = await queueRes.json().catch(() => ({ elapsedMinutes: 0 }));
+        if (triggerRes.status === 409) {
+          const dupData = await triggerRes.json().catch(() => ({ elapsedMinutes: 0 }));
           const mins = dupData.elapsedMinutes ?? 0;
           setErrorMessage(
             `An import is already processing (started ${mins} minute${mins === 1 ? '' : 's'} ago). ` +
@@ -515,20 +488,60 @@ function ImportPageContent() {
           return;
         }
 
-        if (!queueRes.ok) {
-          const err = await queueRes.json().catch((e) => { console.warn("[JSON parse]", e); return {}; });
-          console.error('[Import] queue-processing error:', err);
+        if (!triggerRes.ok) {
+          const err = await triggerRes.json().catch((e) => { console.warn("[JSON parse]", e); return {}; });
+          console.error('[Import] trigger error:', err);
           throw new Error(err.error || 'Processing failed. Please try again.');
         }
 
-        const result = await queueRes.json();
-        console.log('[Import] Processing complete:', result);
+        console.log('[Import] Trigger accepted (202), starting progress polling');
 
-      // Success! Quick pass is complete, redirect to chat
-      setProgressStage('Analysis complete! Opening chat...');
-      setProgress(100);
-      await new Promise(r => setTimeout(r, 800)); // Brief pause for UX
-      router.push('/chat');
+        // Poll user_profiles for real progress from RLM (every 2 seconds)
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = setInterval(async () => {
+          try {
+            const { data, error } = await supabase
+              .from('user_profiles')
+              .select('progress_percent, import_stage, import_status, import_error')
+              .eq('user_id', user.id)
+              .single();
+
+            if (error) {
+              console.error('[Import] Progress poll error:', error);
+              return;
+            }
+
+            // Update UI with real progress from RLM
+            setProgress(data.progress_percent || 0);
+            setProgressStage(data.import_stage || 'Processing...');
+
+            // Stop polling when complete or failed
+            if (data.import_status === 'quick_ready' || data.import_status === 'complete') {
+              if (progressIntervalRef.current) {
+                clearInterval(progressIntervalRef.current);
+                progressIntervalRef.current = null;
+              }
+              // Success - redirect to chat
+              setProgress(100);
+              setProgressStage('Analysis complete! Opening chat...');
+              await new Promise(r => setTimeout(r, 800));
+              router.push('/chat');
+            } else if (data.import_status === 'failed') {
+              if (progressIntervalRef.current) {
+                clearInterval(progressIntervalRef.current);
+                progressIntervalRef.current = null;
+              }
+              // Failed - show error
+              setErrorMessage(data.import_error || 'Import failed');
+              setStatus('error');
+            }
+          } catch (e) {
+            console.error('[Import] Progress polling error:', e);
+          }
+        }, 2000);
+
+        // Don't continue to the success block below — polling handles completion
+        return;
     } catch (err) {
       console.error('Import error:', err);
       // Map technical errors to user-friendly messages
