@@ -3,6 +3,10 @@
     {
       "path": "/api/memory/synthesize",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/quality-refinement",
+      "schedule": "0 3 * * *"
     }
   ]
 }
