@@ -1,417 +1,302 @@
-# Research Summary: v1.5 Full Chat Experience
+# Research Summary: AI Quality & Personalization
 
-**Project:** SoulPrint — Privacy-first AI personalization platform
-**Domain:** Enhanced AI chat interface (multi-conversation, streaming, search, voice, rich rendering, dark mode)
+**Project:** SoulPrint v2.0 - AI Quality & Personalization
+**Domain:** LLM evaluation, prompt engineering, emotional intelligence, linguistic pattern mirroring
 **Researched:** 2026-02-08
 **Confidence:** HIGH
 
 ## Executive Summary
 
-The v1.5 Full Chat Experience milestone transforms SoulPrint's basic single-conversation chat into a full-featured AI assistant comparable to ChatGPT/Claude. Research reveals that **most required capabilities are already installed or require minimal new dependencies** (only 3-4 packages), but **significant architectural changes are needed** to enable streaming through the Vercel → RLM → Bedrock pipeline and to implement multi-conversation support without data loss.
+SoulPrint v2.0 focuses on making the AI sound genuinely human and deeply personalized through systematic evaluation, improved prompts, emotional intelligence, and linguistic pattern mirroring. The research reveals a **zero-dependency milestone** - all features are implementable with the existing stack (Opik 1.10.8, Claude Sonnet 4.5, Bedrock Haiku 4.5). The gap is primarily architectural and prompt engineering, not technological.
 
-The recommended approach prioritizes **database schema changes first** (conversations table + migration) to avoid orphaning existing messages, followed by **streaming implementation** (critical for UX), then **conversation management UI**. Dark mode and markdown rendering are independent and can proceed in parallel. **Web search already exists** via smartSearch(). Voice input should come after core features stabilize due to browser compatibility complexity.
+The recommended approach is **evaluation-first development**: establish measurement infrastructure before changing any prompts. Research shows 58.8% of prompt changes degrade quality in production despite looking better in testing. The path forward is: (1) build Opik evaluation datasets and experiments, (2) establish baseline metrics, (3) iterate on prompt improvements with A/B testing, (4) add linguistic analysis and quality scoring, then (5) validate with real users.
 
-The **critical risk** is the conversation migration: the current `chat_messages` table has no `conversation_id` column, meaning all existing messages must be backfilled into inferred conversations based on time gaps. Without careful migration, users lose their chat history. Secondary risks include Vercel streaming timeouts (60s limit on Pro), citation hallucinations from web search, and dark mode invisible text from hard-coded colors.
+Key risks center on **prompt regression** (breaking working personality with "improvements"), **LLM-as-judge bias** (optimizing for what the evaluator likes, not what users need), and **uncanny valley** (perfect linguistic mirroring feels creepy, not personalized). These are mitigated through regression testing, diverse evaluation sets, human validation, and intentional imperfection in mirroring. The existing two-pass architecture (quick pass + full pass), RLM memory retrieval, and Opik tracing provide strong foundations to build upon.
 
 ## Key Findings
 
 ### Recommended Stack
 
-**Minimal new dependencies:** Only 3-4 packages needed for 6 major features:
-- `react-markdown` + `remark-gfm` + `rehype-highlight` for rich markdown rendering with syntax highlighting
-- `react-speech-recognition` (optional) for voice input wrapper over Web Speech API
+**No new packages required.** All v2.0 features use existing dependencies. Opik SDK (1.10.8) already installed extends naturally from tracing to evaluation datasets, experiments, and LLM-as-judge metrics. Claude Sonnet 4.5 has native emotional awareness and responds well to natural voice instructions. Bedrock Haiku 4.5 provides fast linguistic pattern extraction.
 
-**Already installed and ready:**
-- Vercel AI SDK (streaming support via `useChat`)
-- @tavily/core (web search, updated Jan 2026 with ultra-fast mode)
-- next-themes (dark mode)
-- Radix UI components (conversation sidebar UI)
-- Supabase (conversation database schema)
-- FastAPI StreamingResponse (RLM backend streaming)
-- Anthropic SDK `.stream()` (Claude streaming)
+**Core technologies (already installed):**
+- **Opik 1.10.8**: LLM evaluation framework - extends from tracing to datasets, experiments, scoring metrics (Hallucination, AnswerRelevance, Usefulness)
+- **Claude Sonnet 4.5** (@ai-sdk/anthropic 3.0.36): Native emotional awareness, supports natural voice system prompts, literal instruction following
+- **Bedrock Haiku 4.5** (@aws-sdk/client-bedrock-runtime 3.980.0): Fast pattern extraction for linguistic analysis via bedrockChatJSON
+- **Pino 10.3.0**: Structured logging for evaluation results, prompt experiments, quality scores
+- **Zod 4.3.6**: Validation for evaluation datasets, scoring functions, linguistic profiles
 
-**Key version requirements:**
-- React 19.2.3 (compatible with react-markdown ^10.1.0)
-- Node.js 20+ (all packages compatible)
-- Next.js 16.1.5 (supports streaming with runtime: 'nodejs')
-
-**What NOT to install:**
-- socket.io (overkill for one-way streaming, use SSE)
-- langchain (unnecessary, use @tavily/core directly)
-- marked/markdown-it (security issues, use react-markdown)
-- react-syntax-highlighter (larger bundle, use rehype-highlight)
+**What NOT to add:**
+- NLP libraries (winkNLP, compromise, natural) - LLM-based pattern extraction is more accurate and maintainable
+- Sentiment analysis libraries - Claude has native emotional intelligence via prompt engineering
+- Alternative evaluation frameworks (DeepEval, RAGAS, LangSmith) - Opik already integrated and sufficient
+- Prompt templating libraries - TypeScript template literals with helper functions work well
 
 ### Expected Features
 
-**Must have (table stakes):**
-- **Conversation sidebar with list/switch/create/delete** — 96% of users frustrated by single-conversation chats
-- **Token-by-token streaming** — Makes AI feel instant (perceived 4-6x faster)
-- **Markdown rendering with syntax highlighting** — All major AI chats have this
-- **Dark mode toggle** — Expected by 2026 (not differentiator, but mandatory)
-- **Code block copy button** — One-click copy is standard
-- **Web search with inline citations** — Users expect current info (already implemented via smartSearch)
-- **Conversation rename/delete** — Necessary for multi-conversation management
+Research categorized features into 3 priority tiers based on user value, implementation cost, and dependencies.
 
-**Should have (competitive advantage):**
-- **Memory-informed conversation starters** — SoulPrint differentiator (personalized prompts from memory chunks)
-- **Cross-conversation memory highlights** — Surface relevant past conversations during chat
-- **Voice input** — Accessibility + mobile UX (Web Speech API for Chrome/Edge, 80% coverage)
-- **Interrupt & update mid-response** — Refine AI work in progress (ChatGPT pattern)
+**Must have (v2.0 launch - P1):**
+- **Opik evaluation datasets & experiments** - Measure personality consistency, factuality, tone matching with LLM-as-judge (foundation for all improvements)
+- **Soulprint quality scoring** - System self-awareness about data quality ("I'm still learning" vs "I know you well")
+- **Narrative voice system prompts** - Replace technical headers (## SOUL, ## AGENTS) with personality primer in natural language
+- **Relationship arc awareness** - Day 1 cautious ("Nice to meet you...") vs Day 100 confident ("You usually prefer...")
+- **Emotional intelligence scaffolding** - Detect frustration, satisfaction, confusion from text and adapt responses appropriately
+- **Uncertainty handling** - Temperature 0.1-0.3 + explicit instructions to say "I don't know" instead of hallucinating
 
-**Defer (v2+):**
-- **Conversation spaces/categories** — Needed when users have 50+ conversations
-- **Memory evolution timeline** — Unique but edge case ("AI learned X on Y date" visualization)
-- **Voice output (TTS)** — Most users read faster than listen, make opt-in
-- **Rich media rendering** — Images/videos in responses (not common in current usage)
+**Should have (v2.1 - P2):**
+- **Linguistic pattern mirroring** - Analyze ChatGPT export for formality, emoji usage, humor style, sentence structure and match in responses
+- **Citation grounding** - Perplexity-style inline citations for web search results (avoid awkward [1][2] notation)
+- **Memory as narrative** - Transform bullet lists into flowing narrative context ("You've been working on RoboNuggets for 3 months...")
+- **Signature greeting usage** - Apply identity.signature_greeting on first message of each session
+- **Adaptive depth preference** - Enforce tools.depth_preference (brief vs detailed) more strongly
 
-**Anti-features (commonly requested but problematic):**
-- Real-time collaboration (massive complexity, unclear value)
-- Unlimited conversation branching (confusing UI, ChatGPT doesn't do this)
-- Manual memory editing (cognitive burden, users won't maintain)
-- Over-engineered persona switching (dilutes core value)
+**Defer (v2.2+ - P3):**
+- **Iterative soulprint refinement** - Update profile from new conversations (requires feedback loop architecture, drift detection)
+- **Conversation-level adaptation** - Detect topic shifts mid-conversation and adjust tone dynamically
+- **User-facing memory controls** - Edit/delete specific memories (RLS privacy exists, needs UI)
+- **A/B testing framework** - Test prompt variations with statistical significance tracking
 
 ### Architecture Approach
 
-**Current architecture:** Next.js (Vercel) → RLM Service (FastAPI) → AWS Bedrock, with Supabase for DB and non-streaming responses. **Limitation:** Single conversation per user, simulated SSE (full response wrapped in SSE format).
-
-**Enhanced architecture requires:**
-
-1. **Database schema changes** (BLOCKING):
-   - Create `conversations` table (id, user_id, title, created_at, updated_at)
-   - Add `conversation_id` column to `chat_messages` (FK to conversations)
-   - Backfill migration: create default conversation per user, assign existing messages
-   - RLS policies for conversation-scoped access
-
-2. **Streaming pipeline** (Vercel → RLM → Bedrock):
-   - RLM: Add `StreamingResponse` to `/query` endpoint (SSE format)
-   - Next.js: Add `export const runtime = 'nodejs'` and `export const dynamic = 'force-dynamic'` to enable streaming
-   - Proxy RLM stream directly to client (no buffering)
-   - Timeout protection: 55s limit on Vercel Pro, gracefully truncate long responses
-
-3. **UI component updates**:
-   - Conversation sidebar (list, filter, create, switch)
-   - Enhanced message renderer (react-markdown + streaming awareness)
-   - Theme toggle component (next-themes wrapper)
-   - Voice input button (Web Speech API with browser detection)
+The v2.0 integration follows an **evaluation-first, incremental adoption** pattern that builds on existing infrastructure without breaking changes. The architecture leverages Opik's progression from tracing (current) to datasets to experiments to scoring.
 
 **Major components:**
-1. **Conversation Management** — Sidebar UI + CRUD API + DB schema (conversations table)
-2. **Streaming Response Handler** — SSE proxy in /api/chat, client-side incremental rendering
-3. **Rich Markdown Renderer** — react-markdown with rehype-highlight, streaming-aware memoization
-4. **Theme System** — next-themes provider + CSS variables + dark: variants
-5. **Voice Input Module** — Web Speech API wrapper with MIME type detection + duration limits
-6. **Web Search Integration** — Already exists (smartSearch), needs citation validation
 
-**Critical integration points:**
-- `chat_messages.conversation_id` FK must exist before UI changes
-- RLM streaming must work before frontend streaming (can't stream if backend doesn't)
-- Dark mode CSS variables must be audited before toggle implementation
-- Citation validation must happen before web search goes to GA
+1. **Evaluation Infrastructure** (lib/evaluation/) - Dataset manager, experiment runner, LLM-as-judge rubrics that extend existing lib/opik.ts tracing
+2. **Prompt Template System** (lib/prompts/templates/) - Version-controlled prompts (v1-technical, v2-natural-voice) with swap-able implementations via PROMPT_VERSION env var
+3. **Linguistic Analyzer** (lib/analysis/linguistic.ts) - Extract patterns at import (quick pass) and runtime (learnFromChat), store in linguistic_profile JSONB column
+4. **Quality Scorer** (lib/scoring/soulprint.ts) - Score completeness, coherence, specificity, personalization; trigger refinement for low-quality soulprints
+5. **Natural Voice Transformer** (lib/prompts/natural-voice.ts) - Convert structured sections to flowing personality primer preserving semantic content
+
+**Integration strategy:** Build evaluation first (Phase 1) to establish baselines, then improve prompts (Phase 2) with A/B testing against baselines, add linguistic analysis (Phase 3) in parallel with quality scoring (Phase 4), validate everything (Phase 5) before declaring success. Two prompt builders (Next.js buildSystemPrompt + RLM build_rlm_system_prompt) must stay in sync via identical template logic.
 
 ### Critical Pitfalls
 
-**1. Multi-Conversation Migration Without conversation_id Causing Data Loss**
-- **Risk:** `chat_messages` table has NO `conversation_id` column. Adding it without careful backfill = all existing messages orphaned or lumped incorrectly.
-- **Prevention:**
-  - Create `conversations` table first
-  - Infer conversations from time gaps (>2 hours = new conversation)
-  - Backfill existing messages into default conversation per user
-  - Test migration on staging data (verify no message loss)
-- **Phase:** Database Schema Migration (MUST complete before UI)
+Research identified 9 pitfalls specific to LLM evaluation and prompt engineering. Top 5 that could derail v2.0:
 
-**2. Streaming Through Vercel Serverless Buffering Everything**
-- **Risk:** Streaming works in dev, fails in production. Vercel buffers responses without `runtime: 'nodejs'` export, causing 60s timeouts or no incremental rendering.
-- **Prevention:**
-  - Add `export const runtime = 'nodejs'` and `export const dynamic = 'force-dynamic'` to /api/chat/route.ts
-  - Proxy RLM stream directly (no buffering in Next.js route)
-  - Test in Vercel preview environment before main branch
-  - Add timeout protection (55s limit, truncate gracefully)
-- **Phase:** Streaming Implementation
+1. **Breaking working personality with prompt changes** - 58.8% of prompt + model combinations drop accuracy over API updates. Avoid by building prompt regression test suite (20-100 tasks) BEFORE changing prompts, establishing baseline metrics from Opik traces, A/B testing changes in shadow mode 24-48h, versioning prompts like code with rollback capability.
 
-**3. Web Search Citation Hallucinations and URL Fabrication**
-- **Risk:** LLM cites URLs that weren't in search results, fabricates links, misattributes info. User clicks citation → 404 or wrong page.
-- **Prevention:**
-  - Use structured [SOURCE_X] format for citations
-  - Validate citations post-generation (check URLs exist in results)
-  - Block `javascript:` protocol in links
-  - Hydrate [SOURCE_X] with real URLs only after validation
-- **Phase:** Web Search Integration (already exists, needs hardening)
+2. **LLM-as-judge self-preference bias** - Judge LLMs favor outputs similar to their own style (lower perplexity). GPT-4 judges prefer verbose/formal regardless of quality. Avoid by using different model families for generation vs judging, temperature 0.0-0.1 for deterministic evaluation, human validation on 10-20% of decisions, swapping response order to detect position bias.
 
-**4. Voice Input Browser Compatibility and Transcription Cost Runaway**
-- **Risk:** Voice works on Chrome, broken on Safari/Firefox. No duration limits → users record 5min audio → $0.006/min × 1000 users = $600/month.
-- **Prevention:**
-  - Cross-browser MIME type detection (webm/mp4/ogg)
-  - 2-minute recording limit (auto-stop)
-  - Test on iOS Safari (50% mobile users)
-  - Cost tracking per transcription
-- **Phase:** Voice Input (after core features stabilize)
+3. **Linguistic mirroring uncanny valley** - Perfect mirroring feels creepy after 5-10 exchanges. Users report "trying too hard," "fake," "creepy." Avoid by keeping slight AI distinctiveness intentionally, mirroring patterns not phrases, adapting gradually over 3-4 exchanges, preserving AI identity ("here's my take..."), testing with extended conversations (10+ messages).
 
-**5. Dark Mode CSS Variables Causing Invisible Text on Theme Toggle**
-- **Risk:** Hard-coded colors (`bg-white`, `text-black`) ignore theme. After toggle, text invisible (white on white or black on black).
-- **Prevention:**
-  - Audit all hard-coded colors BEFORE implementing toggle
-  - Use CSS variables (`--bg-primary`, `--text-primary`) throughout
-  - Theme third-party components (react-markdown, syntax highlighter)
-  - Visual regression tests for both themes
-- **Phase:** Dark Mode (audit first, toggle second)
+4. **RAG memory breaking personality consistency** - Retrieved chunks appear right before user message, model weights recent context > system instructions, personality gets overridden. Avoid by positioning personality instructions AFTER retrieval with framing ("Background memories, use to inform not replace voice"), limiting chunk count (test 3 vs 5), scoring chunks for relevance AND personality-safety, testing with adversarial chunks.
 
-**6. Markdown XSS Vulnerabilities from AI-Generated Content**
-- **Risk:** AI generates `[link](javascript:alert(1))` → user clicks → XSS. Web search results contain adversarial HTML.
-- **Prevention:**
-  - Always use `rehype-sanitize` with react-markdown
-  - Block `javascript:` protocol in link validation
-  - Sanitize web search results before passing to LLM
-  - Add Content Security Policy headers
-  - Test with XSS payload suite
-- **Phase:** Markdown Rendering (security audit before GA)
+5. **Observability instrumentation killing latency** - Synchronous tracing adds 150-300ms (12-15% overhead). Users notice sluggish streaming. Avoid by queueing traces asynchronously (fire-and-forget), sampling (10% of chats, 100% of errors), batching trace writes (flush every 5s), failing open on tracing errors, measuring P95 latency not averages.
 
 ## Implications for Roadmap
 
-Based on research, suggested **6-phase structure** with careful ordering to avoid data loss and maximize parallelization:
+Research strongly indicates a **5-phase sequential build** where each phase enables the next. The architecture research (ARCHITECTURE-AI-QUALITY.md) provides detailed build order with clear dependencies.
 
-### Phase 1: Database Schema & Migration (BLOCKING)
-**Rationale:** Must complete before any conversation UI work. Current `chat_messages` has no `conversation_id`. All existing messages must be migrated without loss.
+### Phase 1: Evaluation Foundation (No Breaking Changes)
 
-**Delivers:**
-- `conversations` table created with RLS policies
-- `conversation_id` added to `chat_messages` (nullable → backfilled → NOT NULL)
-- Migration script: infer conversations from time gaps, backfill existing messages
-- Verified: no message loss, all messages have conversation_id
-
-**Addresses:**
-- Table stakes: Multi-conversation support foundation
-- Pitfall: Prevents data loss from hasty migration
-
-**Critical dependencies:** None — can start immediately
-**Blocks:** Phase 3 (Conversation Management UI)
-
----
-
-### Phase 2: Streaming Responses (HIGH PRIORITY)
-**Rationale:** Independent of conversation migration, delivers immediate UX improvement (4-6x perceived performance). Can develop in parallel with Phase 1.
+**Rationale:** Must establish measurement before making changes. Research shows prompt regression is the #1 risk - teams ship "improvements" that break working systems because they lack baseline metrics. Build evaluation infrastructure that doesn't touch production code.
 
 **Delivers:**
-- RLM `/query` endpoint returns `StreamingResponse` (SSE format)
-- Next.js `/api/chat` proxies stream with correct headers (`runtime: 'nodejs'`)
-- Client-side incremental rendering (update message character-by-character)
-- Timeout protection (55s limit on Vercel Pro, graceful truncation)
+- Opik dataset/experiment methods in lib/opik.ts
+- Evaluation dataset from anonymized chat history (lib/evaluation/datasets.ts)
+- Experiment runner CLI script (scripts/run-experiment.ts)
+- LLM-as-judge scoring rubrics (lib/scoring/rubrics.ts)
+- Baseline metrics: personality consistency, factuality, tone matching
 
-**Uses:**
-- FastAPI `StreamingResponse` (already installed)
-- Anthropic SDK `.stream()` (already installed)
-- Vercel AI SDK SSE handling (already installed)
+**Addresses:** Pitfall #1 (breaking personality), Pitfall #2 (judge bias), Pitfall #5 (observability latency)
 
-**Addresses:**
-- Table stakes: Token-by-token streaming (expected by users)
-- Pitfall: Prevents Vercel buffering (test in preview before merge)
+**Avoids:** Any changes to buildSystemPrompt(), chat routes, or user-facing behavior
 
-**Critical dependencies:** None
-**Can parallelize with:** Phase 1
+**Research flags:** MEDIUM - Opik dataset API is well-documented, but async trace architecture needs spike (2-3 days) to avoid latency pitfall. LLM judge family selection (which model to use for judging) needs validation against human raters.
 
----
+**Acceptance criteria:** Can run offline experiments comparing prompt variants with aggregate scores, async tracing adds <100ms P95 latency, human validation agrees with judge >70% of time.
 
-### Phase 3: Conversation Management UI
-**Rationale:** Depends on Phase 1 (DB schema). Enables multi-conversation experience. Should come before other UI enhancements to establish new UX paradigm.
+### Phase 2: Prompt Template System (Breaking Change - Requires Testing)
+
+**Rationale:** Once evaluation exists, can safely improve prompts with A/B testing. Natural voice prompts look better in research, but must validate against working system. Template versioning enables rollback and parallel testing.
 
 **Delivers:**
-- Conversation sidebar (list with infinite scroll)
-- Create/switch/rename/delete conversations
-- Conversation-scoped message filtering
-- Auto-generated conversation titles from first exchange
+- Template system (lib/prompts/templates/base.ts, v1-technical.ts, v2-natural-voice.ts)
+- Natural voice transformer (lib/prompts/natural-voice.ts)
+- Updated buildSystemPrompt() using templates (app/api/chat/route.ts)
+- Matching RLM template system (rlm-service/main.py)
+- Consistency unit tests (Next.js vs RLM produce identical output)
+- PROMPT_VERSION env var controls style
 
-**Addresses:**
-- Table stakes: Conversation list/switch (96% expect multi-conversation)
-- Pitfall: Must wait for Phase 1 migration to avoid querying non-existent conversation_id
+**Uses:** Opik experiments from Phase 1 to validate new prompts, A/B test technical vs natural voice
 
-**Critical dependencies:** Phase 1 (DB schema must exist)
-**Blocks:** None
+**Addresses:** Pitfall #4 (RAG breaking personality) by restructuring prompt to reinforce personality after retrieval, Pitfall #8 (removing headers destroys structure) by testing incremental transitions
 
----
+**Dependencies:** Phase 1 complete (need experiment framework to validate prompt changes)
 
-### Phase 4: Rich Markdown & Dark Mode (PARALLEL)
-**Rationale:** Independent features, can develop in parallel. Both enhance existing messages, no backend changes.
+**Research flags:** HIGH - Need to validate structured vs prose prompt performance on Bedrock Sonnet 4.5 specifically. RAG context positioning experiments critical. Semantic boundary preservation techniques need spike. Recommend A/B test every change, keep structured version in parallel first 2 weeks.
 
-**Delivers:**
-- Markdown rendering with `react-markdown` + `remark-gfm`
-- Code syntax highlighting with `rehype-highlight`
-- Code block copy buttons
-- Dark mode toggle with `next-themes`
-- CSS variable system (`--bg-primary`, `--text-primary`)
-- Theme-aware syntax highlighting (light/dark code themes)
+**Acceptance criteria:** PROMPT_VERSION env var controls style, personality adherence maintained within 2% of baseline, retrieval responses match personality score of non-retrieval responses, consistency tests pass (Next.js == RLM output).
 
-**Uses:**
-- react-markdown ^10.1.0
-- remark-gfm ^4.0.0
-- rehype-highlight ^7.0.2
-- next-themes ^0.4.6
+### Phase 3: Linguistic Analysis (Extends Import + Chat)
 
-**Addresses:**
-- Table stakes: Markdown + code highlighting (all AI chats have this)
-- Table stakes: Dark mode (expected by 2026)
-- Pitfall: Audit hard-coded colors before toggle, add rehype-sanitize for XSS prevention
-
-**Critical dependencies:** None
-**Can parallelize with:** Any phase
-
----
-
-### Phase 5: Web Search Hardening
-**Rationale:** Web search already exists (smartSearch), but needs citation validation and security hardening before GA.
+**Rationale:** Can run independently of prompt improvements. Analyzes user patterns at import and refines during chat. Enables mirroring in v2.1 but data collection happens now.
 
 **Delivers:**
-- Structured [SOURCE_X] citation format
-- Citation validation (verify URLs exist in results)
-- URL sanitization (block `javascript:` protocol)
-- Search result pre-sanitization before LLM
-- Inline citations (Claude-style, not footnotes)
+- Linguistic analysis module (lib/analysis/linguistic.ts) - formality, complexity, phrases, emoji usage, humor style
+- Import-time baseline analysis (lib/soulprint/quick-pass.ts)
+- Runtime refinement (lib/memory/learning.ts)
+- linguistic_profile JSONB column in user_profiles
+- Pattern injection into prompts (match user's style)
 
-**Addresses:**
-- Table stakes: Web search with citations (already partially implemented)
-- Pitfall: Prevents citation hallucinations and XSS via search results
+**Addresses:** Foundation for P2 features (linguistic mirroring), but with Pitfall #3 (uncanny valley) prevention built-in from start
 
-**Critical dependencies:** None (enhances existing feature)
-**Research flag:** May need deeper research on citation UI patterns
+**Dependencies:** None - can run in parallel with Phase 2
 
----
+**Research flags:** HIGH - Uncanny valley thresholds (how much mirroring is too much), gradual adaptation timelines, tone analysis approaches need research. Risk is user trust issue that causes churn. Recommend beta test with 10% of users first, extended session monitoring (10+ messages).
 
-### Phase 6: Voice Input (OPTIONAL)
-**Rationale:** Deferred until core features stable. Requires cross-browser testing, cost management, UX polish.
+**Acceptance criteria:** Linguistic profile populated at import, refined during chat, patterns stored and retrievable, no creepy feedback in testing, gradual adaptation over 3-4 exchanges.
+
+### Phase 4: Quality Scoring + Refinement (Background Jobs)
+
+**Rationale:** Score soulprints to know which are high/low quality. Enables relationship arc awareness (confidence based on data quality) and iterative improvement of weak soulprints.
 
 **Delivers:**
-- Web Speech API integration with browser detection
-- MIME type compatibility (webm/mp4/ogg)
-- 2-minute recording limit with auto-stop
-- Transcription via OpenAI Whisper ($0.006/min)
-- Cost tracking and alerting
-- iOS Safari compatibility testing
+- Quality scoring module (lib/scoring/soulprint.ts) - completeness, coherence, specificity, personalization metrics
+- Post-generation scoring (lib/soulprint/quick-pass.ts)
+- Refinement engine (lib/refinement/engine.ts) for low-quality sections
+- quality_score and quality_breakdown JSONB columns
+- Background job (scripts/refine-soulprints.ts) for batch refinement
 
-**Addresses:**
-- Should have: Voice input (accessibility + mobile UX)
-- Pitfall: Prevents transcription cost runaway and browser compatibility issues
+**Uses:** Phase 1 evaluation patterns (LLM-as-judge for coherence/specificity)
 
-**Critical dependencies:** None
-**Research flag:** Needs iOS Safari testing before release
+**Addresses:** Pitfall #6 (overfitting to test data) by scoring across diverse user segments, Pitfall #9 (metric misalignment) by validating score correlates with user satisfaction
 
----
+**Dependencies:** Phase 1 complete (scoring uses LLM-as-judge patterns)
+
+**Research flags:** MEDIUM - Metric validation critical. Must verify quality scores correlate r>0.7 with NPS/retention. Segment-specific scoring prevents aggregate scores hiding per-user failures. User interviews (5-10) recommended to validate metric definitions.
+
+**Acceptance criteria:** Soulprints scored after generation, low-quality ones flagged for refinement, quality scores stored and tracked over time, correlation with user satisfaction validated.
+
+### Phase 5: Integration Testing & Validation
+
+**Rationale:** All pieces built, now validate they work together. Adversarial testing, long-session testing, load testing to catch integration issues before declaring success.
+
+**Delivers:**
+- Prompt regression test suite (20-100 cases covering personality types, boundary cases)
+- Multi-tier chunking validation (known-answer queries, tier usage monitoring)
+- Long-session testing (10+ message conversations to detect uncanny valley)
+- Load testing (100 concurrent requests with observability enabled)
+- Segment-specific quality metrics (technical/casual, verbose/terse, new/returning users)
+
+**Addresses:** All pitfalls get validated: regression tests (Pitfall #1), judge bias checks (Pitfall #2), uncanny valley detection (Pitfall #3), RAG personality consistency (Pitfall #4), latency benchmarks (Pitfall #5), diverse test set (Pitfall #6), tier usage (Pitfall #7), structure preservation (Pitfall #8), metric validation (Pitfall #9)
+
+**Dependencies:** Phases 1-4 complete
+
+**Research flags:** MEDIUM - Load testing frameworks for LLM apps (Locust + Bedrock), known-answer query datasets for memory testing, segment-specific quality metrics need definition. Recommend shadow production traffic 48h before full rollout.
+
+**Acceptance criteria:** Zero critical regressions, P95 latency <100ms overhead, personality adherence maintained, long sessions (10+ messages) no uncanny valley feedback, quality scores correlate with satisfaction.
 
 ### Phase Ordering Rationale
 
-**Critical path:** Phase 1 (DB schema) → Phase 3 (Conversation UI)
-- Cannot build conversation management without `conversation_id` column
-- Migration must happen before users create new conversations (avoids data corruption)
+**Sequential, not parallel:** Each phase enables the next. Can't validate prompt improvements (Phase 2) without evaluation framework (Phase 1). Can't score quality (Phase 4) without metrics infrastructure (Phase 1). Can't validate everything (Phase 5) without all pieces built.
 
-**Parallel tracks:**
-- Phase 2 (Streaming) — independent, high UX impact
-- Phase 4 (Markdown + Dark Mode) — independent, visual enhancements
-- Phase 5 (Search Hardening) — enhances existing feature
+**Exception:** Phase 3 (linguistic analysis) can run parallel to Phase 2 (prompt improvements) because they don't depend on each other. Both depend on Phase 1.
 
-**Sequential dependencies:**
-- Phase 1 must complete before Phase 3
-- Phase 4 (dark mode audit) must happen before toggle implementation
-- Phase 5 (citation validation) must happen before search goes to GA
+**Why evaluation-first:** Research shows 58.8% of prompt changes degrade quality despite looking better in testing. Without baseline metrics and regression tests, "improvements" break working systems. Evaluation infrastructure must exist before changing any production prompts.
 
-**Deferred:**
-- Phase 6 (Voice) — complex, niche audience, wait for adoption signals
+**Why prompt improvements before quality scoring:** Quality scoring measures output of prompts. Better to improve prompt quality (Phase 2) before building scoring infrastructure (Phase 4) so scoring is measuring improved baseline, not legacy system.
+
+**Why integration testing last:** Need all components built before validating they work together. Adversarial testing, long-session testing, load testing catch integration issues that unit tests miss.
 
 ### Research Flags
 
 **Phases needing deeper research during planning:**
-- **Phase 3:** Conversation UI patterns — research Radix UI ScrollArea + infinite scroll patterns
-- **Phase 5:** Citation display UX — research Claude-style inline citations vs footnotes
-- **Phase 6:** iOS Safari Web Speech API — research quirks and workarounds
 
-**Phases with standard patterns (skip research-phase):**
-- **Phase 1:** Database migration — standard Supabase patterns, well-documented
-- **Phase 2:** SSE streaming — Vercel AI SDK has established patterns
-- **Phase 4:** Dark mode — next-themes is industry standard, no novel patterns
+- **Phase 1: Evaluation Foundation** - HIGH priority spike needed on async Opik architecture patterns (2-3 days). LangSmith vs AgentOps benchmarks for latency. LLM judge family selection (which model judges best). Human validation protocols. Risk: Foundation for all future work, wrong choices compound.
+
+- **Phase 2: Prompt Improvements** - HIGH priority experiments needed on structured vs prose prompts specifically on Bedrock Sonnet 4.5. RAG context positioning variations. Semantic boundary preservation techniques. Risk: User-facing changes, can cause personality inconsistency. Recommend A/B test every change, keep v1 in parallel 2 weeks.
+
+- **Phase 3: Linguistic Analysis** - HIGH priority research on uncanny valley thresholds (quantify "how much mirroring is too much"). Gradual adaptation timelines (how many exchanges to fully mirror). Tone analysis libraries (which features to extract). Risk: User trust issue that causes churn if done wrong. Recommend beta test 10% of users, monitor extended sessions.
+
+- **Phase 5: Integration Testing** - MEDIUM priority research on load testing frameworks for LLM apps (Locust + Bedrock patterns). Known-answer query datasets for memory validation. Segment-specific quality metrics definition. Risk: Performance issues emerge here but fixable. Recommend shadow production traffic 48h before rollout.
+
+**Phases with standard patterns (lower research priority):**
+
+- **Phase 4: Quality Scoring** - MEDIUM priority. LLM-as-judge patterns well-established. Main work is metric validation (user interviews) not technical research. Standard background job patterns apply.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All packages verified compatible with existing stack. Versions checked against React 19 + Next.js 16. |
-| Features | HIGH | Table stakes validated against ChatGPT/Claude feature sets. User expectations clear from research. |
-| Architecture | HIGH | Existing codebase analyzed (RLM service, Supabase schema, TelegramChatV2). Streaming pipeline verified with official docs. |
-| Pitfalls | HIGH | All 6 critical pitfalls sourced from official docs, real-world incident reports, and security advisories. |
+| Stack | HIGH | No new packages needed, all features work with existing Opik 1.10.8 + Claude Sonnet 4.5. Versions verified compatible. |
+| Features | HIGH | Priority matrix validated against competitor analysis (Character.AI, Replika, Pi), 2026 LLM evaluation research, prompt engineering best practices. |
+| Architecture | HIGH | Build order based on dependency analysis of existing codebase (buildSystemPrompt, lib/opik.ts, quick-pass.ts). Integration points identified. |
+| Pitfalls | HIGH | 9 pitfalls sourced from 2026 research on prompt regression, LLM-as-judge bias, uncanny valley, RAG limitations, observability overhead. Cross-referenced with SoulPrint architecture. |
 
 **Overall confidence:** HIGH
 
+Research based on official Opik documentation, Anthropic Claude prompt engineering guides, 40+ peer-reviewed sources from 2026 on LLM evaluation and personalization. All recommendations validated against existing SoulPrint codebase (v1.2 architecture analysis).
+
 ### Gaps to Address
 
-**During Phase 1 (Migration):**
-- Test migration on staging data to verify no message loss
-- Validate conversation inference logic (2-hour gap threshold) with real user data
-- Confirm RLS policies work correctly for conversation-scoped access
+**Async Opik trace patterns:** Documentation covers datasets/experiments well but async production patterns need validation. Opik version 1.10.8 is ahead of npm registry (1.9.43), may have breaking changes. Address: Phase 1 spike (2-3 days) to build async architecture, test with 100 concurrent requests, measure P95 latency.
 
-**During Phase 2 (Streaming):**
-- Verify Vercel timeout limits for current plan (Hobby vs Pro)
-- Test streaming with long responses (>60s) to confirm graceful truncation
-- Monitor stream performance under concurrent load (10+ users streaming simultaneously)
+**LLM judge model selection:** Which model family to use for judging Claude Sonnet outputs? Research shows self-preference bias, but specific model recommendations unclear. Address: Phase 1 validation - test GPT-4o, Claude Opus, Gemini as judges, measure human agreement rates (target >70%), select least biased.
 
-**During Phase 5 (Web Search):**
-- Validate that smartSearch() results match expected Tavily/Perplexity format
-- Confirm citation display doesn't conflict with existing message renderer
-- Test citation validation with adversarial search results
+**Uncanny valley thresholds:** Research identifies phenomenon but doesn't quantify "how much mirroring is too much." Gradual adaptation timelines unclear. Address: Phase 3 beta testing with 10% of users, monitor extended sessions (10+ messages), measure churn by session count, qualitative feedback ("creepy" mentions).
 
-**During Phase 6 (Voice):**
-- Test Whisper transcription accuracy with background noise
-- Measure actual transcription costs with real usage patterns
-- Determine if Web Speech API offline mode works (privacy preference)
+**Metric correlation with satisfaction:** Quality scoring metrics (completeness, coherence, specificity, personalization) need validation that they predict user satisfaction. Address: Phase 4 user interviews (5-10) before automating, measure correlation r>0.7 with NPS/retention, adjust weights based on findings.
+
+**RLM prompt sync:** Two prompt builders (Next.js + Python RLM) must produce identical output. No existing sync mechanism. Address: Phase 2 consistency tests, shared template logic (duplicate implementation), version control both, automated validation in CI.
 
 ## Sources
 
-### Primary (HIGH confidence)
+### Primary Sources (HIGH confidence)
 
-**Stack Research:**
-- [Vercel AI SDK Stream Protocol](https://ai-sdk.dev/docs/ai-sdk-ui/stream-protocol) — SSE implementation patterns
-- [Anthropic Python SDK Streaming](https://platform.claude.com/docs/en/build-with-claude/streaming) — Official streaming docs
-- [react-markdown GitHub](https://github.com/remarkjs/react-markdown) — Official repository
-- [Tavily January 2026 Updates](https://www.tavily.com/blog/what-tavily-shipped-in-january-26) — Ultra-fast search mode
-- [next-themes GitHub](https://github.com/pacocoursey/next-themes) — Official repository
-- [FastAPI Streaming Responses](https://fastapi.tiangolo.com/advanced/custom-response/#streamingresponse) — Official docs
+**Opik Evaluation Framework:**
+- [Opik Evaluation Overview](https://www.comet.com/docs/opik/evaluation/overview)
+- [Opik TypeScript SDK](https://www.comet.com/docs/opik/integrations/typescript-sdk)
+- [Opik Datasets](https://www.comet.com/docs/opik/evaluation/manage_datasets)
+- [Opik Scoring Metrics](https://www.comet.com/docs/opik/reference/typescript-sdk/evaluation/metrics)
 
-**Architecture Research:**
-- [Vercel Serverless Streaming Support](https://vercel.com/blog/streaming-for-serverless-node-js-and-edge-runtimes-with-vercel-functions) — Official Vercel blog
-- [Supabase RLS Documentation](https://supabase.com/docs/guides/auth/row-level-security) — Official guide
-- [Web Speech API - MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) — Standards documentation
+**Claude Prompt Engineering:**
+- [Claude 4 Best Practices](https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices)
+- [Claude Prompting Best Practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)
 
-**Pitfalls Research:**
-- [Vercel Functions Limits](https://vercel.com/docs/functions/limitations) — Official timeout/memory limits
-- [Secure Markdown Rendering in React](https://www.hackerone.com/blog/secure-markdown-rendering-react-balancing-flexibility-and-safety) — HackerOne security guide
-- [Whisper API Pricing 2026](https://brasstranscripts.com/blog/openai-whisper-api-pricing-2025-self-hosted-vs-managed) — Cost analysis
+**LLM Evaluation & LLM-as-Judge:**
+- [LLM Evaluation Frameworks Comparison](https://www.comet.com/site/blog/llm-evaluation-frameworks/)
+- [LLM-as-a-Judge Complete Guide](https://www.confident-ai.com/blog/why-llm-as-a-judge-is-the-best-llm-evaluation-method)
+- [Evaluating LLM-Evaluators Effectiveness](https://eugeneyan.com/writing/llm-evaluators/)
 
-### Secondary (MEDIUM confidence)
+**Pitfalls & Best Practices:**
+- [Prompt Regression Testing 101](https://www.breakthebuild.org/prompt-regression-testing-101-how-to-keep-your-llm-apps-from-quietly-breaking/)
+- [Self-Preference Bias in LLM-as-a-Judge](https://arxiv.org/abs/2410.21819)
+- [The New Uncanny Valley](https://aicompetence.org/uncanny-valley-when-ai-chatbots-sound-too-human/)
 
-**Features Research:**
-- [ChatGPT Sidebar Redesign Guide](https://www.ai-toolbox.co/chatgpt-management-and-productivity/chatgpt-sidebar-redesign-guide) — UI patterns
-- [Streamdown for Streaming Markdown](https://reactscript.com/render-streaming-ai-markdown/) — Streaming-aware parsing
-- [Dark Mode Best Practices 2026](https://medium.com/@social_7132/dark-mode-done-right-best-practices-for-2026-c223a4b92417) — Design patterns
+### Secondary Sources (MEDIUM confidence)
 
-**Implementation Guides:**
-- [Next.js SSE Streaming Guide](https://upstash.com/blog/sse-streaming-llm-responses) — Upstash tutorial
-- [Fixing Slow SSE in Next.js](https://medium.com/@oyetoketoby80/fixing-slow-sse-server-sent-events-streaming-in-next-js-and-vercel-99f42fbdb996) — Troubleshooting
-- [React Markdown Syntax Highlighting](https://medium.com/young-developer/react-markdown-code-and-syntax-highlighting-632d2f9b4ada) — Integration guide
+**Linguistic Mirroring & Personality:**
+- [AI Chatbots Develop Unique Writing Styles](https://completeaitraining.com/news/ai-chatbots-develop-unique-writing-styles-that-mirror-human/)
+- [Text speaks louder: Personality from NLP](https://pmc.ncbi.nlm.nih.gov/articles/PMC12176201/)
+- [Dynamic Personality in LLM Agents](https://aclanthology.org/2025.findings-acl.1185.pdf)
 
-### Tertiary (LOW confidence, needs validation)
+**RAG & Retrieval:**
+- [5 Critical RAG Limitations](https://www.chatrag.ai/blog/2026-01-21-5-critical-limitations-of-rag-systems-every-ai-builder-must-understand)
+- [Chunking Strategies for RAG](https://medium.com/@adnanmasood/chunking-strategies-for-retrieval-augmented-generation-rag-a-comprehensive-guide-5522c4ea2a90)
 
-- Stack Overflow threads — Referenced for troubleshooting patterns only
-- Reddit discussions — General sentiment, not technical facts
-- Older blog posts (pre-2024) — May reference outdated APIs
+**Observability & Performance:**
+- [Building Production-Grade AI Systems](https://medium.com/@koladilip/building-production-grade-ai-systems-the-observability-library-that-actually-works-9aa2f547ea79)
+- [AI Observability Buyer's Guide 2026](https://www.braintrust.dev/articles/best-ai-observability-tools-2026)
+
+### Tertiary Sources (Context only)
+
+**Competitor Analysis:**
+- [12+ Best Character AI Alternatives 2026](https://gempages.net/blogs/shopify/character-ai-alternatives-guide)
+- [Replika vs Character AI Comparison](https://www.theaihunter.com/compare/replika-vs-character-ai/)
+- [Product Strategy of Companion Chatbots](https://medium.com/@lindseyliu/product-strategy-of-companion-chatbots-such-as-inflections-pi-2f3b7a1538b4)
+
+**Existing Codebase:**
+- app/api/chat/route.ts - Chat flow with RLM/Bedrock fallback
+- lib/soulprint/quick-pass.ts - Section generation pipeline
+- lib/opik.ts - Current tracing implementation
+- .planning/research/PROMPT-ARCHITECTURE.md - v1.2 prompt architecture analysis
 
 ---
 
-## Ready for Roadmap Creation
+**Research completed:** 2026-02-08
+**Ready for roadmap:** Yes
 
-**SUMMARY.md complete.** This synthesis provides:
-- Clear phase structure (6 phases with rationale)
-- Critical dependencies identified (Phase 1 blocks Phase 3)
-- Parallelization opportunities (Phases 2, 4, 5 can run concurrently)
-- Research flags for planning (citation UX, iOS Safari quirks)
-- Confidence assessment (HIGH overall, specific gaps noted)
-
-**Next step:** Orchestrator can proceed to roadmap definition using phase suggestions above as starting structure.
-
----
-*Research completed: 2026-02-08*
-*Research sources: 4 parallel researcher agents (STACK, FEATURES, ARCHITECTURE, PITFALLS)*
-*Confidence: HIGH (verified with official docs, existing codebase analysis, security advisories)*
+**Next step:** Roadmapper agent can use this summary to structure phases, with emphasis on evaluation-first approach and sequential dependencies identified in Phase Ordering Rationale.
