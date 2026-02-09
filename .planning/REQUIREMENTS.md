@@ -1,66 +1,62 @@
-# Requirements: SoulPrint v2.1 Hardening & Integration
+# Requirements: SoulPrint v2.2 Bulletproof Imports
 
 **Defined:** 2026-02-09
 **Core Value:** The AI must feel like YOUR AI -- genuinely human, deeply personalized, systematically evaluated.
 
-## v2.1 Requirements
+## v2.2 Requirements
 
-Requirements for the Hardening & Integration milestone. Closes known gaps from v2.0.
+Requirements for the Bulletproof Imports milestone. Move all heavy import processing from Vercel to RLM (Render), port convoviz-quality parsing, make imports work for any size export on any device.
 
-### RLM Emotional Intelligence
+### Import Processing
 
-- [x] **RLEI-01**: RLM service receives emotional_state parameter from TypeScript chat route
-- [x] **RLEI-02**: RLM service receives relationship_arc parameter from TypeScript chat route
-- [x] **RLEI-03**: Python PromptBuilder uses emotional_state and relationship_arc when building RLM prompts
-- [x] **RLEI-04**: Both RLM and Bedrock fallback paths produce emotionally intelligent responses
+- [ ] **IMP-01**: All heavy import processing (download, parse, quick pass, chunk) runs on RLM service (Render), not Vercel serverless
+- [ ] **IMP-02**: Import pipeline uses streaming JSON parser (ijson) for constant-memory processing of any size export (1MB to 2GB+)
+- [ ] **IMP-03**: Vercel serves as thin authentication proxy that triggers RLM and returns immediately
 
-### Test Quality
+### Parsing Quality
 
-- [x] **TEST-01**: Cross-language sync tests compile without type errors (EmotionalState, PromptBuilderProfile)
-- [x] **TEST-02**: Integration test mocks (complete.test.ts, process-server.test.ts) compile without type errors
-- [x] **TEST-03**: All test files pass TypeScript strict mode checks (zero errors in `npx tsc --noEmit`)
+- [ ] **PAR-01**: Conversation parsing uses DAG traversal via current_node→parent chain (no dead branches from edits)
+- [ ] **PAR-02**: Hidden messages filtered out before soulprint generation (tool outputs, browsing, reasoning traces)
+- [ ] **PAR-03**: All content.parts types handled correctly (strings, images, tool results — not just parts[0])
+- [ ] **PAR-04**: Both `[...]` and `{ conversations: [...] }` export formats supported
 
-### Web Search Validation
+### User Experience
 
-- [x] **WSRV-01**: Web search citations are validated against source content before surfacing to user
-- [x] **WSRV-02**: Hallucinated or unreachable citations are filtered out or flagged
-- [x] **WSRV-03**: User sees citation source indicators (domain name) alongside search-informed responses
+- [ ] **UXP-01**: User sees real processing stage progress (downloading, parsing, generating — not fake animation)
+- [ ] **UXP-02**: User receives actionable error messages when import fails (not generic "something went wrong")
+- [ ] **UXP-03**: Import works on any device (mobile + desktop) for any export size
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Linguistic mirroring | Feature work, not tech debt — future milestone |
-| Memory narrative improvements | Feature work — future milestone |
-| RLS audit execution | Manual task, not code work |
-| Chat pagination | Optimization, not in this cleanup scope |
-| Test coverage expansion | Only fixing existing broken tests, not writing new ones |
+| Real-time WebSocket progress | Over-engineered — DB polling sufficient for import UX |
+| In-browser parsing | Unreliable on mobile, defeats purpose of server-side processing |
+| Parallel conversation processing | Complexity without proportional value — sequential is fine |
+| Incremental import (append new conversations) | Feature work, not in this reliability scope |
+| Import history / cancel button | Admin tooling — future milestone |
+| Retry with exponential backoff | Resilience enhancement — future milestone |
+| Signed URL security for Storage access | Security hardening — future milestone |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RLEI-01 | Phase 1 | ✓ Complete |
-| RLEI-02 | Phase 1 | ✓ Complete |
-| RLEI-03 | Phase 1 | ✓ Complete |
-| RLEI-04 | Phase 1 | ✓ Complete |
-| TEST-01 | Phase 2 | ✓ Complete |
-| TEST-02 | Phase 2 | ✓ Complete |
-| TEST-03 | Phase 2 | ✓ Complete |
-| WSRV-01 | Phase 3 | ✓ Complete |
-| WSRV-02 | Phase 3 | ✓ Complete |
-| WSRV-03 | Phase 3 | ✓ Complete |
+| IMP-01 | — | Pending |
+| IMP-02 | — | Pending |
+| IMP-03 | — | Pending |
+| PAR-01 | — | Pending |
+| PAR-02 | — | Pending |
+| PAR-03 | — | Pending |
+| PAR-04 | — | Pending |
+| UXP-01 | — | Pending |
+| UXP-02 | — | Pending |
+| UXP-03 | — | Pending |
 
 **Coverage:**
-- v2.1 requirements: 10 total
-- Mapped to phases: 10 (100% coverage)
-- Unmapped: 0
-
-**Phase Distribution:**
-- Phase 1 (RLM EI Integration): 4 requirements
-- Phase 2 (Test Type Safety): 3 requirements
-- Phase 3 (Web Search Validation): 3 requirements
+- v2.2 requirements: 10 total
+- Mapped to phases: 0 (awaiting roadmap)
+- Unmapped: 10
 
 ---
 *Requirements defined: 2026-02-09*
-*Traceability updated: 2026-02-09 -- All 10/10 requirements complete*
