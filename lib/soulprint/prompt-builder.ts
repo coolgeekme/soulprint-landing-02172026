@@ -23,6 +23,7 @@ import {
   buildRelationshipArcInstructions,
   buildAdaptiveToneInstructions,
 } from '@/lib/soulprint/emotional-intelligence';
+import type { QualityBreakdown } from '@/lib/evaluation/quality-scoring';
 
 // ============================================
 // Types
@@ -44,6 +45,7 @@ export interface PromptBuilderProfile {
   agents_md: string | null;
   tools_md: string | null;
   memory_md: string | null;
+  quality_breakdown?: QualityBreakdown | null;
 }
 
 /**
@@ -213,6 +215,12 @@ Today is ${currentDate}, ${currentTime}.`;
       prompt += `\n\n## ABOUT THIS PERSON\n${profile.soulprint_text}`;
     }
 
+    // Add DATA CONFIDENCE section if quality breakdown is available
+    const dataConfidence = this.buildDataConfidenceSection(profile.quality_breakdown);
+    if (dataConfidence) {
+      prompt += `\n\n${dataConfidence}`;
+    }
+
     if (memoryContext) {
       prompt += `\n\n## CONTEXT\n${memoryContext}`;
     }
@@ -340,6 +348,12 @@ Use the web search results above to answer. Cite sources naturally in your respo
       prompt += `\n\n## ABOUT THIS PERSON\n${profile.soulprint_text}`;
     }
 
+    // Add DATA CONFIDENCE section if quality breakdown is available
+    const dataConfidence = this.buildDataConfidenceSection(profile.quality_breakdown);
+    if (dataConfidence) {
+      prompt += `\n\n${dataConfidence}`;
+    }
+
     // CONTEXT section -- RAG retrieval results
     if (memoryContext) {
       prompt += `\n\n## CONTEXT\n${memoryContext}`;
@@ -392,6 +406,53 @@ Use the web search results above to answer. Cite sources naturally in your respo
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Build DATA CONFIDENCE section based on quality breakdown scores.
+   * Aggregates all scores to determine overall confidence level.
+   * Identifies low-confidence areas (<60) and instructs AI to acknowledge uncertainty.
+   *
+   * @param qualityBreakdown - Quality scores for all soulprint sections
+   * @returns Formatted DATA CONFIDENCE section, or empty string if no breakdown
+   */
+  private buildDataConfidenceSection(qualityBreakdown: QualityBreakdown | null | undefined): string {
+    if (!qualityBreakdown) return '';
+
+    const allScores: number[] = [];
+    for (const sectionMetrics of Object.values(qualityBreakdown)) {
+      for (const score of Object.values(sectionMetrics as Record<string, number>)) {
+        allScores.push(score);
+      }
+    }
+
+    if (allScores.length === 0) return '';
+
+    const avgScore = allScores.reduce((sum, s) => sum + s, 0) / allScores.length;
+    const confidenceLevel = avgScore >= 80 ? 'HIGH' : avgScore >= 60 ? 'MODERATE' : 'LOW';
+
+    const weakAreas: string[] = [];
+    for (const [section, metrics] of Object.entries(qualityBreakdown)) {
+      for (const [metric, score] of Object.entries(metrics as Record<string, number>)) {
+        if (score < 60) {
+          weakAreas.push(`${section}.${metric}: ${score}/100`);
+        }
+      }
+    }
+
+    let text = `## DATA CONFIDENCE\n\nOverall profile quality: ${confidenceLevel} (${Math.round(avgScore)}/100)`;
+
+    if (weakAreas.length > 0) {
+      text += `\n\nLow-confidence areas:`;
+      for (const weak of weakAreas) {
+        text += `\n- ${weak}`;
+      }
+      text += `\n\nWhen responding about low-confidence areas, acknowledge uncertainty explicitly. Say "I don't have enough information about X" rather than guessing or fabricating details.`;
+    } else {
+      text += `\n\nAll sections are well-populated. Respond with confidence based on the profile data.`;
+    }
+
+    return text;
   }
 
   // ============================================
