@@ -47,14 +47,15 @@ The import-to-chat flow must work reliably every time on production — no stuck
 
 ### Active
 
-#### v1.5 Full Chat Experience
+#### v2.0 AI Quality & Personalization
 
-- [ ] Sidebar with conversation list, new chat, switch, delete
-- [ ] Streaming responses (token-by-token rendering)
-- [ ] Web search / research mode with citations
-- [ ] Rich response rendering (markdown, code blocks with copy button)
-- [ ] Voice input (speech-to-text)
-- [ ] Dark mode
+- [ ] Opik evaluation datasets & experiments for systematic prompt testing
+- [ ] Natural voice system prompts (replace technical section headers with personality)
+- [ ] Dynamic personality primer based on user data quality & relationship stage
+- [ ] Emotional intelligence & conversational awareness
+- [ ] Linguistic pattern mirroring from user's chat history
+- [ ] Soulprint quality scoring & iterative refinement
+- [ ] Memory integration improvements (narrative context, not raw lists)
 
 ### Out of Scope
 
@@ -68,17 +69,18 @@ The import-to-chat flow must work reliably every time on production — no stuck
 - Multi-platform channels (SMS, Telegram, WhatsApp) — v2+ OpenClaw-style gateway
 - Per-user cloud instances — v2+ each SoulPrint as deployable agent
 
-## Current Milestone: v1.5 Full Chat Experience
+## Current Milestone: v2.0 AI Quality & Personalization
 
-**Goal:** Transform the basic single-conversation chat into a full-featured AI assistant with conversation management, streaming, web search, rich rendering, voice input, and dark mode.
+**Goal:** Make the AI sound genuinely human and deeply personalized — using Opik for systematic evaluation, improving system prompts, adding emotional intelligence, linguistic mirroring, and iterative soulprint refinement.
 
 **Target features:**
-- Sidebar with conversation history (list, new chat, switch, delete)
-- Streaming responses (token-by-token)
-- Web search / research mode with source citations
-- Rich response rendering (markdown, code blocks with copy)
-- Voice input (speech-to-text)
-- Dark mode
+- Opik evaluation datasets & experiments for systematic prompt testing
+- Natural voice system prompts (replace technical headers with personality)
+- Dynamic personality primer based on user data quality & relationship stage
+- Emotional intelligence & conversational awareness
+- Linguistic pattern mirroring from user's chat history
+- Soulprint quality scoring & iterative refinement
+- Memory integration improvements (narrative context, not raw lists)
 
 ## Context
 
@@ -141,4 +143,4 @@ The import-to-chat flow must work reliably every time on production — no stuck
 | OpenClaw-style prompt | Minimal preamble, let sections define personality | ✓ Good — deployed to production |
 
 ---
-*Last updated: 2026-02-08 after v1.5 milestone started*
+*Last updated: 2026-02-08 after v2.0 milestone started*
