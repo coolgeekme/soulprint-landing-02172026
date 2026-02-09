@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from prompt_helpers import clean_section, format_section
+from prompt_builder import PromptBuilder
 
 # Load environment variables
 load_dotenv()
@@ -263,6 +264,36 @@ Today is {date_str}, {time_str}."""
     return prompt
 
 
+def _sections_to_profile(
+    sections: Optional[dict],
+    soulprint_text: Optional[str] = None,
+) -> dict:
+    """Convert the legacy sections dict to a PromptBuilder profile dict."""
+    if sections:
+        return {
+            "soulprint_text": soulprint_text,
+            "import_status": "complete",
+            "ai_name": None,
+            "soul_md": sections.get("soul"),
+            "identity_md": sections.get("identity"),
+            "user_md": sections.get("user"),
+            "agents_md": sections.get("agents"),
+            "tools_md": sections.get("tools"),
+            "memory_md": sections.get("memory"),
+        }
+    return {
+        "soulprint_text": soulprint_text,
+        "import_status": "complete",
+        "ai_name": None,
+        "soul_md": None,
+        "identity_md": None,
+        "user_md": None,
+        "agents_md": None,
+        "tools_md": None,
+        "memory_md": None,
+    }
+
+
 async def query_with_rlm(
     message: str,
     conversation_context: str,
@@ -285,11 +316,12 @@ async def query_with_rlm(
             verbose=False,
         )
 
-        system_prompt = build_rlm_system_prompt(
+        builder = PromptBuilder()
+        profile = _sections_to_profile(sections, soulprint_text)
+        system_prompt = builder.build_system_prompt(
+            profile=profile,
             ai_name=ai_name,
-            sections=sections,
-            soulprint_text=soulprint_text,
-            conversation_context=conversation_context,
+            memory_context=conversation_context,
             web_search_context=web_search_context,
         )
 
@@ -323,11 +355,12 @@ async def query_fallback(
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
-    system_prompt = build_rlm_system_prompt(
+    builder = PromptBuilder()
+    profile = _sections_to_profile(sections, soulprint_text)
+    system_prompt = builder.build_system_prompt(
+        profile=profile,
         ai_name=ai_name,
-        sections=sections,
-        soulprint_text=soulprint_text,
-        conversation_context=conversation_context,
+        memory_context=conversation_context,
         web_search_context=web_search_context,
     )
 

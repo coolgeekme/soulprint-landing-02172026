@@ -51,6 +51,10 @@ export interface PromptParams {
   isOwner?: boolean;
   webSearchContext?: string;
   webSearchCitations?: string[];
+  /** Override current date string (for cross-language testing). */
+  currentDate?: string;
+  /** Override current time string (for cross-language testing). */
+  currentTime?: string;
 }
 
 // ============================================
@@ -96,18 +100,26 @@ export class PromptBuilder {
     const aiName = params.aiName ?? 'SoulPrint';
     const isOwner = params.isOwner ?? true;
 
-    const now = new Date();
-    const currentDate = now.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    const currentTime = now.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      timeZoneName: 'short',
-    });
+    let currentDate: string;
+    let currentTime: string;
+
+    if (params.currentDate && params.currentTime) {
+      currentDate = params.currentDate;
+      currentTime = params.currentTime;
+    } else {
+      const now = new Date();
+      currentDate = now.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      currentTime = now.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short',
+      });
+    }
 
     // IMPOSTER MODE -- identical for both versions
     if (!isOwner) {
