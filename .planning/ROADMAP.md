@@ -108,10 +108,11 @@ Phase 1 must complete before Phase 2 (need evaluation framework to validate prom
 4. Baseline metrics exist for personality consistency, factuality, and tone matching of current v1 prompts
 5. Async Opik tracing adds <100ms P95 latency overhead
 
-**Plans:** TBD (will be determined during plan-phase)
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD during plan-phase
+- [ ] 01-01-PLAN.md -- Core evaluation library (datasets + judges)
+- [ ] 01-02-PLAN.md -- Experiment runner + baseline + CLI scripts
 
 ### Phase 2: Prompt Template System
 
@@ -200,7 +201,7 @@ Phases execute: 1 → 2 → (3 + 4 parallel) → 5
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Evaluation Foundation | v2.0 | 0/TBD | Not started | - |
+| 1. Evaluation Foundation | v2.0 | 0/2 | Planned | - |
 | 2. Prompt Template System | v2.0 | 0/TBD | Not started | - |
 | 3. Emotional Intelligence | v2.0 | 0/TBD | Not started | - |
 | 4. Quality Scoring | v2.0 | 0/TBD | Not started | - |
