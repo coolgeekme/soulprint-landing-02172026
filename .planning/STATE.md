@@ -6,16 +6,16 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 **Core value:** The AI must feel like YOUR AI -- genuinely human, deeply personalized, systematically evaluated.
 
-**Current focus:** Phase 3 - Emotional Intelligence (IN PROGRESS)
+**Current focus:** Phase 4 - Quality Scoring (IN PROGRESS)
 
 ## Current Position
 
-Phase: 3 of 5 (Emotional Intelligence)
-Plan: 3 of 3 in phase
-Status: Phase complete
-Last activity: 2026-02-09 - Completed 03-03-PLAN.md (Python EI Prompt Sync)
+Phase: 4 of 5 (Quality Scoring)
+Plan: 1 of 3 in phase
+Status: In progress
+Last activity: 2026-02-09 - Completed 04-01-PLAN.md (Quality Scoring Infrastructure)
 
-Progress: [█████████░] 89% (Phases 1-2 complete, Phase 3 complete)
+Progress: [█████████░] 91% (Phases 1-3 complete, Phase 4 Plan 1 complete)
 
 ## Performance Metrics
 
@@ -113,6 +113,13 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - Cross-language sync test verifies character-identical output for all EI sections
 - Confidence threshold 0.6 enforced in both TypeScript and Python for adaptive tone
 
+**From 04-01 (Quality Scoring Infrastructure):**
+- Three separate judge classes (Completeness, Coherence, Specificity) vs unified judge for specialized evaluation
+- Score normalization from 0.0-1.0 to 0-100 integer range for JSONB storage efficiency
+- Parallel scoring: 5 sections × 3 judges = 15 LLM calls in ~2-3 seconds (vs ~25s sequential)
+- GIN index on quality_breakdown JSONB for efficient threshold queries (find_low_quality_profiles)
+- CompletenessJudge validates section-specific expected fields (7 for soul, 5 for identity, etc.)
+
 ### Pending Todos
 
 - Run `scripts/rls-audit.sql` in Supabase SQL Editor (from v1.1 Phase 4)
@@ -129,8 +136,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-09
-Stopped at: Completed 03-03-PLAN.md (Python EI Prompt Sync)
+Stopped at: Completed 04-01-PLAN.md (Quality Scoring Infrastructure)
 Resume file: None
 
 ---
-*Last updated: 2026-02-09 -- Phase 3 COMPLETE (Emotional Intelligence: foundation, chat integration, cross-language sync)*
+*Last updated: 2026-02-09 -- Phase 4 Plan 1 COMPLETE (Quality Scoring: judges, orchestrator, database migration)*
