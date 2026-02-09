@@ -12,17 +12,17 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 Phase: 5 of 5 (Integration Validation)
 Plan: 3 of 3 in phase
-Status: In progress
-Last activity: 2026-02-09 - Completed 05-01-PLAN.md (Regression Testing Infrastructure)
+Status: Phase complete
+Last activity: 2026-02-09 - Completed 05-03-PLAN.md (CI/CD Automation & Quality Correlation)
 
-Progress: [█████████░] 97% (Phases 1-4 complete, Phase 5 in progress 3/3)
+Progress: [██████████] 100% (All phases complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 52 (from v1.0-v2.0)
-- Average duration: ~19 min
-- Total execution time: ~21.10 hours across 6 milestones
+- Total plans completed: 53 (from v1.0-v2.0)
+- Average duration: ~18 min
+- Total execution time: ~21.15 hours across 6 milestones
 
 **By Milestone:**
 
@@ -34,7 +34,7 @@ Progress: [█████████░] 97% (Phases 1-4 complete, Phase 5 in 
 | v1.3 RLM Sync | 5 | 5 | Shipped |
 | v1.4 Personalization | 2 | 7 | Shipped |
 | v1.5 Full Chat | 6 | 8 | Shipped |
-| v2.0 AI Quality | 5 | 8 | In Progress |
+| v2.0 AI Quality | 5 | 8 | Complete |
 
 *Metrics updated: 2026-02-09*
 
@@ -148,15 +148,18 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - 3-second wait after sendMessage for streaming completion (LLM streaming may be in progress)
 - Personality drift detection: compare early vs late message violations for chatbot patterns
 
+**From 05-03 (CI/CD Automation & Quality Correlation):**
+- PR-triggered regression testing on prompt file changes only (avoids expensive LLM evals on unrelated PRs)
+- Three satisfaction proxies: avg_session_length, total_conversations, return_rate (multiple proxies provide robustness)
+- Pass if ANY proxy exceeds r > 0.7 threshold (quality may manifest differently for different user cohorts)
+- Default 10 profiles minimum for correlation, configurable via --min-profiles flag
+- GitHub Actions timeout 15 minutes for LLM evaluation runtime
+
 ### Pending Todos
 
 - Run `scripts/rls-audit.sql` in Supabase SQL Editor (from v1.1 Phase 4)
 
 ### Blockers/Concerns
-
-**For v2.0 planning:**
-- Phase 3 needs uncanny valley threshold research (how much mirroring is too much)
-- Quality scoring metrics need validation that they correlate r>0.7 with user satisfaction
 
 **Carried forward from v1.5:**
 - Web search (smartSearch) exists but citations not validated against hallucination
@@ -164,8 +167,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-09
-Stopped at: Completed 05-01-PLAN.md (Regression Testing Infrastructure)
+Stopped at: Completed 05-03-PLAN.md (CI/CD Automation & Quality Correlation Validation)
 Resume file: None
 
 ---
-*Last updated: 2026-02-09 -- Phase 5 IN PROGRESS (Integration Validation: 3/3 plans complete - awaiting final verification)*
+*Last updated: 2026-02-09 -- Phase 5 COMPLETE (Integration Validation: all 3 plans shipped)*
