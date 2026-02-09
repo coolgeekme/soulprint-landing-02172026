@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 ## Current Position
 
 Phase: 3 of 3 (Web Search Citation Validation)
-Plan: 1 of 2 complete
-Status: Phase 3 in progress (Plan 03-01 complete)
-Last activity: 2026-02-09 — Completed 03-01-PLAN.md
+Plan: 2 of 2 complete
+Status: Phase 3 COMPLETE
+Last activity: 2026-02-09 — Completed 03-02-PLAN.md
 
-Progress: [████████░░] 83% (2.5/3 phases complete)
+Progress: [██████████] 100% (3/3 phases complete)
 
 ## Performance Metrics
 
@@ -58,6 +58,9 @@ Recent decisions affecting current work:
 - v2.1 Phase 3 Plan 1: Validate before LLM prompt to prevent hallucinated citations
 - v2.1 Phase 3 Plan 1: Accept 2xx and 3xx status codes (legitimate redirects)
 - v2.1 Phase 3 Plan 1: Block localhost and private IPs for SSRF protection
+- v2.1 Phase 3 Plan 2: Send citations as separate SSE event (type='citations') after content streaming
+- v2.1 Phase 3 Plan 2: Display citations in message footer, not inline with content
+- v2.1 Phase 3 Plan 2: Show clean domain names (e.g., 'nytimes.com') not full URLs
 
 ### Pending Todos
 
@@ -69,14 +72,14 @@ Recent decisions affecting current work:
 Known gaps addressed by v2.1:
 - ~~RLM service does NOT use EI parameters (only Bedrock fallback gets EI) → Phase 1~~ ✅ RESOLVED (01-01)
 - ~~10 test mock type errors + 7 cross-language type errors → Phase 2~~ ✅ RESOLVED (02-01)
-- ~~Web search citations not validated against hallucination → Phase 3~~ ✅ PARTIAL (03-01 backend done, 03-02 frontend pending)
+- ~~Web search citations not validated against hallucination → Phase 3~~ ✅ RESOLVED (03-01 backend validation, 03-02 frontend display)
 
 ## Session Continuity
 
 Last session: 2026-02-09
-Stopped at: Completed 03-01-PLAN.md (Citation Validation Backend)
+Stopped at: Completed 03-02-PLAN.md (Frontend Citation Display)
 Resume file: None
-Next step: Execute Plan 03-02 (Frontend citation display)
+Next step: Phase 3 complete - v2.1 Hardening & Integration milestone complete
 
 ---
-*Last updated: 2026-02-09 -- Phase 3 Plan 1 complete (citation validation backend)*
+*Last updated: 2026-02-09 -- Phase 3 complete (citation validation pipeline end-to-end)*
