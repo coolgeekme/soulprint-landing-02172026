@@ -70,7 +70,7 @@ const TEST_DAILY_MEMORY = [
 function callPythonPromptBuilder(
   version: string,
   params: {
-    profile: Record<string, unknown>;
+    profile: PromptBuilderProfile;
     dailyMemory?: Array<{ fact: string; category: string }> | null;
     memoryContext?: string;
     aiName?: string;
