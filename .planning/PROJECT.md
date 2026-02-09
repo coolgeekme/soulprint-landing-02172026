@@ -56,11 +56,11 @@ The AI must feel like YOUR AI -- genuinely human, deeply personalized, systemati
 
 ### Active
 
-#### v2.1 Hardening & Integration
+#### v2.2 Bulletproof Imports
 
-- [ ] RLM service uses emotional intelligence parameters (emotion detection, relationship arc)
-- [ ] Cross-language and integration test type errors fixed (zero TypeScript errors in build)
-- [ ] Web search citations validated against hallucination before surfacing to users
+- [ ] All import processing runs on RLM (Render), not Vercel serverless
+- [ ] ChatGPT export parsing uses DAG traversal (convoviz-quality)
+- [ ] Imports work for any size export on any device (mobile + desktop)
 
 ### Out of Scope
 
@@ -98,13 +98,15 @@ The AI must feel like YOUR AI -- genuinely human, deeply personalized, systemati
 
 ### Known Issues
 
-- 10 test mock type errors in complete.test.ts (pre-existing, runtime works)
-- 7 type errors in cross-language sync tests (EmotionalState type mismatches)
 - RLS scripts need manual execution in Supabase SQL Editor
 - Database migrations pending: `20260206_add_tools_md.sql`, `20260207_full_pass_schema.sql`, `20260209_quality_breakdown.sql`
 - Some routes use console.log instead of Pino
 - lib/retry.ts has no dedicated unit tests
-- RLM service does NOT use EI parameters (only Bedrock fallback gets EI features)
+- **Import parsing only takes `parts[0]`** — misses multi-part content (images, attachments)
+- **Import dumps ALL conversation nodes** — includes dead branches from edits instead of following DAG
+- **Import doesn't filter hidden messages** — tool outputs, browsing, reasoning noise in soulprint
+- **Import doesn't handle `{ conversations: [...] }` wrapper format** — only handles bare array
+- **Large exports OOM on Vercel** — 1GB RAM limit, 300s timeout, JSON.parse of entire file in memory
 
 ### Key Fragile Areas (mostly addressed)
 
@@ -149,14 +151,16 @@ The AI must feel like YOUR AI -- genuinely human, deeply personalized, systemati
 | P97.5 latency percentile | autocannon limitation vs P95 | ✓ Good — close approximation |
 | PR-triggered regression testing | Only on prompt file changes, avoids expensive evals | ✓ Good — cost-efficient CI |
 
-## Current Milestone: v2.1 Hardening & Integration
+## Current Milestone: v2.2 Bulletproof Imports
 
-**Goal:** Close known gaps from v2.0 — wire EI into RLM, fix all test type errors, and validate web search citations against hallucination.
+**Goal:** Move all heavy import processing from Vercel to RLM (Render), port convoviz-quality parsing (DAG traversal, hidden message filtering, polymorphic parts), make imports work for any size export on any device.
 
 **Target features:**
-- RLM emotional intelligence integration (both AI paths get EI)
-- Zero TypeScript build errors (fix cross-lang tests, integration mocks)
-- Web search citation validation (prevent hallucinated sources)
+- Move heavy processing off Vercel (1GB RAM, 300s timeout) to RLM on Render (2-4GB RAM, no timeout)
+- Port convoviz-quality ChatGPT parsing: DAG traversal via current_node→parent chain, polymorphic content.parts, hidden message filtering
+- Handle both `[...]` and `{ conversations: [...] }` export formats
+- Vercel becomes thin proxy (auth + trigger), RLM does all heavy lifting
+- Any size export works on any device (mobile + desktop)
 
 ---
-*Last updated: 2026-02-09 after v2.1 milestone started*
+*Last updated: 2026-02-09 after v2.2 milestone started*
