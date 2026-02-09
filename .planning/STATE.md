@@ -6,21 +6,21 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 **Core value:** The AI must feel like YOUR AI -- genuinely human, deeply personalized, systematically evaluated.
 
-**Current focus:** Phase 1 - Evaluation Foundation
+**Current focus:** Phase 2 - Prompt Template System (Phase 1 complete)
 
 ## Current Position
 
-Phase: 1 of 5 (Evaluation Foundation)
-Plan: 1 of 2 in phase
-Status: In progress
-Last activity: 2026-02-08 - Completed 01-01-PLAN.md (evaluation types, datasets, judges)
+Phase: 1 of 5 (Evaluation Foundation) -- COMPLETE
+Plan: 2 of 2 in phase
+Status: Phase complete
+Last activity: 2026-02-08 - Completed 01-02-PLAN.md (experiment runner, baseline, CLI scripts)
 
-Progress: [█░░░░░░░░░] 10% (0 phases complete, 1/2 plans in Phase 1)
+Progress: [██░░░░░░░░] 20% (1 phase complete, 2/2 plans in Phase 1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 47 (from v1.0-v1.5)
+- Total plans completed: 49 (from v1.0-v2.0)
 - Average duration: ~23 min
 - Total execution time: ~21 hours across 6 milestones
 
@@ -34,7 +34,7 @@ Progress: [█░░░░░░░░░] 10% (0 phases complete, 1/2 plans in 
 | v1.3 RLM Sync | 5 | 5 | Shipped |
 | v1.4 Personalization | 2 | 7 | Shipped |
 | v1.5 Full Chat | 6 | 8 | Shipped |
-| v2.0 AI Quality | 5 | 1 | In Progress |
+| v2.0 AI Quality | 5 | 2 | In Progress |
 
 *Metrics updated: 2026-02-08*
 
@@ -62,6 +62,12 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - Minimum 10 valid pairs enforced for dataset statistical significance
 - BaseMetric extension pattern: validationSchema + score with safeParse guard
 
+**From 01-02 (Experiment Runner & CLI Scripts):**
+- V1 prompt builder copied inline in baseline.ts (not extracted from chat route) to freeze baseline snapshot
+- Array.from(Map.entries()) pattern for ES2017 target compatibility
+- PromptVariant interface: { name, buildSystemPrompt } for pluggable prompt strategies
+- CLI scripts use DOTENV_CONFIG_PATH=.env.local with import dotenv/config
+
 ### Pending Todos
 
 - Run `scripts/rls-audit.sql` in Supabase SQL Editor (from v1.1 Phase 4)
@@ -69,7 +75,6 @@ Decisions are logged in PROJECT.md Key Decisions table.
 ### Blockers/Concerns
 
 **For v2.0 planning:**
-- Phase 1 needs spike on async Opik architecture (2-3 days) to avoid latency pitfall
 - Phase 2 needs RLM prompt sync strategy (two prompt builders must produce identical output)
 - Phase 3 needs uncanny valley threshold research (how much mirroring is too much)
 - Quality scoring metrics need validation that they correlate r>0.7 with user satisfaction
@@ -80,8 +85,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-08
-Stopped at: Completed 01-01-PLAN.md (evaluation types, datasets, judges)
+Stopped at: Completed 01-02-PLAN.md (experiment runner, baseline, CLI scripts) -- Phase 1 complete
 Resume file: None
 
 ---
-*Last updated: 2026-02-08 -- 01-01-PLAN.md complete, ready for 01-02-PLAN.md execution*
+*Last updated: 2026-02-08 -- Phase 1 (Evaluation Foundation) complete, ready for Phase 2 (Prompt Template System)*
