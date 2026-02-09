@@ -10,6 +10,7 @@ import gzip
 from datetime import datetime, timedelta
 from typing import Optional, List
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Response
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -57,6 +58,13 @@ class QueryResponse(BaseModel):
 
 
 class ProcessFullRequest(BaseModel):
+    user_id: str
+    storage_path: str
+    conversation_count: int = 0
+    message_count: int = 0
+
+
+class ImportFullRequest(BaseModel):
     user_id: str
     storage_path: str
     conversation_count: int = 0
@@ -413,6 +421,35 @@ async def process_full(request: ProcessFullRequest, background_tasks: Background
         "message": "Full pass processing started (DEPRECATED: use /process-full-v2)",
         "deprecation_notice": "This endpoint will be removed after v2 handles 100% traffic for 7+ days. Use /process-full-v2.",
     }
+
+
+@app.post("/import-full")
+async def import_full(request: ImportFullRequest):
+    """
+    Accept streaming import job, return 202 Accepted immediately.
+    Processing happens in background via asyncio.create_task.
+
+    DO NOT use BackgroundTasks for long jobs (>60s) -- fire asyncio task instead.
+    The streaming import pipeline downloads from Supabase Storage, parses with
+    ijson (constant memory), and generates a quick pass soulprint.
+    """
+    from processors.streaming_import import process_import_streaming
+
+    # Fire-and-forget long-running job
+    asyncio.create_task(process_import_streaming(
+        user_id=request.user_id,
+        storage_path=request.storage_path,
+    ))
+
+    print(f"[import-full] Accepted import job for user {request.user_id}: {request.storage_path}")
+
+    return JSONResponse(
+        status_code=202,
+        content={
+            "status": "accepted",
+            "message": "Import processing started",
+        },
+    )
 
 
 @app.get("/health")
