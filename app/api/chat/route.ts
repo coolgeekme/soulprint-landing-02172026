@@ -16,6 +16,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { parseRequestBody, chatRequestSchema } from '@/lib/api/schemas';
 import { createLogger } from '@/lib/logger';
 import { cleanSection, formatSection } from '@/lib/soulprint/prompt-helpers';
+import { traceChatRequest, flushOpik } from '@/lib/opik';
 
 const log = createLogger('API:Chat');
 
@@ -326,6 +327,16 @@ export async function POST(request: NextRequest) {
     };
     const hasSections = Object.values(sections).some(v => v !== null);
 
+    // Opik trace for observability
+    const opikTrace = traceChatRequest({
+      userId: user.id,
+      message,
+      aiName: aiName || 'SoulPrint',
+      hasSoulprint,
+      historyLength: history.length,
+      deepSearch: deepSearch || false,
+    });
+
     // Step 2: ALWAYS try RLM (pass structured sections + web search context)
     const rlmResponse = await tryRLMService(
       user.id,
@@ -350,6 +361,20 @@ export async function POST(request: NextRequest) {
         chunksUsed: rlmResponse.chunks_used,
         responseLength: rlmResponse.response.length
       }, 'RLM success - streaming response');
+
+      // Opik: log RLM span
+      if (opikTrace) {
+        const rlmSpan = opikTrace.span({
+          name: 'rlm-response',
+          type: 'llm',
+          input: { message, historyLength: history.length, webSearch: !!webSearchContext },
+          output: { response: rlmResponse.response.slice(0, 500), method: rlmResponse.method, chunksUsed: rlmResponse.chunks_used },
+          metadata: { latencyMs: rlmResponse.latency_ms },
+        });
+        rlmSpan.end();
+        opikTrace.end();
+        flushOpik().catch(() => {});
+      }
 
       // Stream RLM response in ~20-char chunks for progressive rendering
       const stream = new ReadableStream({
@@ -479,6 +504,20 @@ export async function POST(request: NextRequest) {
             learnFromChat(user.id, message, fullResponse).catch(err => {
               reqLog.warn({ error: err instanceof Error ? err.message : String(err) }, 'Learning failed (non-blocking)');
             });
+          }
+
+          // Opik: log Bedrock fallback span
+          if (opikTrace) {
+            const bedrockSpan = opikTrace.span({
+              name: 'bedrock-fallback',
+              type: 'llm',
+              input: { message, model: process.env.BEDROCK_MODEL_ID || 'claude-3-5-haiku', historyLength: history.length },
+              output: { response: fullResponse.slice(0, 500), responseLength: fullResponse.length },
+              metadata: { durationMs: duration, fallback: true },
+            });
+            bedrockSpan.end();
+            opikTrace.end();
+            flushOpik().catch(() => {});
           }
 
           controller.close();

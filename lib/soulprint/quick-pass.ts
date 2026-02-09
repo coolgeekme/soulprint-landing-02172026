@@ -15,6 +15,7 @@ import { sampleConversations, formatConversationsForPrompt } from '@/lib/soulpri
 import { QUICK_PASS_SYSTEM_PROMPT } from '@/lib/soulprint/prompts';
 import type { ParsedConversation, QuickPassResult } from '@/lib/soulprint/types';
 import { quickPassResultSchema } from '@/lib/soulprint/types';
+import { traceQuickPass, flushOpik } from '@/lib/opik';
 
 const log = createLogger('Soulprint:QuickPass');
 
@@ -51,7 +52,15 @@ export async function generateQuickPass(
       'Calling Haiku 4.5 for quick pass',
     );
 
+    // Opik trace for observability
+    const opikTrace = traceQuickPass({
+      userId: 'import', // userId not available here, set by caller
+      conversationCount: conversations.length,
+      messageCount: sampled.reduce((sum, c) => sum + c.messages.length, 0),
+    });
+
     // Call Haiku 4.5 via Bedrock Converse API
+    const qpStart = Date.now();
     const result = await bedrockChatJSON<QuickPassResult>({
       model: 'HAIKU_45',
       system: QUICK_PASS_SYSTEM_PROMPT,
@@ -59,6 +68,7 @@ export async function generateQuickPass(
       maxTokens: 8192,
       temperature: 0.7,
     });
+    const qpDuration = Date.now() - qpStart;
 
     // Validate response against Zod schema (permissive defaults fill missing fields)
     const validation = quickPassResultSchema.safeParse(result);
@@ -68,7 +78,29 @@ export async function generateQuickPass(
         { errors: validation.error.issues.slice(0, 10) },
         'Quick pass response failed Zod validation',
       );
+      if (opikTrace) {
+        opikTrace.span({ name: 'haiku-analysis', type: 'llm', input: { promptChars: formattedText.length }, output: { error: 'zod_validation_failed' }, metadata: { durationMs: qpDuration } }).end();
+        opikTrace.end();
+        flushOpik().catch(() => {});
+      }
       return null;
+    }
+
+    // Opik: log success
+    if (opikTrace) {
+      opikTrace.span({
+        name: 'haiku-analysis',
+        type: 'llm',
+        input: { promptChars: formattedText.length, sampledConversations: sampled.length },
+        output: {
+          aiName: validation.data.identity?.ai_name,
+          archetype: validation.data.identity?.archetype,
+          traitCount: validation.data.soul?.personality_traits?.length ?? 0,
+        },
+        metadata: { durationMs: qpDuration, model: 'haiku-4.5' },
+      }).end();
+      opikTrace.end();
+      flushOpik().catch(() => {});
     }
 
     log.info('Quick pass generation succeeded');
