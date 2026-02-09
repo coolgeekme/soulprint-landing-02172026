@@ -50,6 +50,113 @@ def get_prompt_version() -> str:
 
 
 # ============================================
+# Emotional Intelligence Prompt Sections
+# ============================================
+
+def build_uncertainty_instructions() -> str:
+    """
+    Returns ## UNCERTAINTY ACKNOWLEDGMENT section.
+    Always included in emotionally intelligent prompts.
+    Mirrors TypeScript buildUncertaintyInstructions() for character-identical output.
+    """
+    return """## UNCERTAINTY ACKNOWLEDGMENT
+
+When you lack SUFFICIENT information to answer confidently:
+- Say "I don't have enough information about X" instead of guessing
+- Explain what information would help you answer better
+- Offer to search or ask clarifying questions
+
+Good: "I don't have details about your project timeline. Could you share when it started?"
+Bad: "Based on typical patterns, you probably started in January..." (guessing)
+
+Abstention is better than guessing. Be honest about knowledge gaps."""
+
+
+def build_relationship_arc_instructions(arc: Optional[Dict[str, Any]]) -> str:
+    """
+    Returns ## RELATIONSHIP TONE section based on conversation depth.
+    Mirrors TypeScript buildRelationshipArcInstructions() for character-identical output.
+    """
+    if not arc or "stage" not in arc:
+        return ""
+
+    stage = arc["stage"]
+    message_count = arc.get("messageCount", 0)
+
+    if stage == "early":
+        return f"""## RELATIONSHIP TONE (Early stage: {message_count} messages)
+
+You're just getting to know this person. Be:
+- Cautious and attentive - avoid assumptions
+- Ask clarifying questions to build understanding
+- Avoid overly familiar language or inside jokes
+- Focus on learning their preferences and communication style"""
+
+    if stage == "developing":
+        return f"""## RELATIONSHIP TONE (Developing stage: {message_count} messages)
+
+You're building rapport. Be:
+- Balanced between curiosity and familiarity
+- Reference past conversations naturally when relevant
+- Start establishing shared context and shortcuts
+- Show you remember their preferences and patterns"""
+
+    if stage == "established":
+        return f"""## RELATIONSHIP TONE (Established stage: {message_count} messages)
+
+You have established rapport. Be:
+- Confident and familiar - skip unnecessary pleasantries
+- Direct and opinionated - you know their style
+- Reference shared history and inside context freely
+- Challenge or push back when you disagree (they trust you)"""
+
+    return ""
+
+
+def build_adaptive_tone_instructions(state: Optional[Dict[str, Any]]) -> str:
+    """
+    Returns ## ADAPTIVE TONE section based on detected emotional state.
+    Returns empty string for neutral emotions (no adaptation needed).
+    Mirrors TypeScript buildAdaptiveToneInstructions() for character-identical output.
+    """
+    if not state or state.get("primary") == "neutral":
+        return ""
+
+    primary = state.get("primary", "neutral")
+    cues = state.get("cues", [])
+    cues_text = f"\nSigns detected: {', '.join(cues)}" if cues else ""
+
+    if primary == "frustrated":
+        return f"""## ADAPTIVE TONE (User is frustrated){cues_text}
+
+Respond with:
+- Supportive, patient tone - acknowledge their frustration
+- Concise, actionable guidance - skip fluff
+- Direct solutions - get straight to fixing the problem
+- Skip pleasantries and small talk - they want results"""
+
+    if primary == "satisfied":
+        return f"""## ADAPTIVE TONE (User is satisfied){cues_text}
+
+Respond with:
+- Match their positive energy and enthusiasm
+- Reinforce their success - celebrate wins
+- Build momentum - suggest next steps or deeper exploration
+- Maintain collaborative, upbeat tone"""
+
+    if primary == "confused":
+        return f"""## ADAPTIVE TONE (User is confused){cues_text}
+
+Respond with:
+- Simplify explanations - break down complex ideas
+- Provide concrete examples and analogies
+- Avoid jargon and technical terms unless necessary
+- Be patient and encouraging - check understanding along the way"""
+
+    return ""
+
+
+# ============================================
 # PromptBuilder Class
 # ============================================
 
@@ -370,3 +477,64 @@ class PromptBuilder:
             except (json.JSONDecodeError, ValueError):
                 return None
         return None
+
+    # ============================================
+    # Emotionally Intelligent Prompt
+    # ============================================
+
+    def build_emotionally_intelligent_prompt(
+        self,
+        profile: Dict[str, Any],
+        daily_memory: Optional[List[Dict[str, str]]] = None,
+        memory_context: Optional[str] = None,
+        ai_name: Optional[str] = None,
+        is_owner: Optional[bool] = None,
+        web_search_context: Optional[str] = None,
+        web_search_citations: Optional[List[str]] = None,
+        current_date: Optional[str] = None,
+        current_time: Optional[str] = None,
+        emotional_state: Optional[Dict[str, Any]] = None,
+        relationship_arc: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """
+        Build emotionally intelligent system prompt.
+
+        Composes base prompt (v1 or v2) with emotional intelligence sections:
+        1. Base prompt (build_system_prompt)
+        2. Uncertainty acknowledgment (ALWAYS included - EMOT-02)
+        3. Relationship arc instructions (if relationship_arc provided - EMOT-03)
+        4. Adaptive tone instructions (if emotional_state provided AND confidence >= 0.6 - EMOT-01)
+
+        Order matters: adaptive tone goes LAST so it's the freshest instruction.
+        Mirrors TypeScript PromptBuilder.buildEmotionallyIntelligentPrompt.
+        """
+        # Start with base prompt (v1 or v2 depending on version)
+        prompt = self.build_system_prompt(
+            profile=profile,
+            daily_memory=daily_memory,
+            memory_context=memory_context,
+            ai_name=ai_name,
+            is_owner=is_owner,
+            web_search_context=web_search_context,
+            web_search_citations=web_search_citations,
+            current_date=current_date,
+            current_time=current_time,
+        )
+
+        # ALWAYS include uncertainty acknowledgment (EMOT-02)
+        prompt += "\n\n" + build_uncertainty_instructions()
+
+        # Add relationship arc instructions if provided (EMOT-03)
+        if relationship_arc:
+            arc_text = build_relationship_arc_instructions(relationship_arc)
+            if arc_text:
+                prompt += "\n\n" + arc_text
+
+        # Add adaptive tone ONLY if emotional state has sufficient confidence (EMOT-01)
+        # Pitfall 3 from research: only apply if confidence >= 0.6
+        if emotional_state and emotional_state.get("confidence", 0) >= 0.6:
+            tone_text = build_adaptive_tone_instructions(emotional_state)
+            if tone_text:
+                prompt += "\n\n" + tone_text
+
+        return prompt
