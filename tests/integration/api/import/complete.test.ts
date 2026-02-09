@@ -58,7 +58,7 @@ describe('POST /api/import/complete', () => {
           })),
         })),
       })),
-    }));
+    })) as any;
     vi.mocked(createClient).mockReturnValueOnce(mockClient as any);
 
     const request = new Request('http://localhost/api/import/complete', {
@@ -130,7 +130,7 @@ describe('POST /api/import/complete', () => {
         },
       },
       error: null,
-    }));
+    })) as any;
     vi.mocked(createClient).mockReturnValueOnce(mockClient as any);
 
     const request = new Request('http://localhost/api/import/complete', {
@@ -170,7 +170,7 @@ describe('POST /api/import/complete', () => {
 
     // Email should contain memory building note when memory_building is true
     const { sendEmail } = await import('@/lib/email');
-    const emailCall = vi.mocked(sendEmail).mock.calls[0][0];
+    const emailCall = vi.mocked(sendEmail).mock.calls[0]![0];
     expect(emailCall.html).toContain('Memory is still building');
   });
 
@@ -181,7 +181,7 @@ describe('POST /api/import/complete', () => {
     mockClient.auth.admin.getUserById = vi.fn(() => ({
       data: null,
       error: { message: 'Auth user not found' },
-    }));
+    })) as any;
     vi.mocked(createClient).mockReturnValueOnce(mockClient as any);
 
     const request = new Request('http://localhost/api/import/complete', {
@@ -244,7 +244,7 @@ describe('POST /api/import/complete', () => {
         },
       },
       error: null,
-    }));
+    })) as any;
     vi.mocked(createClient).mockReturnValueOnce(mockClient as any);
 
     const request = new Request('http://localhost/api/import/complete', {
