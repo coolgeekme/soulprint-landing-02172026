@@ -88,29 +88,29 @@ Deferred to future release.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| EVAL-01 | - | Pending |
-| EVAL-02 | - | Pending |
-| EVAL-03 | - | Pending |
-| EVAL-04 | - | Pending |
-| PRMT-01 | - | Pending |
-| PRMT-02 | - | Pending |
-| PRMT-03 | - | Pending |
-| PRMT-04 | - | Pending |
-| EMOT-01 | - | Pending |
-| EMOT-02 | - | Pending |
-| EMOT-03 | - | Pending |
-| QUAL-01 | - | Pending |
-| QUAL-02 | - | Pending |
-| QUAL-03 | - | Pending |
-| VALD-01 | - | Pending |
-| VALD-02 | - | Pending |
-| VALD-03 | - | Pending |
+| EVAL-01 | Phase 1 | Pending |
+| EVAL-02 | Phase 1 | Pending |
+| EVAL-03 | Phase 1 | Pending |
+| EVAL-04 | Phase 1 | Pending |
+| PRMT-01 | Phase 2 | Pending |
+| PRMT-02 | Phase 2 | Pending |
+| PRMT-03 | Phase 2 | Pending |
+| PRMT-04 | Phase 2 | Pending |
+| EMOT-01 | Phase 3 | Pending |
+| EMOT-02 | Phase 3 | Pending |
+| EMOT-03 | Phase 3 | Pending |
+| QUAL-01 | Phase 4 | Pending |
+| QUAL-02 | Phase 4 | Pending |
+| QUAL-03 | Phase 4 | Pending |
+| VALD-01 | Phase 5 | Pending |
+| VALD-02 | Phase 5 | Pending |
+| VALD-03 | Phase 5 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 16 total
-- Mapped to phases: 0
-- Unmapped: 16 (pending roadmap creation)
+- Mapped to phases: 16/16 (100%)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-08*
-*Last updated: 2026-02-08 after user approval*
+*Last updated: 2026-02-08 after roadmap creation*

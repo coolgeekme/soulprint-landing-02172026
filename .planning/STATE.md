@@ -5,21 +5,22 @@
 See: .planning/PROJECT.md (updated 2026-02-08)
 
 **Core value:** The AI must feel like YOUR AI -- genuinely human, deeply personalized, systematically evaluated.
-**Current focus:** v2.0 AI Quality & Personalization -- defining requirements
+
+**Current focus:** Phase 1 - Evaluation Foundation
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-02-08 — Milestone v2.0 started
+Phase: 1 of 5 (Evaluation Foundation)
+Plan: Not yet planned
+Status: Ready to plan
+Last activity: 2026-02-08 - v2.0 roadmap created (5 phases, 16 requirements)
 
-Progress: [>..........] 0% (0 phases complete)
+Progress: [░░░░░░░░░░] 0% (0 phases complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 47
+- Total plans completed: 47 (from v1.0-v1.5)
 - Average duration: ~23 min
 - Total execution time: ~21 hours across 6 milestones
 
@@ -33,7 +34,7 @@ Progress: [>..........] 0% (0 phases complete)
 | v1.3 RLM Sync | 5 | 5 | Shipped |
 | v1.4 Personalization | 2 | 7 | Shipped |
 | v1.5 Full Chat | 6 | 8 | Shipped |
-| v2.0 AI Quality | 0 | 0 | In Progress |
+| v2.0 AI Quality | 5 | 0 | In Progress |
 
 *Metrics updated: 2026-02-08*
 
@@ -43,26 +44,17 @@ Progress: [>..........] 0% (0 phases complete)
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
-**Carried forward:**
+**Carried forward from v1.5:**
 - Separate soulprint-rlm repo -- Production RLM deploys from Pu11en/soulprint-rlm
 - Sonnet 4.5 on Bedrock for chat quality (switched from Nova Lite)
 - OpenClaw-style prompt: minimal preamble, sections define personality
-- Focus on RLM primary path, not Bedrock fallback
-- ESM imports for react-syntax-highlighter (not CJS - TypeScript compatibility)
-- User messages as plain text, AI messages as markdown (ChatGPT/Claude pattern)
-- next-themes for dark mode with system preference detection
-- Tailwind CSS variable system for theme-aware UI (bg-background, text-foreground, etc.)
-- Mounted guard pattern for theme toggle to prevent hydration mismatch
-- RLM responses chunked in ~20-char increments with 10ms delay for progressive rendering
-- Bedrock uses ConverseStreamCommand for true token-by-token streaming
-- ReadableStream pattern: return Response immediately, async work in start() callback
-- maxDuration=60 for Vercel function timeout on long-running streams
-- AbortController pattern for fetch cancellation: create before fetch, store in ref, abort on stop
-- isGenerating state separate from isLoading to distinguish streaming vs pre-streaming phases
-- Stop button (red square icon) replaces send/mic during generation with graceful abort
-- Haiku 3.5 for title generation (fast/cheap for 3-8 word summaries)
-- conversation_id required in saveMessageSchema (every message belongs to conversation)
-- Conversation.updated_at refreshed on message save for sidebar recency sorting
+- Two-pass generation: quick pass (~30s, Haiku 4.5) + full pass (RLM background)
+- 7-section structured context (SOUL, IDENTITY, USER, AGENTS, TOOLS, MEMORY, daily memory)
+
+**v2.0 Architecture decisions pending:**
+- Evaluation-first approach: build measurement before changing prompts
+- Phase 1 → Phase 2 dependency: need metrics before prompt changes
+- Phases 3 and 4 can run in parallel after Phase 2
 
 ### Pending Todos
 
@@ -70,13 +62,20 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 ### Blockers/Concerns
 
+**For v2.0 planning:**
+- Phase 1 needs spike on async Opik architecture (2-3 days) to avoid latency pitfall
+- Phase 2 needs RLM prompt sync strategy (two prompt builders must produce identical output)
+- Phase 3 needs uncanny valley threshold research (how much mirroring is too much)
+- Quality scoring metrics need validation that they correlate r>0.7 with user satisfaction
+
+**Carried forward from v1.5:**
 - Web search (smartSearch) exists but citations not validated against hallucination
 
 ## Session Continuity
 
 Last session: 2026-02-08
-Stopped at: Milestone v2.0 initialization
+Stopped at: v2.0 roadmap created with 5 phases mapping 16 requirements
 Resume file: None
 
 ---
-*Last updated: 2026-02-08 -- v2.0 AI Quality & Personalization milestone started. Defining requirements.*
+*Last updated: 2026-02-08 -- v2.0 roadmap created, ready for `/gsd:plan-phase 1`*
