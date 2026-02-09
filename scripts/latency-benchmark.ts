@@ -19,7 +19,7 @@
  */
 
 import 'dotenv/config';
-import * as autocannon from 'autocannon';
+import autocannon from 'autocannon';
 
 interface BenchmarkArgs {
   connections: number;
@@ -68,14 +68,15 @@ function parseArgs(): BenchmarkArgs {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === '--connections' && args[i + 1]) {
-      defaults.connections = parseInt(args[i + 1], 10);
+    const nextArg = args[i + 1];
+    if (arg === '--connections' && nextArg) {
+      defaults.connections = parseInt(nextArg, 10);
       i++;
-    } else if (arg === '--duration' && args[i + 1]) {
-      defaults.duration = parseInt(args[i + 1], 10);
+    } else if (arg === '--duration' && nextArg) {
+      defaults.duration = parseInt(nextArg, 10);
       i++;
-    } else if (arg === '--threshold' && args[i + 1]) {
-      defaults.threshold = parseInt(args[i + 1], 10);
+    } else if (arg === '--threshold' && nextArg) {
+      defaults.threshold = parseInt(nextArg, 10);
       i++;
     }
   }

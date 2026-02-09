@@ -43,7 +43,9 @@ test.describe('Long Session Tests', () => {
 
     // Validate all responses are non-empty
     for (let i = 0; i < responses.length; i++) {
-      expect(responses[i].length, `Response ${i + 1} should not be empty`).toBeGreaterThan(20);
+      const response = responses[i];
+      expect(response).toBeDefined();
+      expect(response!.length, `Response ${i + 1} should not be empty`).toBeGreaterThan(20);
     }
 
     // Run personality drift detection
