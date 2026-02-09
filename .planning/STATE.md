@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 ## Current Position
 
 Phase: 1 of 3 (Core Migration - RLM Pipeline with Streaming)
-Plan: 2 of 5 complete
+Plan: 3 of 5 complete
 Status: In progress
-Last activity: 2026-02-09 -- Completed 01-02-PLAN.md (Quick Pass Python Port)
+Last activity: 2026-02-09 -- Completed 01-03-PLAN.md (RLM Streaming Import Endpoint)
 
-Progress: [████░░░░░░] 40%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 73 (across v1.0-v2.2 milestones)
-- Average duration: ~18 min
-- Total execution time: ~21.21 hours across 8 milestones
+- Total plans completed: 74 (across v1.0-v2.2 milestones)
+- Average duration: ~17 min
+- Total execution time: ~21.25 hours across 8 milestones
 
 **By Milestone:**
 
@@ -36,7 +36,7 @@ Progress: [████░░░░░░] 40%
 | v1.5 Full Chat | 6 | 8 | Shipped |
 | v2.0 AI Quality | 5 | 14 | Shipped |
 | v2.1 Hardening | 3 | 4 | Shipped |
-| v2.2 Imports | 3 | 2 | In progress |
+| v2.2 Imports | 3 | 3 | In progress |
 
 *Metrics updated: 2026-02-09*
 
@@ -55,6 +55,9 @@ Recent decisions affecting current work:
 - 01-01: Upgrade anthropic to anthropic[bedrock] for AWS Bedrock Claude support
 - 01-02: Use AnthropicBedrock client for quick pass instead of direct boto3
 - 01-02: Port exact system prompt (4377 chars) and scoring algorithm from TypeScript
+- 01-03: Temp file streaming approach (httpx -> disk -> ijson) for constant-memory import processing
+- 01-03: JSONResponse(status_code=202) for proper HTTP 202 Accepted in FastAPI
+- 01-03: Quick pass failure sets import_status='failed' (not 'quick_ready') to allow retry
 
 ### Pending Todos
 
@@ -76,10 +79,10 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-09T22:29:31Z
-Stopped at: Completed 01-02-PLAN.md (Quick Pass Python Port)
+Last session: 2026-02-09T22:36:09Z
+Stopped at: Completed 01-03-PLAN.md (RLM Streaming Import Endpoint)
 Resume file: None
-Next step: Execute remaining plans in Phase 1 (01-03 through 01-05)
+Next step: Execute remaining plans in Phase 1 (01-04 through 01-05)
 
 ---
-*Last updated: 2026-02-09 -- Phase 1 Plan 2 complete, quick pass logic ported to Python*
+*Last updated: 2026-02-09 -- Phase 1 Plan 3 complete, streaming import endpoint ready*
