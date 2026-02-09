@@ -22,6 +22,7 @@ import { runExperiment } from '@/lib/evaluation/experiments';
 import type { ExperimentResult, PromptVariant } from '@/lib/evaluation/experiments';
 import { cleanSection, formatSection } from '@/lib/soulprint/prompt-helpers';
 import type { ChatEvalItem } from '@/lib/evaluation/types';
+import { PromptBuilder } from '@/lib/soulprint/prompt-builder';
 
 /**
  * Baseline result extends experiment result with version metadata.
@@ -106,6 +107,51 @@ export const v1PromptVariant: PromptVariant = {
 };
 
 /**
+ * Build a v2 system prompt from an evaluation dataset item.
+ *
+ * Uses the PromptBuilder('v2-natural-voice') version for natural flowing prose
+ * instead of markdown headers. Maps evaluation dataset fields to PromptParams.
+ *
+ * This is intentionally simpler than v1 -- we're measuring prompt STYLE differences,
+ * not runtime features (dailyMemory, memoryContext, webSearch don't vary between v1/v2).
+ *
+ * Exported for reuse by scripts/run-experiment.ts when running the v2 variant.
+ */
+export function buildV2SystemPrompt(item: ChatEvalItem): string {
+  const builder = new PromptBuilder('v2-natural-voice');
+
+  // Construct profile from item.soulprint_context
+  // JSON.stringify each section into *_md fields for PromptBuilder
+  const profile = {
+    soulprint_text: null,
+    import_status: 'complete',
+    ai_name: 'SoulPrint',
+    soul_md: item.soulprint_context.soul ? JSON.stringify(item.soulprint_context.soul) : null,
+    identity_md: item.soulprint_context.identity ? JSON.stringify(item.soulprint_context.identity) : null,
+    user_md: item.soulprint_context.user ? JSON.stringify(item.soulprint_context.user) : null,
+    agents_md: item.soulprint_context.agents ? JSON.stringify(item.soulprint_context.agents) : null,
+    tools_md: item.soulprint_context.tools ? JSON.stringify(item.soulprint_context.tools) : null,
+    memory_md: null,
+  };
+
+  return builder.buildSystemPrompt({
+    profile,
+    dailyMemory: null,
+    memoryContext: undefined,
+    aiName: 'SoulPrint',
+    isOwner: true,
+  });
+}
+
+/**
+ * V2 prompt variant definition for use with runExperiment.
+ */
+export const v2PromptVariant: PromptVariant = {
+  name: 'v2-natural-voice',
+  buildSystemPrompt: buildV2SystemPrompt,
+};
+
+/**
  * Record baseline metrics for the current v1 prompt system.
  *
  * Runs an experiment using the v1 prompt builder against the specified dataset
@@ -113,34 +159,36 @@ export const v1PromptVariant: PromptVariant = {
  *
  * @param options.datasetName - Name of an existing Opik dataset to evaluate against
  * @param options.nbSamples - Optional limit on number of items to evaluate
+ * @param options.variant - Prompt variant to evaluate (defaults to v1PromptVariant)
  * @returns BaselineResult with aggregate scores and version metadata
  */
 export async function recordBaseline(options: {
   datasetName: string;
   nbSamples?: number;
+  variant?: PromptVariant;
 }): Promise<BaselineResult> {
-  const { datasetName, nbSamples } = options;
+  const { datasetName, nbSamples, variant = v1PromptVariant } = options;
 
-  console.log(`\nRecording v1 baseline metrics against dataset: ${datasetName}`);
+  console.log(`\nRecording ${variant.name} baseline metrics against dataset: ${datasetName}`);
   if (nbSamples) {
     console.log(`Evaluating ${nbSamples} samples`);
   }
 
   const result = await runExperiment({
     datasetName,
-    variant: v1PromptVariant,
-    experimentName: `baseline-v1-prompts-${new Date().toISOString().split('T')[0]}`,
+    variant,
+    experimentName: `baseline-${variant.name}-${new Date().toISOString().split('T')[0]}`,
     nbSamples,
   });
 
   const baselineResult: BaselineResult = {
     ...result,
-    version: 'v1',
+    version: variant.name,
     recordedAt: new Date().toISOString(),
   };
 
   // Log aggregate scores in a readable format
-  console.log('\n=== V1 BASELINE METRICS ===\n');
+  console.log(`\n=== ${variant.name.toUpperCase()} BASELINE METRICS ===\n`);
 
   const metricNames = Object.keys(baselineResult.aggregateScores).sort();
   for (const name of metricNames) {
