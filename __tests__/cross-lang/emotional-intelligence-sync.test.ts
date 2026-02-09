@@ -10,11 +10,12 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import { execSync } from 'child_process';
+import type { EmotionalState } from '@/lib/soulprint/emotional-intelligence';
 
 // Import TypeScript EI functions with existence verification
 let buildUncertaintyInstructions: () => string;
-let buildRelationshipArcInstructions: (arc: { stage: string; messageCount: number }) => string;
-let buildAdaptiveToneInstructions: (state: { primary: string; confidence: number; cues: string[] }) => string;
+let buildRelationshipArcInstructions: (arc: { stage: 'early' | 'developing' | 'established'; messageCount: number }) => string;
+let buildAdaptiveToneInstructions: (state: EmotionalState) => string;
 
 beforeAll(async () => {
   try {
@@ -77,7 +78,7 @@ describe('EI Prompt Sections Cross-Language Sync', () => {
   });
 
   it('relationship arc instructions match for early stage', () => {
-    const arc = { stage: 'early', messageCount: 5 };
+    const arc = { stage: 'early' as const, messageCount: 5 };
     const tsResult = buildRelationshipArcInstructions(arc);
     const pyResult = callPython('build_relationship_arc_instructions', arc);
 
@@ -85,7 +86,7 @@ describe('EI Prompt Sections Cross-Language Sync', () => {
   });
 
   it('relationship arc instructions match for developing stage', () => {
-    const arc = { stage: 'developing', messageCount: 25 };
+    const arc = { stage: 'developing' as const, messageCount: 25 };
     const tsResult = buildRelationshipArcInstructions(arc);
     const pyResult = callPython('build_relationship_arc_instructions', arc);
 
@@ -93,7 +94,7 @@ describe('EI Prompt Sections Cross-Language Sync', () => {
   });
 
   it('relationship arc instructions match for established stage', () => {
-    const arc = { stage: 'established', messageCount: 100 };
+    const arc = { stage: 'established' as const, messageCount: 100 };
     const tsResult = buildRelationshipArcInstructions(arc);
     const pyResult = callPython('build_relationship_arc_instructions', arc);
 
@@ -101,7 +102,7 @@ describe('EI Prompt Sections Cross-Language Sync', () => {
   });
 
   it('adaptive tone instructions match for frustrated', () => {
-    const state = { primary: 'frustrated', confidence: 0.8, cues: ['short responses', 'repeated question'] };
+    const state: EmotionalState = { primary: 'frustrated', confidence: 0.8, cues: ['short responses', 'repeated question'] };
     const tsResult = buildAdaptiveToneInstructions(state);
     const pyResult = callPython('build_adaptive_tone_instructions', state);
 
@@ -109,7 +110,7 @@ describe('EI Prompt Sections Cross-Language Sync', () => {
   });
 
   it('adaptive tone instructions match for satisfied', () => {
-    const state = { primary: 'satisfied', confidence: 0.9, cues: ['thanks', 'great'] };
+    const state: EmotionalState = { primary: 'satisfied', confidence: 0.9, cues: ['thanks', 'great'] };
     const tsResult = buildAdaptiveToneInstructions(state);
     const pyResult = callPython('build_adaptive_tone_instructions', state);
 
@@ -117,7 +118,7 @@ describe('EI Prompt Sections Cross-Language Sync', () => {
   });
 
   it('adaptive tone instructions match for confused', () => {
-    const state = { primary: 'confused', confidence: 0.7, cues: ['what do you mean'] };
+    const state: EmotionalState = { primary: 'confused', confidence: 0.7, cues: ['what do you mean'] };
     const tsResult = buildAdaptiveToneInstructions(state);
     const pyResult = callPython('build_adaptive_tone_instructions', state);
 
@@ -125,7 +126,7 @@ describe('EI Prompt Sections Cross-Language Sync', () => {
   });
 
   it('adaptive tone instructions match for neutral (returns empty)', () => {
-    const state = { primary: 'neutral', confidence: 0.5, cues: [] };
+    const state: EmotionalState = { primary: 'neutral', confidence: 0.5, cues: [] };
     const tsResult = buildAdaptiveToneInstructions(state);
     const pyResult = callPython('build_adaptive_tone_instructions', state);
 
@@ -135,7 +136,7 @@ describe('EI Prompt Sections Cross-Language Sync', () => {
   });
 
   it('adaptive tone with no cues (empty cues text)', () => {
-    const state = { primary: 'confused', confidence: 0.7, cues: [] };
+    const state: EmotionalState = { primary: 'confused', confidence: 0.7, cues: [] };
     const tsResult = buildAdaptiveToneInstructions(state);
     const pyResult = callPython('build_adaptive_tone_instructions', state);
 
