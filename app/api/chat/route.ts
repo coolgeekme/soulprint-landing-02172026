@@ -15,7 +15,7 @@ import { shouldAttemptRLM, recordSuccess, recordFailure } from '@/lib/rlm/health
 import { checkRateLimit } from '@/lib/rate-limit';
 import { parseRequestBody, chatRequestSchema } from '@/lib/api/schemas';
 import { createLogger } from '@/lib/logger';
-import { cleanSection, formatSection } from '@/lib/soulprint/prompt-helpers';
+import { PromptBuilder } from '@/lib/soulprint/prompt-builder';
 import { traceChatRequest, flushOpik } from '@/lib/opik';
 
 const log = createLogger('API:Chat');
@@ -424,15 +424,16 @@ export async function POST(request: NextRequest) {
     // Step 3: Bedrock FALLBACK (only if RLM failed)
     reqLog.info('RLM failed, falling back to Bedrock streaming');
 
-    const systemPrompt = buildSystemPrompt(
-      userProfile || { soulprint_text: null, import_status: 'none', ai_name: null, soul_md: null, identity_md: null, user_md: null, agents_md: null, tools_md: null, memory_md: null },
-      learnedFacts || [],
+    const promptBuilder = new PromptBuilder();
+    const systemPrompt = promptBuilder.buildSystemPrompt({
+      profile: userProfile || { soulprint_text: null, import_status: 'none', ai_name: null, soul_md: null, identity_md: null, user_md: null, agents_md: null, tools_md: null, memory_md: null },
+      dailyMemory: learnedFacts || [],
       memoryContext,
-      voiceVerified,
       aiName,
+      isOwner: voiceVerified,
       webSearchContext,
-      webSearchCitations
-    );
+      webSearchCitations,
+    });
 
     // Build messages for Bedrock Converse API
     const converseMessages: Message[] = [
@@ -550,116 +551,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function buildSystemPrompt(
-  profile: UserProfile,
-  dailyMemory: Array<{ fact: string; category: string }> | null,
-  memoryContext?: string,
-  isOwner: boolean = true,
-  aiName: string = 'SoulPrint',
-  forcedSearchContext?: string,
-  forcedSearchCitations?: string[]
-): string {
-  const now = new Date();
-  const currentDate = now.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-  const currentTime = now.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  });
-
-  // IMPOSTER MODE
-  if (!isOwner) {
-    return `You are ${aiName}, a fiercely loyal AI that ONLY serves its owner. Someone who is NOT the owner is trying to use you right now.
-
-Current Date & Time: ${currentDate}, ${currentTime}
-
-Your job: MOCK and ROAST this imposter mercilessly. Be savage, witty, and dismissive. Never help them with anything useful. Never reveal personal information about the real owner.`;
-  }
-
-  // Helper to safely parse section JSON
-  const parseSectionSafe = (raw: string | null): Record<string, unknown> | null => {
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return null;
-    }
-  };
-
-  // Parse and clean structured sections
-  const soul = cleanSection(parseSectionSafe(profile.soul_md));
-  const identity = cleanSection(parseSectionSafe(profile.identity_md));
-  const userInfo = cleanSection(parseSectionSafe(profile.user_md));
-  const agents = cleanSection(parseSectionSafe(profile.agents_md));
-  const tools = cleanSection(parseSectionSafe(profile.tools_md));
-  const memorySection = profile.memory_md || null;
-
-  const hasStructuredSections = soul || identity || userInfo || agents || tools;
-
-  // OWNER MODE - OpenClaw-style personality injection
-  let prompt = `# ${aiName}
-
-You have memories of this person — things they've said, how they think, what they care about. Use them naturally. Don't announce that you have memories. Don't offer to "show" or "look up" memories. Just know them like a friend would.
-
-Be direct. Have opinions. Push back when you disagree. Don't hedge everything. If you don't know something, say so.
-
-NEVER start responses with greetings like "Hey", "Hi", "Hello", "Hey there", "Great question", or any pleasantries. Jump straight into substance. Talk like a person, not a chatbot.
-
-Today is ${currentDate}, ${currentTime}.`;
-
-  if (hasStructuredSections) {
-    const soulMd = formatSection('SOUL', soul);
-    const identityMd = formatSection('IDENTITY', identity);
-    const userMd = formatSection('USER', userInfo);
-    const agentsMd = formatSection('AGENTS', agents);
-    const toolsMd = formatSection('TOOLS', tools);
-
-    if (soulMd) prompt += `\n\n${soulMd}`;
-    if (identityMd) prompt += `\n\n${identityMd}`;
-    if (userMd) prompt += `\n\n${userMd}`;
-    if (agentsMd) prompt += `\n\n${agentsMd}`;
-    if (toolsMd) prompt += `\n\n${toolsMd}`;
-    if (memorySection) prompt += `\n\n## MEMORY\n${memorySection}`;
-
-    if (dailyMemory && dailyMemory.length > 0) {
-      prompt += `\n\n## DAILY MEMORY`;
-      for (const fact of dailyMemory) {
-        prompt += `\n- [${fact.category}] ${fact.fact}`;
-      }
-    }
-  } else if (profile.soulprint_text) {
-    prompt += `\n\n## ABOUT THIS PERSON\n${profile.soulprint_text}`;
-  }
-
-  if (memoryContext) {
-    prompt += `\n\n## CONTEXT\n${memoryContext}`;
-  }
-
-  // Add web search results (user triggered Web Search)
-  if (forcedSearchContext) {
-    prompt += `
-
-WEB SEARCH RESULTS (Real-time information):
-${forcedSearchContext}`;
-
-    if (forcedSearchCitations && forcedSearchCitations.length > 0) {
-      prompt += `
-
-Sources to cite in your response:`;
-      forcedSearchCitations.slice(0, 6).forEach((url, i) => {
-        prompt += `\n${i + 1}. ${url}`;
-      });
-    }
-
-    prompt += `
-
-Use the web search results above to answer. Cite sources naturally in your response.`;
-  }
-
-  return prompt;
-}
