@@ -254,13 +254,13 @@ function ImportPageContent() {
       });
 
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.error || 'Reset failed');
       }
 
-      // Refresh the page to start fresh
-      window.location.reload();
+      // Navigate to import page (avoids stale cookie issue with hard reload)
+      router.push('/import');
     } catch (err) {
       alert('Reset failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
