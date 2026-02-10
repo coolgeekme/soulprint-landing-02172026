@@ -6,23 +6,23 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 
 **Core value:** The AI must feel like YOUR AI -- genuinely human, deeply personalized, systematically evaluated.
 
-**Current focus:** Phase 2 COMPLETE - Parsing Quality (v2.2 Bulletproof Imports)
+**Current focus:** Phase 3 IN PROGRESS - UX Enhancement (v2.2 Bulletproof Imports)
 
 ## Current Position
 
-Phase: 2 of 3 (Parsing Quality - DAG Traversal and Content Handling)
-Plan: 1 of 1 complete
-Status: Phase complete
-Last activity: 2026-02-10 -- Completed 02-01-PLAN.md (DAG traversal parsing)
+Phase: 3 of 3 (UX Enhancement - Progress and Error Clarity)
+Plan: 1 of 2 complete
+Status: In progress
+Last activity: 2026-02-10 -- Completed 03-01-PLAN.md (Progress UI Enhancement)
 
-Progress: [████████████████████] Phase 1 COMPLETE, Phase 2 COMPLETE
+Progress: [████████████████████████░░░░] Phase 1 COMPLETE, Phase 2 COMPLETE, Phase 3: 1/2
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 77 (across v1.0-v2.2 milestones)
+- Total plans completed: 78 (across v1.0-v2.2 milestones)
 - Average duration: ~17 min
-- Total execution time: ~21.3 hours across 8 milestones
+- Total execution time: ~21.4 hours across 8 milestones
 
 **By Milestone:**
 
@@ -36,7 +36,7 @@ Progress: [████████████████████] Phase 1
 | v1.5 Full Chat | 6 | 8 | Shipped |
 | v2.0 AI Quality | 5 | 14 | Shipped |
 | v2.1 Hardening | 3 | 4 | Shipped |
-| v2.2 Imports | 3 | 6 | In progress |
+| v2.2 Imports | 3 | 7 | In progress |
 
 *Metrics updated: 2026-02-10*
 
@@ -65,6 +65,9 @@ Recent decisions affecting current work:
 - 02-01: Fallback forward traversal follows LAST child at each level (most recent edit)
 - 02-01: System messages included only if metadata.is_user_system_message is True
 - 02-01: Image parts (asset_pointer) silently skipped — soulprint is text-based
+- 03-01: Stage indicator dots show 3 stages (downloading/parsing/generating) with completed/current/upcoming states
+- 03-01: Progress >= 55% shows "safe to close" green message instead of keep-open warning
+- 03-01: Visibility handler stored in ref for proper cleanup on unmount
 
 ### Pending Todos
 
@@ -88,10 +91,10 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-10T00:31:32Z
-Stopped at: Completed 02-01-PLAN.md (Phase 2 complete)
+Last session: 2026-02-10T00:54:00Z
+Stopped at: Completed 03-01-PLAN.md (Progress UI Enhancement)
 Resume file: None
-Next step: Plan Phase 3 (UX Enhancement — Progress and Error Clarity)
+Next step: Execute 03-02-PLAN.md (Error UX Enhancement)
 
 ---
-*Last updated: 2026-02-10 -- Phase 2 COMPLETE (1/1 plans, DAG parsing deployed to production)*
+*Last updated: 2026-02-10 -- Phase 3: 1/2 plans complete (Progress UI Enhancement)*
