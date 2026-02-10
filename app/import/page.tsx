@@ -40,6 +40,19 @@ async function safeJsonParse(response: Response): Promise<{ ok: boolean; data?: 
   }
 }
 
+// Import stage configuration — maps RLM import_stage strings to user-facing labels
+const IMPORT_STAGES = [
+  { key: 'downloading', match: /download/i, label: 'Downloading your export', threshold: 0 },
+  { key: 'parsing', match: /pars/i, label: 'Reading conversations', threshold: 20 },
+  { key: 'generating', match: /generat|soulprint/i, label: 'Building your profile', threshold: 50 },
+  { key: 'complete', match: /complete/i, label: 'Analysis complete!', threshold: 100 },
+] as const;
+
+function getCurrentStageLabel(importStage: string): string {
+  const stage = IMPORT_STAGES.find(s => s.match.test(importStage));
+  return stage?.label ?? 'Processing...';
+}
+
 // IndexedDB helpers for storing large datasets client-side
 const DB_NAME = 'soulprint_import';
 const DB_VERSION = 1;
@@ -876,16 +889,44 @@ function ImportPageContent() {
               className="w-full max-w-md flex flex-col justify-center text-center"
             >
               <div className="mb-4 sm:mb-6 flex flex-col items-center">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-orange-500/10 flex items-center justify-center mb-4">
-                  <Loader2 className="w-8 h-8 sm:w-10 sm:h-10 text-orange-500 animate-spin" />
-                </div>
+                <RingProgress
+                  progress={progress}
+                  size={80}
+                  strokeWidth={6}
+                  showPercentage={true}
+                />
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">Analyzing your conversations...</h2>
-              <p className="text-white/50 text-xs sm:text-sm">{progressStage || 'Building your profile...'}</p>
+              <h2 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">
+                {getCurrentStageLabel(progressStage)}
+              </h2>
 
-              {progress < 60 && (
-                <p className="text-orange-400/80 text-xs mt-2">
-                  ⚠️ Don&apos;t close this page until upload completes
+              <div className="flex items-center justify-center gap-3 mt-3">
+                {IMPORT_STAGES.slice(0, -1).map((stage, i) => {
+                  const nextThreshold = IMPORT_STAGES[i + 1]?.threshold ?? 100;
+                  const isComplete = progress >= nextThreshold;
+                  const isCurrent = !isComplete && progress >= stage.threshold;
+                  return (
+                    <div key={stage.key} className="flex items-center gap-3">
+                      <div className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 ${
+                        isComplete ? 'bg-green-500' :
+                        isCurrent ? 'bg-orange-500 animate-pulse' :
+                        'bg-white/20'
+                      }`} />
+                      {i < IMPORT_STAGES.length - 2 && (
+                        <div className={`w-6 h-0.5 transition-colors duration-300 ${isComplete ? 'bg-green-500' : 'bg-white/10'}`} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {progress >= 55 ? (
+                <p className="text-green-400/80 text-xs mt-3">
+                  Safe to close this tab — processing continues in the background
+                </p>
+              ) : (
+                <p className="text-orange-400/80 text-xs mt-3">
+                  Please keep this tab open until upload completes
                 </p>
               )}
 
