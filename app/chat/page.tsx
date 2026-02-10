@@ -635,7 +635,10 @@ export default function ChatPage() {
             if (data === '[DONE]') continue;
             try {
               const parsed = JSON.parse(data);
-              if (parsed.type === 'citations' && parsed.data) {
+              if (parsed.type === 'debug') {
+                // Debug metadata from chat route - visible in browser devtools
+                console.log('[SoulPrint Chat Debug]', parsed);
+              } else if (parsed.type === 'citations' && parsed.data) {
                 // Citation metadata event
                 responseCitations = parsed.data;
                 setCurrentCitations(parsed.data);

@@ -177,7 +177,7 @@ async function tryRLMService(
         emotional_state: emotionalState,
         relationship_arc: relationshipArc,
       }),
-      signal: AbortSignal.timeout(15000), // 15s timeout
+      signal: AbortSignal.timeout(25000), // 25s timeout (Render cold starts take ~20s)
     });
 
     if (!response.ok) {
@@ -192,7 +192,7 @@ async function tryRLMService(
     return data;
   } catch (error) {
     if (error instanceof Error && error.name === 'TimeoutError') {
-      log.warn('RLM timed out after 15s - falling back to Bedrock');
+      log.warn('RLM timed out after 25s - falling back to Bedrock');
       recordFailure();
       return null;
     }
@@ -391,6 +391,16 @@ export async function POST(request: NextRequest) {
       deepSearch: deepSearch || false,
     });
 
+    // Debug: log what data is available for this user
+    reqLog.info({
+      hasSoulprint,
+      hasSections,
+      hasSoulprintText: !!userProfile?.soulprint_text,
+      hasSoulMd: !!userProfile?.soul_md,
+      aiName,
+      rlmUrl: !!process.env.RLM_SERVICE_URL,
+    }, 'Chat debug: profile data check');
+
     // Step 2: ALWAYS try RLM (pass structured sections + web search context)
     const rlmResponse = await tryRLMService(
       user.id,
@@ -436,6 +446,10 @@ export async function POST(request: NextRequest) {
       const stream = new ReadableStream({
         async start(controller) {
           try {
+            // Send debug metadata as first event
+            const debugEvent = `data: ${JSON.stringify({ type: 'debug', method: 'rlm', rlmMethod: rlmResponse.method, hasSections, hasSoulprint, chunksUsed: rlmResponse.chunks_used })}\n\n`;
+            controller.enqueue(new TextEncoder().encode(debugEvent));
+
             const fullText = rlmResponse.response;
             const chunkSize = 20;
 
@@ -536,6 +550,11 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         try {
           reqLog.debug('Starting Bedrock stream');
+
+          // Send debug metadata as first event (matches RLM stream pattern)
+          const debugEvent = `data: ${JSON.stringify({ type: 'debug', method: 'bedrock-fallback', hasSections, hasSoulprint, systemPromptLength: systemPrompt.length })}\n\n`;
+          controller.enqueue(new TextEncoder().encode(debugEvent));
+
           const response = await bedrockClient.send(command);
           let fullResponse = '';
 
