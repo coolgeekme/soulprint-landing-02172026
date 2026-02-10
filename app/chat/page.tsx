@@ -975,8 +975,8 @@ export default function ChatPage() {
                       headers: { 'X-CSRF-Token': csrfToken },
                     });
                     if (!res.ok) throw new Error('Reset failed');
-                    // Hard navigation to avoid stale cache redirecting back to chat
-                    window.location.href = '/import';
+                    // Hard navigation with reimport flag to skip hasSoulprint redirect
+                    window.location.href = '/import?reimport=true';
                   } catch {
                     alert('Reset failed. Please try again.');
                   }

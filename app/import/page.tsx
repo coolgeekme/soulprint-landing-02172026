@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useRef, useEffect, useCallback, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Upload, Shield, AlertCircle, Loader2, Lock, ChevronRight, Settings, Mail, Download, FileArchive, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ type Phase = 'loading' | 'instructions' | 'upload' | 'processing' | 'error';
 
 function ImportPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isReimport = searchParams.get('reimport') === 'true';
   const [phase, setPhase] = useState<Phase>('loading');
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(0);
@@ -81,7 +83,7 @@ function ImportPageContent() {
         const res = await fetch('/api/memory/status');
         const data = await res.json();
 
-        if (data.status === 'ready' || data.hasSoulprint) {
+        if (!isReimport && (data.status === 'ready' || data.hasSoulprint)) {
           router.push('/chat');
           return;
         }
@@ -106,7 +108,7 @@ function ImportPageContent() {
       setPhase('instructions');
     };
     init();
-  }, [router, startPolling]);
+  }, [router, startPolling, isReimport]);
 
   // Handle file upload
   const handleFile = async (file: File) => {
