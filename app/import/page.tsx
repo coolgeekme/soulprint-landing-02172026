@@ -53,6 +53,118 @@ function getCurrentStageLabel(importStage: string): string {
   return stage?.label ?? 'Processing...';
 }
 
+// Error classification for actionable user-facing messages
+interface ClassifiedError {
+  title: string;
+  message: string;
+  action: string;
+  canRetry: boolean;
+  severity: 'warning' | 'error';
+}
+
+function classifyImportError(rawError: string): ClassifiedError {
+  const lower = rawError.toLowerCase();
+
+  // Empty export
+  if (lower.includes('no conversations') || lower.includes('empty'))
+    return {
+      title: 'Empty export',
+      message: 'No conversations were found in your file.',
+      action: 'Make sure you have ChatGPT history before exporting.',
+      canRetry: false,
+      severity: 'error',
+    };
+
+  // Wrong file format
+  if (lower.includes('conversations.json') || lower.includes('format') || lower.includes("doesn't look like") || lower.includes('not a valid'))
+    return {
+      title: 'Wrong file format',
+      message: 'This file doesn\'t appear to be a valid ChatGPT export.',
+      action: 'Go to ChatGPT Settings \u2192 Data Controls \u2192 Export Data, then upload the ZIP file you receive by email.',
+      canRetry: false,
+      severity: 'error',
+    };
+
+  // ZIP-specific errors
+  if (lower.includes('zip'))
+    return {
+      title: 'Invalid ZIP file',
+      message: 'The file could not be read as a ZIP archive.',
+      action: 'Make sure you\'re uploading the original ZIP file from ChatGPT without unzipping it first.',
+      canRetry: false,
+      severity: 'error',
+    };
+
+  // File too large (entity too large)
+  if (lower.includes('entity too large') || lower.includes('too large') || lower.includes('size'))
+    return {
+      title: 'File too large',
+      message: rawError,
+      action: 'Try uploading from a desktop browser, which handles large files better.',
+      canRetry: true,
+      severity: 'error',
+    };
+
+  // Download/storage errors (RLM couldn't fetch from Supabase)
+  if (lower.includes('download') || lower.includes('storage'))
+    return {
+      title: 'Download failed',
+      message: 'We couldn\'t retrieve your uploaded file for processing.',
+      action: 'Please try uploading again.',
+      canRetry: true,
+      severity: 'error',
+    };
+
+  // RLM processing errors
+  if (lower.includes('rlm error') || lower.includes('quick pass') || lower.includes('processing'))
+    return {
+      title: 'Processing error',
+      message: 'Our analysis service encountered an issue.',
+      action: 'This is usually temporary. Please try again in a few minutes.',
+      canRetry: true,
+      severity: 'error',
+    };
+
+  // Session/auth errors
+  if (lower.includes('logged in') || lower.includes('unauthorized') || lower.includes('session'))
+    return {
+      title: 'Session expired',
+      message: 'Your login session has expired.',
+      action: 'Please refresh the page to log in again.',
+      canRetry: false,
+      severity: 'warning',
+    };
+
+  // Network/connection errors
+  if (lower.includes('network') || lower.includes('fetch') || lower.includes('timeout') || lower.includes('connection'))
+    return {
+      title: 'Connection issue',
+      message: 'The connection was interrupted during processing.',
+      action: 'Check your internet connection and try again.',
+      canRetry: true,
+      severity: 'warning',
+    };
+
+  // Duplicate import (409 conflict - already processing)
+  if (lower.includes('already processing'))
+    return {
+      title: 'Import already in progress',
+      message: rawError,
+      action: 'Wait for the current import to finish, or reset your profile to start over.',
+      canRetry: false,
+      severity: 'warning',
+    };
+
+  // Default fallback — pass through raw error but with friendly framing
+  return {
+    title: 'Something went wrong',
+    message: rawError,
+    action: 'Please try again. If the problem persists, contact support.',
+    canRetry: true,
+    severity: 'error',
+  };
+}
+
 // IndexedDB helpers for storing large datasets client-side
 const DB_NAME = 'soulprint_import';
 const DB_VERSION = 1;
@@ -747,7 +859,7 @@ function ImportPageContent() {
           <div className="flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-red-400 text-sm font-medium">Something went wrong</p>
+              <p className="text-red-400 text-sm font-medium">{classifyImportError(errorMessage).title}</p>
               <p className="text-white/70 text-xs mt-1">{errorMessage}</p>
             </div>
             <button
@@ -940,18 +1052,40 @@ function ImportPageContent() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="w-full max-w-sm flex flex-col justify-center text-center"
             >
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7 text-red-500" />
-              </div>
-              <h2 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">Something went wrong</h2>
-              <p className="text-white/50 text-xs sm:text-sm mb-4 sm:mb-6">{errorMessage}</p>
-              <Button
-                onClick={handleRetry}
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10 h-9 sm:h-10"
-              >
-                Try Again
-              </Button>
+              {(() => {
+                const classified = classifyImportError(errorMessage);
+                return (
+                  <>
+                    <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 ${
+                      classified.severity === 'warning' ? 'bg-yellow-500/15' : 'bg-red-500/15'
+                    }`}>
+                      <AlertCircle className={`w-6 h-6 sm:w-7 sm:h-7 ${
+                        classified.severity === 'warning' ? 'text-yellow-500' : 'text-red-500'
+                      }`} />
+                    </div>
+                    <h2 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">{classified.title}</h2>
+                    <p className="text-white/50 text-xs sm:text-sm mb-1">{classified.message}</p>
+                    <p className="text-white/40 text-xs mb-4 sm:mb-6">{classified.action}</p>
+                    {classified.canRetry ? (
+                      <Button
+                        onClick={handleRetry}
+                        variant="outline"
+                        className="border-white/20 text-white hover:bg-white/10 h-9 sm:h-10"
+                      >
+                        Try Again
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleRetry}
+                        variant="outline"
+                        className="border-white/20 text-white hover:bg-white/10 h-9 sm:h-10"
+                      >
+                        Start Over
+                      </Button>
+                    )}
+                  </>
+                );
+              })()}
             </motion.div>
           )}
 
