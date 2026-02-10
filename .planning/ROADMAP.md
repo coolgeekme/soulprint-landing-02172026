@@ -11,6 +11,7 @@
 - SHIPPED **v2.0 AI Quality & Personalization** -- Phases 1-5, 14 plans (shipped 2026-02-09)
 - SHIPPED **v2.1 Hardening & Integration** -- Phases 1-3 (shipped 2026-02-09)
 - SHIPPED **v2.2 Bulletproof Imports** -- Phases 1-3, 8 plans (shipped 2026-02-10)
+- ACTIVE **v2.3 Universal Uploads** -- Phases 1-2 (in progress)
 
 ## Phases
 
@@ -110,7 +111,8 @@ See: Previous active milestone content (collapsed)
 
 </details>
 
-## v2.2 Bulletproof Imports (SHIPPED 2026-02-10)
+<details>
+<summary>v2.2 Bulletproof Imports (Phases 1-3) -- SHIPPED 2026-02-10</summary>
 
 **Milestone Goal:** Move all heavy import processing from Vercel to RLM (Render), port convoviz-quality parsing (DAG traversal, hidden message filtering, polymorphic parts), make imports work for any size export on any device.
 
@@ -175,16 +177,59 @@ Plans:
 - [x] 03-01-PLAN.md — Stage-aware progress UI with RingProgress, visibility-aware polling, returning-user fix (Wave 1)
 - [x] 03-02-PLAN.md — Error classification with actionable messages, non-blocking mobile warning (Wave 2)
 
+</details>
+
+## v2.3 Universal Uploads (ACTIVE)
+
+**Milestone Goal:** Replace raw XHR upload with TUS resumable protocol so any file size works on any device/browser. Fix the Supabase Storage transport limit (~50MB on REST endpoint) that blocks large ChatGPT exports.
+
+**Overview:** This milestone addresses the final upload transport constraint preventing large file uploads. While v2.2 made RLM processing bulletproof for any size export, the client-side upload itself still hits Supabase Storage REST endpoint limits (~50MB practical ceiling). TUS resumable uploads (supported natively by Supabase Pro up to 5GB) enable reliable uploads on any device/browser with automatic resume on network interruption, better mobile compatibility via 6MB chunks, and built-in retry logic. This is a client-side-only change with zero backend modifications.
+
+### Phase 1: TUS Upload Implementation
+**Goal:** Users can upload any size ChatGPT export via TUS resumable protocol with automatic resume and progress tracking
+
+**Depends on:** Nothing (first phase)
+
+**Requirements:** UPL-01, UPL-02, UPL-03, UPL-04, SEC-01, SEC-02, CMP-01, CMP-02, INT-01, INT-02
+
+**Success Criteria** (what must be TRUE):
+1. User can upload ChatGPT exports up to 5GB without "file too large" errors (tested on 2GB+ files)
+2. User sees accurate upload progress percentage for files of any size (progress bar updates smoothly)
+3. User's interrupted upload resumes automatically from where it left off when network reconnects (no re-upload from scratch)
+4. User's upload retries automatically on transient server errors (5xx, timeout) without manual intervention
+5. User's JWT token refreshes automatically during multi-hour uploads (no 401 failures after 1hr)
+
+**Plans:** TBD (will be defined during plan-phase)
+
+Plans:
+- [ ] 01-01: [TBD during planning]
+
+### Phase 2: Cleanup & Verification
+**Goal:** Old XHR upload code path is removed after TUS is verified in production
+
+**Depends on:** Phase 1 (needs TUS implementation working and verified)
+
+**Requirements:** CLN-01
+
+**Success Criteria** (what must be TRUE):
+1. Codebase contains no references to old XHR upload logic or chunked-upload module
+2. All upload flows use TUS (verified via code search for old upload function names)
+3. Upload success rate maintains or exceeds baseline after XHR removal (monitoring confirms no regressions)
+
+**Plans:** TBD (will be defined during plan-phase)
+
+Plans:
+- [ ] 02-01: [TBD during planning]
+
 ## Progress
 
 **Execution Order:**
-Phases execute sequentially: 1 -> 2 -> 3. Each phase builds on the previous infrastructure.
+Phases execute sequentially: 1 -> 2. Each phase builds on the previous infrastructure.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Migration | 5/5 | Complete | 2026-02-10 |
-| 2. Parsing Quality | 1/1 | Complete | 2026-02-10 |
-| 3. UX Enhancement | 2/2 | Complete | 2026-02-10 |
+| 1. TUS Upload Implementation | 0/TBD | Not started | - |
+| 2. Cleanup & Verification | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-02-10 -- v2.2 SHIPPED (all 3 phases, 8 plans complete)*
+*Last updated: 2026-02-09 -- v2.3 Universal Uploads roadmap created*

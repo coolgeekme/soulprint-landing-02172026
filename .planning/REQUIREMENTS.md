@@ -60,23 +60,23 @@ Deferred to next milestone. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| UPL-01 | — | Pending |
-| UPL-02 | — | Pending |
-| UPL-03 | — | Pending |
-| UPL-04 | — | Pending |
-| SEC-01 | — | Pending |
-| SEC-02 | — | Pending |
-| CMP-01 | — | Pending |
-| CMP-02 | — | Pending |
-| INT-01 | — | Pending |
-| INT-02 | — | Pending |
-| CLN-01 | — | Pending |
+| UPL-01 | Phase 1 | Pending |
+| UPL-02 | Phase 1 | Pending |
+| UPL-03 | Phase 1 | Pending |
+| UPL-04 | Phase 1 | Pending |
+| SEC-01 | Phase 1 | Pending |
+| SEC-02 | Phase 1 | Pending |
+| CMP-01 | Phase 1 | Pending |
+| CMP-02 | Phase 1 | Pending |
+| INT-01 | Phase 1 | Pending |
+| INT-02 | Phase 1 | Pending |
+| CLN-01 | Phase 2 | Pending |
 
 **Coverage:**
 - v2.3 requirements: 11 total
-- Mapped to phases: 0 (awaiting roadmap)
-- Unmapped: 11
+- Mapped to phases: 11/11 (100%)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-09*
-*Last updated: 2026-02-09 after initial definition*
+*Last updated: 2026-02-09 after roadmap creation*
