@@ -128,9 +128,9 @@ function classifyImportError(rawError: string): ClassifiedError {
   // Session/auth errors
   if (lower.includes('logged in') || lower.includes('unauthorized') || lower.includes('session'))
     return {
-      title: 'Session expired',
+      title: 'Not logged in',
       message: 'Your login session has expired.',
-      action: 'Please refresh the page to log in again.',
+      action: 'Redirecting to login...',
       canRetry: false,
       severity: 'warning',
     };
@@ -271,6 +271,15 @@ function ImportPageContent() {
   useEffect(() => {
     const checkExisting = async () => {
       try {
+        // Auth gate: check if user is actually logged in FIRST
+        const supabaseCheck = createClient();
+        const { data: { user: authUser } } = await supabaseCheck.auth.getUser();
+        if (!authUser) {
+          // Not logged in — redirect to login page
+          router.push('/login');
+          return;
+        }
+
         const res = await fetch('/api/memory/status');
         const data = await res.json();
 
@@ -688,8 +697,10 @@ function ImportPageContent() {
           userMessage = err.message;
         } else if (msg.includes('zip') || msg.includes('format') || msg.includes('conversations.json')) {
           userMessage = 'Invalid file format. Please upload the original ZIP from ChatGPT.';
-        } else if (msg.includes('logged in') || msg.includes('unauthorized')) {
-          userMessage = 'Session expired. Please refresh the page and try again.';
+        } else if (msg.includes('logged in') || msg.includes('unauthorized') || msg.includes('session expired')) {
+          // Auth is broken — redirect to login instead of showing confusing error
+          router.push('/login');
+          return;
         } else if (msg.includes('no conversations') || msg.includes('empty')) {
           userMessage = 'No conversations found in your export. Make sure you have ChatGPT history before exporting.';
         } else {
