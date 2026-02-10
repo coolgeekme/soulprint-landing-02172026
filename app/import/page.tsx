@@ -11,7 +11,7 @@ import { RingProgress } from '@/components/ui/ring-progress';
 // Client-side soulprint generation removed - all imports now use server-side RLM
 import { createClient } from '@/lib/supabase/client';
 import JSZip from 'jszip';
-import { uploadWithProgress, chunkedUpload } from '@/lib/chunked-upload';
+import { tusUpload } from '@/lib/tus-upload';
 import { getCsrfToken } from '@/lib/csrf';
 
 // Detect mobile devices (conservative - if unsure, treat as mobile)
@@ -505,97 +505,36 @@ function ImportPageContent() {
           uploadFilename = file.name;
         }
 
-        const isJson = uploadFilename.endsWith('.json');
-
-        // Use Client-Side Upload (Standard Supabase) to bypass Vercel limits
-        // The 'imports' bucket must have RLS policies set for this to work
+        // Upload via TUS resumable protocol to Supabase Storage
         setProgressStage('Uploading securely to storage...');
         setProgress(15);
 
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-
         if (!user) throw new Error('You must be logged in to upload');
 
-        const timestamp = Date.now();
-        // Sanitize filename to avoid issues
-        const cleanName = uploadFilename.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const uploadPath = `${user.id}/${timestamp}-${cleanName}`;
-
         const blobSizeMB = uploadBlob.size / 1024 / 1024;
-        console.log(`[Import] Starting upload: ${uploadPath} (${blobSizeMB.toFixed(1)}MB) mobile=${isMobile}`);
+        console.log(`[Import] Starting TUS upload: ${blobSizeMB.toFixed(1)}MB mobile=${isMobile}`);
         setProgressStage(`Uploading ${blobSizeMB.toFixed(1)}MB...`);
 
-        // Get Supabase storage URL and auth token for direct XHR upload
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
-        
-        if (!accessToken) {
-          throw new Error('Session expired. Please refresh and try again.');
+        const uploadResult = await tusUpload({
+          file: uploadBlob,
+          userId: user.id,
+          filename: uploadFilename,
+          onProgress: (percent) => {
+            // Map upload progress to 15-50% range
+            const mappedProgress = 15 + (percent * 0.35);
+            setProgress(Math.round(mappedProgress));
+            setProgressStage(`Uploading... ${percent}%`);
+          },
+        });
+
+        if (!uploadResult.success) {
+          console.error('[Import] TUS upload failed:', uploadResult.error);
+          throw new Error(uploadResult.error || 'Upload failed');
         }
 
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const contentType = uploadFilename.endsWith('.json') ? 'application/json' : 'application/zip';
-        
-        // Use chunked upload only for very large files (>2GB)
-        // Direct XHR upload to Supabase storage is faster and more reliable
-        // Supabase bucket limit is 10GB, so direct upload covers most cases
-        const CHUNKED_THRESHOLD = 2 * 1024 * 1024 * 1024; // 2GB
-        let storagePath: string;
-
-        if (uploadBlob.size > CHUNKED_THRESHOLD) {
-          // CHUNKED UPLOAD for large files (100MB+)
-          console.log(`[Import] Using CHUNKED upload for ${blobSizeMB.toFixed(1)}MB file`);
-          setProgressStage(`Uploading ${blobSizeMB.toFixed(1)}MB in chunks...`);
-
-          const uploadId = `${user.id}-${timestamp}`;
-          const chunkedUrl = '/api/import/chunked-upload';
-
-          const chunkResult = await chunkedUpload(
-            uploadBlob,
-            chunkedUrl,
-            accessToken,
-            (progress) => {
-              // Map upload progress to 15-50% range
-              const mappedProgress = 15 + (progress.percent * 0.35);
-              setProgress(Math.round(mappedProgress));
-              setProgressStage(`Uploading chunk ${progress.chunk}/${progress.totalChunks} (${progress.percent}%)`);
-            },
-            uploadId
-          );
-
-          if (!chunkResult.success) {
-            console.error('[Import] Chunked upload failed:', chunkResult.error);
-            throw new Error(chunkResult.error || 'Upload failed');
-          }
-
-          storagePath = chunkResult.path || `imports/${user.id}/${timestamp}-conversations.json`;
-          console.log('[Import] Chunked upload complete:', storagePath);
-        } else {
-          // DIRECT UPLOAD for smaller files (<100MB)
-          const uploadUrl = `${supabaseUrl}/storage/v1/object/imports/${uploadPath}`;
-          console.log(`[Import] Using direct XHR upload to: ${uploadUrl}`);
-
-          const uploadResult = await uploadWithProgress(
-            uploadBlob,
-            uploadUrl,
-            accessToken,
-            contentType,
-            (percent) => {
-              // Map upload progress to 15-50% range
-              const mappedProgress = 15 + (percent * 0.35);
-              setProgress(Math.round(mappedProgress));
-              setProgressStage(`Uploading... ${percent}%`);
-            }
-          );
-
-          if (!uploadResult.success) {
-            console.error('[Import] XHR upload failed:', uploadResult.error);
-            throw new Error(uploadResult.error || 'Upload failed');
-          }
-
-          storagePath = `imports/${uploadPath}`;
-        }
+        const storagePath = uploadResult.storagePath!;
 
         console.log('[Import] Upload complete');
         setProgressStage('Upload complete! Starting processing...');
