@@ -154,7 +154,7 @@ Plans:
 **Plans:** 1 plan in 1 wave
 
 Plans:
-- [ ] 02-01-PLAN.md — DAG traversal helpers, streaming import integration, chunker update (Wave 1)
+- [x] 02-01-PLAN.md — DAG traversal helpers, streaming import integration, chunker update (Wave 1)
 
 ### Phase 3: UX Enhancement - Progress and Error Clarity
 **Goal:** Users see real processing progress and receive actionable error messages when imports fail
@@ -182,8 +182,8 @@ Phases execute sequentially: 1 -> 2 -> 3. Each phase builds on the previous infr
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Migration | 5/5 | Complete | 2026-02-10 |
-| 2. Parsing Quality | 0/1 | Ready | - |
+| 2. Parsing Quality | 1/1 | Complete | 2026-02-10 |
 | 3. UX Enhancement | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-02-10 -- Phase 2 planned (1 plan), ready for execution*
+*Last updated: 2026-02-10 -- Phase 2 COMPLETE (1/1 plans, DAG parsing deployed to production)*

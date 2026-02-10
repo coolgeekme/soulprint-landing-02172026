@@ -6,23 +6,23 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 
 **Core value:** The AI must feel like YOUR AI -- genuinely human, deeply personalized, systematically evaluated.
 
-**Current focus:** Phase 2 - Parsing Quality (v2.2 Bulletproof Imports)
+**Current focus:** Phase 2 COMPLETE - Parsing Quality (v2.2 Bulletproof Imports)
 
 ## Current Position
 
 Phase: 2 of 3 (Parsing Quality - DAG Traversal and Content Handling)
-Plan: 0 of TBD complete
-Status: Planning
-Last activity: 2026-02-10 -- Phase 1 verified on production (2 imports passed)
+Plan: 1 of 1 complete
+Status: Phase complete
+Last activity: 2026-02-10 -- Completed 02-01-PLAN.md (DAG traversal parsing)
 
-Progress: [██████████] Phase 1 COMPLETE
+Progress: [████████████████████] Phase 1 COMPLETE, Phase 2 COMPLETE
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 76 (across v1.0-v2.2 milestones)
+- Total plans completed: 77 (across v1.0-v2.2 milestones)
 - Average duration: ~17 min
-- Total execution time: ~21.25 hours across 8 milestones
+- Total execution time: ~21.3 hours across 8 milestones
 
 **By Milestone:**
 
@@ -36,9 +36,9 @@ Progress: [██████████] Phase 1 COMPLETE
 | v1.5 Full Chat | 6 | 8 | Shipped |
 | v2.0 AI Quality | 5 | 14 | Shipped |
 | v2.1 Hardening | 3 | 4 | Shipped |
-| v2.2 Imports | 3 | 5 | In progress |
+| v2.2 Imports | 3 | 6 | In progress |
 
-*Metrics updated: 2026-02-09*
+*Metrics updated: 2026-02-10*
 
 ## Accumulated Context
 
@@ -61,6 +61,10 @@ Recent decisions affecting current work:
 - 01-04: 10s RLM acceptance timeout, AbortError non-fatal (fire-and-forget pattern)
 - 01-04: Frontend polls user_profiles every 2s for real progress from RLM
 - 01-04: Check both quick_ready and complete status for RLM completion
+- 02-01: Backward traversal from current_node (not forward from root) for active path extraction
+- 02-01: Fallback forward traversal follows LAST child at each level (most recent edit)
+- 02-01: System messages included only if metadata.is_user_system_message is True
+- 02-01: Image parts (asset_pointer) silently skipped — soulprint is text-based
 
 ### Pending Todos
 
@@ -68,24 +72,26 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-**Known gaps addressed in v2.2:**
-- Import parsing only takes `parts[0]` — misses multi-part content (PAR-03)
-- Import dumps ALL conversation nodes — includes dead branches from edits (PAR-01)
-- Import doesn't filter hidden messages — tool outputs, browsing noise (PAR-02)
-- Import doesn't handle `{ conversations: [...] }` wrapper format (PAR-04)
-- Large exports OOM on Vercel — 1GB RAM limit, 300s timeout (IMP-01, IMP-02)
+**Resolved in Phase 2:**
+- ~~Import parsing only takes `parts[0]` — misses multi-part content (PAR-03)~~ FIXED in 02-01
+- ~~Import dumps ALL conversation nodes — includes dead branches from edits (PAR-01)~~ FIXED in 02-01
+- ~~Import doesn't filter hidden messages — tool outputs, browsing noise (PAR-02)~~ FIXED in 02-01
+- ~~Import doesn't handle `{ conversations: [...] }` wrapper format (PAR-04)~~ Already fixed in Phase 1, preserved in Phase 2
 
-**New concerns for v2.2:**
+**Resolved in Phase 1:**
+- ~~Large exports OOM on Vercel — 1GB RAM limit, 300s timeout (IMP-01, IMP-02)~~ FIXED in Phase 1
+
+**Remaining concerns for v2.2:**
 - Render cold start delays (up to 60s) require explicit UX handling
 - ChatGPT export format variations (no official spec) need defensive parsing
 - Mobile large file testing needed for 100MB+ files on iOS/Android
 
 ## Session Continuity
 
-Last session: 2026-02-10T00:00:00Z
-Stopped at: Phase 1 complete, verified on production
+Last session: 2026-02-10T00:31:32Z
+Stopped at: Completed 02-01-PLAN.md (Phase 2 complete)
 Resume file: None
-Next step: Plan Phase 2 (Parsing Quality — DAG traversal)
+Next step: Plan Phase 3 (UX Enhancement — Progress and Error Clarity)
 
 ---
-*Last updated: 2026-02-10 -- Phase 1 COMPLETE (5/5 plans, 2 imports verified on prod)*
+*Last updated: 2026-02-10 -- Phase 2 COMPLETE (1/1 plans, DAG parsing deployed to production)*
