@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
 
     // Safely validate profile data (defensive against unexpected DB data)
     const userProfile = validateProfile(profile);
-    const hasSoulprint = !!userProfile?.soulprint_text;
+    const hasSoulprint = !!userProfile?.soulprint_text || !!userProfile?.soul_md;
     reqLog.debug({ hasSoulprint, importStatus: userProfile?.import_status }, 'User profile loaded');
 
     // Get daily memory (recent learned facts)

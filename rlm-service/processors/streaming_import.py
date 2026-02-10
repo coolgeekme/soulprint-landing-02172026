@@ -275,6 +275,22 @@ async def process_import_streaming(user_id: str, storage_path: str):
         ai_name = quick_pass_result.get("identity", {}).get("ai_name", "Nova")
         archetype = quick_pass_result.get("identity", {}).get("archetype", "Analyzing...")
 
+        # Build soulprint_text from sections (used by chat route as primary personality check)
+        soulprint_text = f"""## Communication Style & Personality
+{soul_md}
+
+## AI Identity
+{identity_md}
+
+## About the User
+{user_md}
+
+## How I Operate
+{agents_md}
+
+## Capabilities
+{tools_md}"""
+
         # Update user_profiles with quick pass results
         async with httpx.AsyncClient() as client:
             await client.patch(
@@ -285,6 +301,7 @@ async def process_import_streaming(user_id: str, storage_path: str):
                     "user_md": user_md,
                     "agents_md": agents_md,
                     "tools_md": tools_md,
+                    "soulprint_text": soulprint_text,
                     "ai_name": ai_name,
                     "archetype": archetype,
                     "import_status": "quick_ready",
