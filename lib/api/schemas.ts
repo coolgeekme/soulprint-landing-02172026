@@ -189,15 +189,6 @@ export const rlmProcessResponseSchema = z.object({
   message: z.string().optional(),
 });
 
-/**
- * Chunked Upload Result Schema
- * Validates response from chunked upload endpoint
- */
-export const chunkedUploadResultSchema = z.object({
-  complete: z.boolean().optional(),
-  path: z.string().optional(),
-});
-
 // ============================================
 // Mem0 API Response Schemas (Phase 7)
 // ============================================
