@@ -169,10 +169,11 @@ Plans:
 3. User successfully imports 100MB+ files from mobile devices (iOS Safari, Android Chrome)
 4. User can close browser during import and return later to see completion (no page-open requirement)
 
-**Plans:** TBD
+**Plans:** 2 plans in 2 waves
 
 Plans:
-- [ ] TBD during planning
+- [ ] 03-01-PLAN.md — Stage-aware progress UI with RingProgress, visibility-aware polling, returning-user fix (Wave 1)
+- [ ] 03-02-PLAN.md — Error classification with actionable messages, non-blocking mobile warning (Wave 2)
 
 ## Progress
 
@@ -183,7 +184,7 @@ Phases execute sequentially: 1 -> 2 -> 3. Each phase builds on the previous infr
 |-------|----------------|--------|-----------|
 | 1. Core Migration | 5/5 | Complete | 2026-02-10 |
 | 2. Parsing Quality | 1/1 | Complete | 2026-02-10 |
-| 3. UX Enhancement | 0/TBD | Not started | - |
+| 3. UX Enhancement | 0/2 | Not started | - |
 
 ---
 *Last updated: 2026-02-10 -- Phase 2 COMPLETE (1/1 plans, DAG parsing deployed to production)*
