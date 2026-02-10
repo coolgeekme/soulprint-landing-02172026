@@ -972,7 +972,8 @@ export default function ChatPage() {
                       headers: { 'X-CSRF-Token': csrfToken },
                     });
                     if (!res.ok) throw new Error('Reset failed');
-                    router.push('/import');
+                    // Hard navigation to avoid stale cache redirecting back to chat
+                    window.location.href = '/import';
                   } catch {
                     alert('Reset failed. Please try again.');
                   }
