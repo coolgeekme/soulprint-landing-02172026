@@ -1,68 +1,82 @@
-# Requirements: SoulPrint v2.2 Bulletproof Imports
+# Requirements: SoulPrint v2.3 Universal Uploads
 
 **Defined:** 2026-02-09
 **Core Value:** The AI must feel like YOUR AI -- genuinely human, deeply personalized, systematically evaluated.
 
-## v2.2 Requirements
+## v2.3 Requirements
 
-Requirements for the Bulletproof Imports milestone. Move all heavy import processing from Vercel to RLM (Render), port convoviz-quality parsing, make imports work for any size export on any device.
+Requirements for the Universal Uploads milestone. Replace raw XHR upload with TUS resumable protocol so any file size works on any device/browser. Fix the Supabase Storage transport limit (~50MB on REST endpoint) that blocks large ChatGPT exports.
 
-### Import Processing
+### Upload Transport
 
-- [ ] **IMP-01**: All heavy import processing (download, parse, quick pass, chunk) runs on RLM service (Render), not Vercel serverless
-- [ ] **IMP-02**: Import pipeline uses streaming JSON parser (ijson) for constant-memory processing of any size export (1MB to 2GB+)
-- [ ] **IMP-03**: Vercel serves as thin authentication proxy that triggers RLM and returns immediately
+- [ ] **UPL-01**: User can upload any size ChatGPT export (up to 5GB) via TUS resumable protocol
+- [ ] **UPL-02**: User sees accurate upload progress percentage for files of any size
+- [ ] **UPL-03**: User's interrupted upload resumes automatically from where it left off on network reconnect
+- [ ] **UPL-04**: User's upload retries automatically on transient server errors (5xx, timeout)
 
-### Parsing Quality
+### Authentication & Security
 
-- [ ] **PAR-01**: Conversation parsing uses DAG traversal via current_node→parent chain (no dead branches from edits)
-- [ ] **PAR-02**: Hidden messages filtered out before soulprint generation (tool outputs, browsing, reasoning traces)
-- [ ] **PAR-03**: All content.parts types handled correctly (strings, images, tool results — not just parts[0])
-- [ ] **PAR-04**: Both `[...]` and `{ conversations: [...] }` export formats supported
+- [ ] **SEC-01**: User's JWT token refreshes automatically during long uploads (no 401 failures after 1hr)
+- [ ] **SEC-02**: User can only upload to their own storage folder (RLS enforced via bearer token)
 
-### User Experience
+### Compatibility
 
-- [ ] **UXP-01**: User sees real processing stage progress (downloading, parsing, generating — not fake animation)
-- [ ] **UXP-02**: User receives actionable error messages when import fails (not generic "something went wrong")
-- [ ] **UXP-03**: Import works on any device (mobile + desktop) for any export size
+- [ ] **CMP-01**: User can upload from any modern browser (Chrome, Firefox, Safari, Brave, Edge)
+- [ ] **CMP-02**: User can upload from mobile devices (iOS Safari, Android Chrome)
+
+### Integration
+
+- [ ] **INT-01**: TUS-uploaded files trigger the same RLM processing pipeline as current XHR uploads
+- [ ] **INT-02**: Storage path format is identical to current XHR uploads (no backend changes needed)
+
+### Cleanup
+
+- [ ] **CLN-01**: Old XHR upload code path and chunked-upload module are removed after TUS is verified
+
+## Future Requirements
+
+Deferred to next milestone. Tracked but not in current roadmap.
+
+### Upload UX Enhancements
+
+- **UXE-01**: User can resume upload after closing and reopening browser (findPreviousUploads on page load)
+- **UXE-02**: User sees upload speed estimation ("X minutes remaining")
+- **UXE-03**: User can manually pause and resume upload
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Real-time WebSocket progress | Over-engineered — DB polling sufficient for import UX |
-| In-browser parsing | Unreliable on mobile, defeats purpose of server-side processing |
-| Parallel conversation processing | Complexity without proportional value — sequential is fine |
-| Incremental import (append new conversations) | Feature work, not in this reliability scope |
-| Import history / cancel button | Admin tooling — future milestone |
-| Retry with exponential backoff | Resilience enhancement — future milestone |
-| Signed URL security for Storage access | Security hardening — future milestone |
+| Server-side TUS implementation | Supabase handles TUS server natively |
+| Custom chunk sizes | Supabase hardcodes 6MB chunks -- cannot change |
+| Parallel chunk uploads | Complexity without value for single-file upload |
+| Multi-file batch upload | SoulPrint only processes one file at a time |
+| Checksum verification | Not in tus-js-client, Supabase handles integrity |
+| Upload queue management | Single file at a time is sufficient |
+| Feature flag gradual rollout | Unnecessary complexity -- TUS is drop-in replacement |
+| Analytics/monitoring dashboard | No analytics infrastructure exists to track these |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| IMP-01 | Phase 1 | Pending |
-| IMP-02 | Phase 1 | Pending |
-| IMP-03 | Phase 1 | Pending |
-| PAR-01 | Phase 2 | Pending |
-| PAR-02 | Phase 2 | Pending |
-| PAR-03 | Phase 2 | Pending |
-| PAR-04 | Phase 2 | Pending |
-| UXP-01 | Phase 3 | Pending |
-| UXP-02 | Phase 3 | Pending |
-| UXP-03 | Phase 3 | Pending |
+| UPL-01 | — | Pending |
+| UPL-02 | — | Pending |
+| UPL-03 | — | Pending |
+| UPL-04 | — | Pending |
+| SEC-01 | — | Pending |
+| SEC-02 | — | Pending |
+| CMP-01 | — | Pending |
+| CMP-02 | — | Pending |
+| INT-01 | — | Pending |
+| INT-02 | — | Pending |
+| CLN-01 | — | Pending |
 
 **Coverage:**
-- v2.2 requirements: 10 total
-- Mapped to phases: 10 (100% coverage)
-- Unmapped: 0
-
-**Phase distribution:**
-- Phase 1 (Core Migration): 3 requirements
-- Phase 2 (Parsing Quality): 4 requirements
-- Phase 3 (UX Enhancement): 3 requirements
+- v2.3 requirements: 11 total
+- Mapped to phases: 0 (awaiting roadmap)
+- Unmapped: 11
 
 ---
 *Requirements defined: 2026-02-09*
-*Traceability updated: 2026-02-09 (roadmap created)*
+*Last updated: 2026-02-09 after initial definition*
