@@ -95,13 +95,13 @@ function classifyImportError(rawError: string): ClassifiedError {
       severity: 'error',
     };
 
-  // File too large (entity too large)
+  // File too large (storage plan limit)
   if (lower.includes('entity too large') || lower.includes('too large') || lower.includes('size'))
     return {
-      title: 'File too large',
+      title: 'File exceeds storage limit',
       message: rawError,
-      action: 'Try uploading from a desktop browser, which handles large files better.',
-      canRetry: true,
+      action: 'Your file is larger than the current storage plan allows. Contact support for large file imports.',
+      canRetry: false,
       severity: 'error',
     };
 
@@ -224,10 +224,7 @@ function ImportPageContent() {
   const [showReimportModal, setShowReimportModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [hasExistingSoulprint, setHasExistingSoulprint] = useState(false);
-  const [showMobileWarning, setShowMobileWarning] = useState(false);
-  const [mobileWarningFile, setMobileWarningFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const mobileWarningDismissedRef = useRef(false);
   const uploadProgressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const visibilityHandlerRef = useRef<(() => void) | null>(null);
@@ -456,14 +453,6 @@ function ImportPageContent() {
 
   const processFile = async (file: File) => {
     const isMobile = isMobileDevice();
-    const fileSizeMB = file.size / 1024 / 1024;
-
-    // Mobile large file warning (non-blocking)
-    if (isMobile && fileSizeMB > 200 && !mobileWarningDismissedRef.current) {
-      setMobileWarningFile(file);
-      setShowMobileWarning(true);
-      return;
-    }
 
     setStatus('processing');
     setCurrentStep('processing');
@@ -754,7 +743,7 @@ function ImportPageContent() {
         } else if (msg.includes('timeout')) {
           userMessage = 'Upload timed out. Try with a smaller file or better connection.';
         } else if (msg.includes('entity too large')) {
-          userMessage = 'Upload rejected by server — please try from a desktop/laptop browser for large exports.';
+          userMessage = 'File exceeds storage limit. Contact support for large file imports.';
         } else if (msg.includes('chatgpt export') || msg.includes("doesn't look like")) {
           // New validation error - pass through as-is (it's already user-friendly)
           userMessage = err.message;
@@ -1237,49 +1226,6 @@ function ImportPageContent() {
         </div>
       )}
 
-      {/* Mobile Large File Warning */}
-      {showMobileWarning && mobileWarningFile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-sm bg-zinc-900 border border-yellow-500/20 rounded-2xl p-6"
-          >
-            <div className="w-10 h-10 rounded-full bg-yellow-500/15 flex items-center justify-center mx-auto mb-3">
-              <AlertCircle className="w-5 h-5 text-yellow-500" />
-            </div>
-            <h3 className="text-lg font-bold text-white mb-2 text-center">Large file on mobile</h3>
-            <p className="text-white/60 text-sm mb-1 text-center">
-              Your export is {(mobileWarningFile.size / 1024 / 1024).toFixed(0)}MB.
-            </p>
-            <p className="text-white/40 text-xs mb-5 text-center">
-              Large uploads work best on desktop. Mobile uploads may be slow or interrupted, but you can try.
-            </p>
-
-            <div className="space-y-2.5">
-              <Button
-                onClick={() => {
-                  mobileWarningDismissedRef.current = true;
-                  setShowMobileWarning(false);
-                  processFile(mobileWarningFile);
-                }}
-                className="w-full bg-orange-500 hover:bg-orange-400 text-black font-semibold h-10"
-              >
-                Upload anyway
-              </Button>
-              <button
-                onClick={() => {
-                  setShowMobileWarning(false);
-                  setMobileWarningFile(null);
-                }}
-                className="w-full text-center text-white/40 text-xs hover:text-white/60 transition-colors py-2"
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </main>
   );
 }
