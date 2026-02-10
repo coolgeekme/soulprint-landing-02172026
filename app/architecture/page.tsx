@@ -544,7 +544,6 @@ function ImplementationStatus() {
             { name: "V2 Regeneration", detail: "Re-synthesize all 5 sections with full context (top 200 convos)" },
             { name: "Streaming Import", detail: "Memory-efficient ijson parsing for 300MB+ files" },
             { name: "Email Notifications", detail: "Resend integration ready, needs end-to-end testing" },
-            { name: "Gamification", detail: "XP system + pillar questionnaire + achievement toasts" },
             { name: "Progress Tracking", detail: "import_stage + progress_percent columns (recently added)" },
             { name: "Job Recovery", detail: "RLM auto-resumes stuck jobs on startup (attempts < 3)" },
           ]}

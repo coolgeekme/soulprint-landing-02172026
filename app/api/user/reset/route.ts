@@ -116,25 +116,7 @@ export async function DELETE(request: Request) {
       console.log(`[UserReset] v1.2 sections reset skipped (columns may not exist): ${sectionsError.message}`);
     }
 
-    // 7. Reset gamification stats
-    const { error: statsError } = await adminSupabase
-      .from('user_stats')
-      .update({
-        total_xp: 0,
-        level: 1,
-        messages_sent: 0,
-        memories_created: 0,
-        current_streak: 0,
-        longest_streak: 0,
-        total_chats: 0,
-        total_facts_learned: 0,
-        last_active_date: null,
-        last_chat_at: null,
-      })
-      .eq('user_id', userId);
-    results.user_stats = statsError ? statsError.message : 'reset';
-
-    // 8. Delete storage files
+    // 7. Delete storage files
     const { data: files } = await adminSupabase.storage
       .from('imports')
       .list(userId);

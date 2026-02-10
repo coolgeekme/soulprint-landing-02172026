@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Koulen, Geist, Inter, Host_Grotesk, Cinzel } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { AchievementToastProvider } from "@/components/AchievementToast";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 
 const plusJakarta = Plus_Jakarta_Sans({ 
@@ -88,9 +87,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AchievementToastProvider>
-            {children}
-          </AchievementToastProvider>
+          {children}
         </ThemeProvider>
       </body>
     </html>
