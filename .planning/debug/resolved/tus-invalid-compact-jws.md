@@ -1,8 +1,8 @@
 ---
-status: verifying
+status: resolved
 trigger: "tus-invalid-compact-jws"
 created: 2026-02-10T00:00:00Z
-updated: 2026-02-10T00:18:00Z
+updated: 2026-02-10T00:20:00Z
 ---
 
 ## Current Focus
