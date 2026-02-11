@@ -137,50 +137,81 @@ async def update_user_profile(user_id: str, updates: dict):
 
 
 async def download_conversations(storage_path: str, file_type: str = 'json') -> list:
-    """Download conversations.json from Supabase Storage.
+    """Download conversations.json from Supabase Storage using streaming to temp file.
 
-    Handles JSON (plain or gzipped) and ZIP files containing conversations.json.
+    Streams to disk to avoid loading the entire file into memory (critical for
+    1GB+ exports on Render's limited RAM). Handles JSON, gzipped JSON, and ZIP.
     """
+    import tempfile
+    import zipfile
+
+    temp_path = None
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{SUPABASE_URL}/storage/v1/object/{storage_path}",
-                headers={
-                    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-                },
-            )
+        # Stream download to temp file (constant memory)
+        suffix = ".zip" if file_type == 'zip' else ".json"
+        fd, temp_path = tempfile.mkstemp(suffix=suffix, prefix="fullpass_dl_")
+        os.close(fd)
 
-            if response.status_code != 200:
-                raise Exception(f"Failed to download from storage: {response.text}")
+        url = f"{SUPABASE_URL}/storage/v1/object/{storage_path}"
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            async with client.stream("GET", url, headers={
+                "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+            }) as response:
+                if response.status_code != 200:
+                    raise Exception(f"Failed to download from storage: {response.status_code}")
+                with open(temp_path, "wb") as f:
+                    async for chunk in response.aiter_bytes():
+                        f.write(chunk)
 
-            # Get content
-            content = response.content
+        print(f"[download_conversations] Downloaded to temp file: {temp_path}")
 
-            # Handle ZIP files
-            if file_type == 'zip' or content[:2] == b'PK':
-                import zipfile
-                import io
-                print(f"[download_conversations] Extracting conversations.json from ZIP")
-                with zipfile.ZipFile(io.BytesIO(content)) as zf:
-                    json_files = [n for n in zf.namelist() if n.endswith('conversations.json')]
-                    if not json_files:
-                        raise ValueError("No conversations.json found in ZIP")
-                    content = zf.read(json_files[0])
-            else:
-                # Try to decompress if gzipped
-                try:
-                    content = gzip.decompress(content)
-                except Exception:
-                    # Not gzipped, use as-is
-                    pass
+        # Detect ZIP by magic bytes or file_type
+        with open(temp_path, 'rb') as f:
+            magic = f.read(2)
 
-            # Parse JSON
-            conversations = json.loads(content)
-            return conversations
+        if file_type == 'zip' or magic == b'PK':
+            print(f"[download_conversations] Extracting conversations.json from ZIP")
+            extract_dir = temp_path + '_extracted'
+            os.makedirs(extract_dir, exist_ok=True)
+            with zipfile.ZipFile(temp_path, 'r') as zf:
+                json_files = [n for n in zf.namelist() if n.endswith('conversations.json')]
+                if not json_files:
+                    raise ValueError("No conversations.json found in ZIP")
+                zf.extract(json_files[0], extract_dir)
+            # Remove ZIP to free disk space
+            os.unlink(temp_path)
+            temp_path = os.path.join(extract_dir, json_files[0])
+        elif magic[:2] == b'\x1f\x8b':
+            # Gzipped — decompress to new temp file
+            import shutil
+            ungz_path = temp_path + '.ungz'
+            with gzip.open(temp_path, 'rb') as gz_in, open(ungz_path, 'wb') as gz_out:
+                shutil.copyfileobj(gz_in, gz_out)
+            os.unlink(temp_path)
+            temp_path = ungz_path
+
+        # Parse JSON from file (loads content but ZIP/download is already freed)
+        with open(temp_path, 'r') as f:
+            conversations = json.load(f)
+
+        print(f"[download_conversations] Parsed {len(conversations)} conversations from disk")
+        return conversations
 
     except Exception as e:
         print(f"[ERROR] download_conversations failed: {e}")
         raise
+    finally:
+        # Clean up temp files
+        import shutil
+        if temp_path:
+            try:
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+                parent = os.path.dirname(temp_path)
+                if parent.endswith('_extracted') and os.path.isdir(parent):
+                    shutil.rmtree(parent, ignore_errors=True)
+            except Exception:
+                pass
 
 
 async def run_full_pass(request: ProcessFullRequest):

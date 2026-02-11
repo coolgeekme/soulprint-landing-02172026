@@ -147,6 +147,19 @@ async def run_full_pass_pipeline(
     chunks = chunk_conversations(conversations, target_tokens=2000, overlap_tokens=200)
     print(f"[FullPass] Created {len(chunks)} chunks from {len(conversations)} conversations")
 
+    # Free raw conversations — chunks and v2 regen will use sampled subset
+    # Keep a lightweight copy for v2 regen (just id, title, first few messages)
+    conversations_light = []
+    for c in conversations:
+        conversations_light.append({
+            "id": c.get("id"),
+            "title": c.get("title"),
+            "messages": c.get("messages", [])[:20],  # First 20 messages only for v2
+            "createdAt": c.get("createdAt"),
+        })
+    del conversations
+    import gc; gc.collect()
+
     # Step 3: Save chunks to database (in batches to avoid request size limits)
     batch_size = 100
     for i in range(0, len(chunks), batch_size):
@@ -187,11 +200,15 @@ async def run_full_pass_pipeline(
     await update_user_profile(user_id, {"memory_md": memory_md})
     print(f"[FullPass] Saved MEMORY section to database")
 
+    # Free chunks and facts before v2 regen
+    del chunks, all_facts, consolidated, reduced
+    gc.collect()
+
     # Step 9: V2 Section Regeneration
     from processors.v2_regenerator import regenerate_sections_v2, sections_to_soulprint_text
 
     print(f"[FullPass] Starting v2 section regeneration for user {user_id}")
-    v2_sections = await regenerate_sections_v2(conversations, memory_md, client)
+    v2_sections = await regenerate_sections_v2(conversations_light, memory_md, client)
 
     if v2_sections:
         # Build soulprint_text from v2 sections + MEMORY
