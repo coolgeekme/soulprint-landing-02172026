@@ -63,25 +63,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PIPE-01 | — | Pending |
-| PIPE-02 | — | Pending |
-| PIPE-03 | — | Pending |
-| PIPE-04 | — | Pending |
-| PIPE-05 | — | Pending |
-| MEM-01 | — | Pending |
-| MEM-02 | — | Pending |
-| MEM-03 | — | Pending |
-| VSRC-01 | — | Pending |
-| VSRC-02 | — | Pending |
-| VSRC-03 | — | Pending |
-| VSRC-04 | — | Pending |
-| COST-01 | — | Pending |
+| PIPE-01 | Phase 1: Pipeline Reliability | Pending |
+| PIPE-02 | Phase 1: Pipeline Reliability | Pending |
+| PIPE-03 | Phase 1: Pipeline Reliability | Pending |
+| PIPE-04 | Phase 1: Pipeline Reliability | Pending |
+| PIPE-05 | Phase 1: Pipeline Reliability | Pending |
+| VSRC-01 | Phase 2: Vector Infrastructure | Pending |
+| VSRC-02 | Phase 2: Vector Infrastructure | Pending |
+| MEM-01 | Phase 3: Memory in Chat | Pending |
+| MEM-02 | Phase 3: Memory in Chat | Pending |
+| VSRC-03 | Phase 3: Memory in Chat | Pending |
+| COST-01 | Phase 4: Cost & Quality Measurement | Pending |
+| MEM-03 | Phase 4: Cost & Quality Measurement | Pending |
+| VSRC-04 | Phase 4: Cost & Quality Measurement | Pending |
 
 **Coverage:**
 - v3.0 requirements: 13 total
-- Mapped to phases: 0
-- Unmapped: 13
+- Mapped to phases: 13
+- Unmapped: 0
+- Coverage: 100% ✓
 
 ---
 *Requirements defined: 2026-02-11*
-*Last updated: 2026-02-11 after initial definition*
+*Last updated: 2026-02-11 after v3.0 roadmap creation (100% coverage)*

@@ -12,7 +12,8 @@
 - SHIPPED **v2.1 Hardening & Integration** -- Phases 1-3 (shipped 2026-02-09)
 - SHIPPED **v2.2 Bulletproof Imports** -- Phases 1-3, 8 plans (shipped 2026-02-10)
 - SHIPPED **v2.3 Universal Uploads** -- Phases 1-2, 2 plans (shipped 2026-02-10)
-- ACTIVE **v2.4 Import UX Polish** -- Phases 1-2 (in progress)
+- SHIPPED **v2.4 Import UX Polish** -- Phases 1-2 (shipped 2026-02-11, Phase 2 deferred)
+- ACTIVE **v3.0 Deep Memory** -- Phases 1-4 (in progress)
 
 ## Phases
 
@@ -225,7 +226,8 @@ Plans:
 
 </details>
 
-## v2.4 Import UX Polish (ACTIVE)
+<details>
+<summary>v2.4 Import UX Polish (Phases 1-2) -- SHIPPED 2026-02-11</summary>
 
 **Milestone Goal:** Make the import experience production-ready with animated stage-based progress and a smooth transition into chat. Users should always know what's happening and never think it's broken.
 
@@ -251,7 +253,7 @@ Plans:
 - [x] 01-01-PLAN.md — Progress mapper + animated stage component (Wave 1)
 - [x] 01-02-PLAN.md — Integration into import page + mobile verification (Wave 2)
 
-### Phase 2: Chat Transition Polish
+### Phase 2: Chat Transition Polish (DEFERRED)
 **Goal:** Import-to-chat navigation is smooth and welcoming with no jarring redirect or blank screens
 
 **Depends on:** Phase 1 (needs reliable stage indicators for completion animation) -- COMPLETE
@@ -267,17 +269,85 @@ Plans:
 **Plans:** 1 plan in 1 wave
 
 Plans:
-- [ ] 02-01-PLAN.md — Template.tsx fade wrapper + import exit orchestration + chat entry animation (Wave 1)
+- [ ] 02-01-PLAN.md — Template.tsx fade wrapper + import exit orchestration + chat entry animation (Wave 1) -- DEFERRED
+
+</details>
+
+## v3.0 Deep Memory (ACTIVE)
+
+**Milestone Goal:** Make the full soulprint pipeline reliable and wire real memory into chat. Users should get noticeably better responses once full pass completes — the AI should actually know their history, not just their personality.
+
+**Overview:** This milestone fixes the foundational issues preventing deep memory from working. The full pass pipeline currently has silent failures (chunks not saved, placeholders in MEMORY sections, rate limit failures). Even when it succeeds, memory_md and conversation_chunks aren't actually used during chat. After this milestone, the AI will reference specific user history, semantic search will retrieve relevant conversations, and the entire pipeline will cost under $0.10 per user instead of $8-10.
+
+### Phase 1: Pipeline Reliability
+**Goal:** Full pass pipeline completes without silent failures
+**Depends on:** Nothing (first phase of milestone)
+**Requirements:** PIPE-01, PIPE-02, PIPE-03, PIPE-04, PIPE-05
+**Success Criteria** (what must be TRUE):
+  1. Chunk saves fail loudly when storage fails (no silent swallowing of HTTP errors)
+  2. Fact extraction completes for all conversations despite rate limits (retries with backoff, reduced concurrency)
+  3. MEMORY section contains real generated content (no placeholder/fallback text saved to DB)
+  4. Full pass status tracked end-to-end with error details visible in chat UI
+  5. User can re-trigger failed full pass from chat without re-uploading ZIP
+**Plans:** TBD
+
+Plans:
+- [ ] TBD (will be created during planning)
+
+### Phase 2: Vector Infrastructure
+**Goal:** Semantic search infrastructure ready for memory retrieval
+**Depends on:** Phase 1
+**Requirements:** VSRC-01, VSRC-02
+**Success Criteria** (what must be TRUE):
+  1. pgvector extension enabled in Supabase with embedding column on conversation_chunks
+  2. HNSW index created for fast similarity search on embeddings
+  3. All conversation chunks have Titan Embed v2 (768-dim) embeddings generated during full pass
+  4. Embeddings stored in database and queryable via cosine similarity
+**Plans:** TBD
+
+Plans:
+- [ ] TBD (will be created during planning)
+
+### Phase 3: Memory in Chat
+**Goal:** Chat responses use deep memory from full pass
+**Depends on:** Phase 2
+**Requirements:** MEM-01, MEM-02, VSRC-03
+**Success Criteria** (what must be TRUE):
+  1. memory_md from full pass appears in chat system prompt (visible in RLM request logs)
+  2. Conversation chunks retrieved via semantic search during chat (top 5-10 relevant chunks)
+  3. Chat responses reference specific facts from user's history (observable in actual responses)
+  4. Semantic search replaces "fetch recent chunks" approach (code uses pgvector, not timestamp sort)
+**Plans:** TBD
+
+Plans:
+- [ ] TBD (will be created during planning)
+
+### Phase 4: Cost & Quality Measurement
+**Goal:** Verify embeddings are cost-efficient and improve chat quality
+**Depends on:** Phase 3
+**Requirements:** COST-01, MEM-03, VSRC-04
+**Success Criteria** (what must be TRUE):
+  1. Per-user import cost tracked (LLM calls + embeddings) and stored in database
+  2. Admin panel displays import costs per user (accessible via /admin or SQL query)
+  3. Embedding cost verified under $0.10 per user import (logged for sample imports)
+  4. A/B evaluation shows chat quality improvement when full pass complete vs quick_ready only (Opik experiment results)
+**Plans:** TBD
+
+Plans:
+- [ ] TBD (will be created during planning)
 
 ## Progress
 
 **Execution Order:**
-Phases execute sequentially: 1 -> 2. Phase 2 builds on Phase 1's reliable stage indicators.
+Phases execute in numeric order: 1 → 2 → 3 → 4
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Progress State + Stage Animations | 2/2 | Complete | 2026-02-11 |
-| 2. Chat Transition Polish | 0/1 | Not started | - |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Pipeline Reliability | v3.0 | 0/TBD | Not started | - |
+| 2. Vector Infrastructure | v3.0 | 0/TBD | Not started | - |
+| 3. Memory in Chat | v3.0 | 0/TBD | Not started | - |
+| 4. Cost & Quality Measurement | v3.0 | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-02-11 -- Phase 2 planned (1 plan). Ready for execution.*
+*Roadmap created: 2026-02-11*
+*Last updated: 2026-02-11 after v3.0 milestone roadmap creation*
