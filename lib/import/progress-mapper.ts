@@ -71,7 +71,9 @@ function mapBackendStageToLabel(backendStage: string | null, percent: number): s
  */
 function getStageIndexFromPercent(percent: number): number {
   for (let i = 0; i < STAGES.length; i++) {
-    if (percent >= STAGES[i].minPercent && percent <= STAGES[i].maxPercent) {
+    const stage = STAGES[i];
+    if (!stage) continue; // TypeScript guard (should never happen)
+    if (percent >= stage.minPercent && percent <= stage.maxPercent) {
       return i;
     }
   }
@@ -93,6 +95,10 @@ export function getStageProgress(stageIndex: number, overallPercent: number): nu
   }
 
   const stage = STAGES[stageIndex];
+  if (!stage) {
+    return 0; // TypeScript guard
+  }
+
   const range = stage.maxPercent - stage.minPercent;
   const progressInRange = overallPercent - stage.minPercent;
 
