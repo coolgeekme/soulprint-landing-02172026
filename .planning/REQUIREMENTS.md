@@ -3,57 +3,85 @@
 **Defined:** 2026-02-11
 **Core Value:** The AI must feel like YOUR AI -- genuinely human, deeply personalized, systematically evaluated.
 
-## v2.4 Requirements
+## v3.0 Requirements
 
-Requirements for Import UX Polish milestone. Each maps to roadmap phases.
+Requirements for v3.0 Deep Memory. Each maps to roadmap phases.
 
-### Import Progress
+### Pipeline Reliability
 
-- [x] **PROG-01**: User sees animated stage-based progress (Upload → Extract → Analyze → Build Profile) during import
-- [x] **PROG-02**: Each stage has a visual transition animation when moving to the next stage
-- [x] **PROG-03**: Progress never appears stalled — active stages show movement/animation
-- [x] **PROG-04**: Stage indicators work smoothly on mobile (iOS Safari, Chrome, Brave)
+- [ ] **PIPE-01**: Full pass chunk saves raise errors on failure instead of silently swallowing HTTP errors
+- [ ] **PIPE-02**: Fact extraction retries failed chunks with exponential backoff, concurrency reduced from 10 to 3-5
+- [ ] **PIPE-03**: MEMORY section validated before save — reject placeholder/fallback content, retry generation
+- [ ] **PIPE-04**: full_pass_status properly tracked end-to-end with error details surfaced in chat UI
+- [ ] **PIPE-05**: User or system can re-trigger a failed full pass without re-importing
 
-### Chat Transition
+### Memory in Chat
 
-- [ ] **TRAN-01**: Import-to-chat transition uses a smooth fade instead of jarring redirect
-- [ ] **TRAN-02**: No blank screen or flash during the transition to chat
+- [ ] **MEM-01**: memory_md from full pass is passed to RLM service and included in chat system prompt
+- [ ] **MEM-02**: Conversation chunks retrieved via semantic search during chat for RAG context
+- [ ] **MEM-03**: Chat quality measurably improves when full pass is complete vs quick_ready (Opik A/B evaluation)
+
+### Vector Search
+
+- [ ] **VSRC-01**: pgvector extension enabled, embedding column added to conversation_chunks with HNSW index
+- [ ] **VSRC-02**: Titan Embed v2 (768 dims) embeddings generated for all chunks during full pass
+- [ ] **VSRC-03**: Semantic similarity search at query time replaces "fetch recent chunks" approach
+- [ ] **VSRC-04**: Embedding cost under $0.10 per user import (verified by cost tracking)
+
+### Cost Tracking
+
+- [ ] **COST-01**: Per-user import cost tracked (LLM calls + embeddings) and visible in admin panel
 
 ## Future Requirements
 
-### Import Polish (deferred)
+Deferred to future release. Tracked but not in current roadmap.
 
-- **PROG-05**: Adaptive messaging shows context-aware labels ("Uploading 1.1GB..." vs generic)
-- **PROG-06**: Completion celebration animation (confetti/checkmark) on 100%
-- **PROG-07**: Monotonic progress guard (percentage never goes backwards)
-- **PROG-08**: localStorage persistence survives tab reload during import
+### Advanced Memory
+
+- **AMEM-01**: Real-time learning updates conversation_chunks during chat sessions
+- **AMEM-02**: Memory decay — older chunks weighted lower in search results
+- **AMEM-03**: User can view and manage their memory (delete specific facts)
+
+### Multi-Model Embeddings
+
+- **EMBED-01**: Support multiple embedding models (OpenAI, Cohere) for quality comparison
+- **EMBED-02**: Re-embedding pipeline to upgrade existing chunks when models improve
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| SSE streaming for progress | Polling every 3s sufficient for 30s flow; SSE adds complexity for marginal gain |
-| Real-time accuracy progress | Perceived progress matters more than accuracy per UX research |
-| AnimatePresence page transitions | Breaks with Next.js App Router; use template.tsx fade instead |
-| Lottie/custom animation libraries | Framer Motion already installed and sufficient |
-| Backend progress changes | Frontend-only milestone; backend SSE events already adequate |
+| Real-time soulprint updates during chat | Causes personality drift — established decision |
+| Client-side vector search | Requires downloading all embeddings — too much data |
+| Dedicated vector DB (Pinecone/Weaviate) | pgvector on Supabase is sufficient, no new infra |
+| Embedding during quick pass | Quick pass must stay fast (~30s); embeddings are full pass only |
+| User-facing memory controls | v3.0 is infrastructure — user controls are future |
 
 ## Traceability
 
+Which phases cover which requirements. Updated during roadmap creation.
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PROG-01 | Phase 1 | Done |
-| PROG-02 | Phase 1 | Done |
-| PROG-03 | Phase 1 | Done |
-| PROG-04 | Phase 1 | Done |
-| TRAN-01 | Phase 2 | Pending |
-| TRAN-02 | Phase 2 | Pending |
+| PIPE-01 | — | Pending |
+| PIPE-02 | — | Pending |
+| PIPE-03 | — | Pending |
+| PIPE-04 | — | Pending |
+| PIPE-05 | — | Pending |
+| MEM-01 | — | Pending |
+| MEM-02 | — | Pending |
+| MEM-03 | — | Pending |
+| VSRC-01 | — | Pending |
+| VSRC-02 | — | Pending |
+| VSRC-03 | — | Pending |
+| VSRC-04 | — | Pending |
+| COST-01 | — | Pending |
 
 **Coverage:**
-- v2.4 requirements: 6 total
-- Mapped to phases: 6/6 (100%)
-- Unmapped: 0
+- v3.0 requirements: 13 total
+- Mapped to phases: 0
+- Unmapped: 13
 
 ---
 *Requirements defined: 2026-02-11*
-*Last updated: 2026-02-11 after roadmap creation with 100% coverage*
+*Last updated: 2026-02-11 after initial definition*
