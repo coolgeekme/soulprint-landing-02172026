@@ -9,6 +9,7 @@ import {
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { smartSearch, SmartSearchResult } from '@/lib/search/smart-search';
+import { fetchDailyTrends, filterTrendsByInterests, formatTrendsForPrompt } from '@/lib/search/google-trends';
 import { validateCitations } from '@/lib/search/citation-validator';
 import { formatCitationsForDisplay } from '@/lib/search/citation-formatter';
 import { getMemoryContext } from '@/lib/memory/query';
@@ -290,8 +291,27 @@ export async function POST(request: NextRequest) {
     }
     aiName = aiName || 'SoulPrint';
 
-    // Step 1: Smart Search - automatically detects when web search is needed
-    // Also respects manual deepSearch toggle for explicit requests
+    // Extract user interests from user_md for smart search + trends
+    let userInterests: string[] = [];
+    try {
+      if (userProfile?.user_md) {
+        const userMd = JSON.parse(userProfile.user_md);
+        if (Array.isArray(userMd?.interests)) {
+          userInterests = userMd.interests;
+        }
+      }
+    } catch {
+      // user_md parse failure is non-critical
+    }
+
+    // Build recent context for classifier (last 2 user messages)
+    const recentContext = history
+      .filter(m => m.role === 'user')
+      .slice(-2)
+      .map(m => m.content.slice(0, 200));
+
+    // Step 1: Smart Search - LLM classifier decides when search is needed
+    // Falls back to keyword heuristics if classifier unavailable
     let webSearchContext = '';
     let webSearchCitations: string[] = [];
     let searchResult: SmartSearchResult | null = null;
@@ -300,6 +320,8 @@ export async function POST(request: NextRequest) {
       searchResult = await smartSearch(message, user.id, {
         forceSearch: deepSearch,      // Manual toggle forces search
         preferDeep: deepSearch,       // Use deep mode if manually triggered
+        userInterests,                // From user_md.interests
+        recentContext,                // Last 2 messages for classifier context
       });
 
       if (searchResult.performed) {
@@ -503,10 +525,24 @@ export async function POST(request: NextRequest) {
     // Step 3: Bedrock FALLBACK (only if RLM failed)
     reqLog.info('RLM failed, falling back to Bedrock streaming');
 
+    // Fetch trending topics and merge with learned facts for dailyMemory
+    let dailyMemory: Array<{ fact: string; category: string }> = learnedFacts || [];
+    try {
+      const trends = await fetchDailyTrends();
+      const filtered = filterTrendsByInterests(trends, userInterests, 5);
+      const trendFacts = formatTrendsForPrompt(filtered);
+      if (trendFacts.length > 0) {
+        dailyMemory = [...dailyMemory, ...trendFacts];
+        reqLog.debug({ trendCount: trendFacts.length }, 'Trending topics added to dailyMemory');
+      }
+    } catch (error) {
+      reqLog.warn({ error: error instanceof Error ? error.message : String(error) }, 'Trends fetch failed (non-blocking)');
+    }
+
     const promptBuilder = new PromptBuilder();
     const systemPrompt = promptBuilder.buildEmotionallyIntelligentPrompt({
       profile: userProfile || { soulprint_text: null, import_status: 'none', ai_name: null, soul_md: null, identity_md: null, user_md: null, agents_md: null, tools_md: null, memory_md: null },
-      dailyMemory: learnedFacts || [],
+      dailyMemory,
       memoryContext,
       aiName,
       isOwner: voiceVerified,

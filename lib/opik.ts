@@ -80,6 +80,46 @@ export function traceQuickPass(params: {
 }
 
 /**
+ * Trace a search routing decision (classifier or heuristic fallback)
+ */
+export function traceSearchRouting(params: {
+  userId: string;
+  message: string;
+  userInterests?: string[];
+  shouldSearch: boolean;
+  reason: string;
+  searchQuery: string | null;
+  confidence: number;
+  source: 'llm' | 'heuristic-fallback';
+  latencyMs: number;
+}) {
+  const client = getOpikClient();
+  if (!client) return null;
+
+  const trace = client.trace({
+    name: 'search-routing',
+    input: {
+      message: params.message,
+      userInterests: params.userInterests || [],
+    },
+    output: {
+      shouldSearch: params.shouldSearch,
+      reason: params.reason,
+      searchQuery: params.searchQuery,
+      confidence: params.confidence,
+    },
+    metadata: {
+      userId: params.userId,
+      source: params.source,
+      latencyMs: params.latencyMs,
+    },
+  });
+
+  trace.end();
+  return trace;
+}
+
+/**
  * Flush pending traces — call at end of request
  */
 export async function flushOpik() {

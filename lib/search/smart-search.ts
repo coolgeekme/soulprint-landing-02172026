@@ -2,15 +2,19 @@
  * Smart Search - Intelligent real-time web search with auto-detection
  *
  * Features:
- * - Auto-detects when web search is needed (no manual toggle required)
+ * - LLM classifier (Haiku 4.5) decides when search is needed
+ * - Falls back to keyword heuristics if classifier fails
  * - Perplexity → Tavily fallback chain
  * - Caches recent searches (5 min TTL)
  * - Rate limiting protection
  * - Graceful degradation on errors
+ * - Full Opik tracing for every routing decision
  */
 
 import { queryPerplexity, needsRealtimeInfo, formatPerplexityContext } from './perplexity';
 import { searchWeb, formatSearchContext } from './tavily';
+import { classifySearchNeed, ClassifierResult } from './search-classifier';
+import { traceSearchRouting } from '@/lib/opik';
 
 // Simple in-memory cache (5 minute TTL)
 interface CacheEntry {
@@ -34,6 +38,7 @@ export interface SmartSearchResult {
   citations: string[];       // Source URLs
   error?: string;            // If search failed
   reason: string;            // Why we did/didn't search
+  routingSource?: 'llm' | 'heuristic-fallback'; // How the decision was made
 }
 
 /**
@@ -108,6 +113,7 @@ function recordRequest(userId: string): void {
 
 /**
  * Knowledge cutoff detection - things the AI definitely doesn't know
+ * Used as FALLBACK when the LLM classifier is unavailable.
  */
 function needsFreshData(message: string): { needed: boolean; reason: string } {
   const lowerMessage = message.toLowerCase();
@@ -162,8 +168,10 @@ function needsFreshData(message: string): { needed: boolean; reason: string } {
 /**
  * Smart Search - Main function
  *
- * Automatically determines if search is needed and performs it.
- * Returns formatted context for the AI.
+ * Routing strategy:
+ * 1. LLM classifier (primary) — Haiku 4.5 decides with nuance
+ * 2. Heuristic fallback — if classifier fails/unavailable
+ * 3. Perplexity → Tavily search chain
  */
 export async function smartSearch(
   message: string,
@@ -172,16 +180,67 @@ export async function smartSearch(
     forceSearch?: boolean;      // Override auto-detection
     skipCache?: boolean;        // Skip cache lookup
     preferDeep?: boolean;       // Use deep research mode
+    userInterests?: string[];   // From user_md.interests
+    recentContext?: string[];   // Last few messages for context
   } = {}
 ): Promise<SmartSearchResult> {
   const { forceSearch = false, skipCache = false, preferDeep = false } = options;
 
   console.log(`[SmartSearch] Analyzing: "${message.slice(0, 50)}..."`);
 
-  // Step 1: Check if search is needed
-  const freshDataCheck = needsFreshData(message);
-  const perplexityCheck = needsRealtimeInfo(message);
-  const searchNeeded = forceSearch || freshDataCheck.needed || perplexityCheck;
+  // Step 1: Determine if search is needed
+  let searchNeeded = forceSearch;
+  let reason = forceSearch ? 'forced' : '';
+  let searchQuery: string | null = null;
+  let routingSource: 'llm' | 'heuristic-fallback' = 'heuristic-fallback';
+  let confidence = 0;
+  let classifierLatency = 0;
+
+  if (!forceSearch) {
+    // Primary: LLM classifier
+    const classifierResult = await classifySearchNeed({
+      message,
+      userInterests: options.userInterests,
+      recentContext: options.recentContext,
+    });
+
+    if (classifierResult) {
+      // Classifier succeeded — use its decision
+      searchNeeded = classifierResult.should_search;
+      reason = classifierResult.reason;
+      searchQuery = classifierResult.search_query;
+      routingSource = 'llm';
+      confidence = classifierResult.confidence;
+      classifierLatency = classifierResult.latency_ms;
+      console.log(`[SmartSearch] Classifier: ${searchNeeded ? 'SEARCH' : 'SKIP'} (${reason}, confidence=${confidence}, ${classifierLatency}ms)`);
+    } else {
+      // Fallback: keyword heuristics
+      const freshDataCheck = needsFreshData(message);
+      const perplexityCheck = needsRealtimeInfo(message);
+      searchNeeded = freshDataCheck.needed || perplexityCheck;
+      reason = freshDataCheck.needed ? freshDataCheck.reason : (perplexityCheck ? 'perplexity_heuristic' : 'static_knowledge');
+      routingSource = 'heuristic-fallback';
+      confidence = searchNeeded ? 0.6 : 0.5; // lower confidence for heuristics
+      console.log(`[SmartSearch] Heuristic fallback: ${searchNeeded ? 'SEARCH' : 'SKIP'} (${reason})`);
+    }
+
+    // Trace the routing decision (fire-and-forget)
+    try {
+      traceSearchRouting({
+        userId,
+        message,
+        userInterests: options.userInterests,
+        shouldSearch: searchNeeded,
+        reason,
+        searchQuery,
+        confidence,
+        source: routingSource,
+        latencyMs: classifierLatency,
+      });
+    } catch {
+      // tracing is non-critical
+    }
+  }
 
   if (!searchNeeded) {
     return {
@@ -190,18 +249,19 @@ export async function smartSearch(
       source: 'none',
       context: '',
       citations: [],
-      reason: `Auto-skip: ${freshDataCheck.reason}`,
+      reason: `Auto-skip: ${reason}`,
+      routingSource,
     };
   }
 
-  const reason = forceSearch ? 'forced' : freshDataCheck.reason;
   console.log(`[SmartSearch] Search needed: ${reason}`);
 
-  // Step 2: Check cache
+  // Step 2: Check cache (use optimized query if available)
+  const cacheKey = searchQuery || message;
   if (!skipCache) {
-    const cached = checkCache(message);
+    const cached = checkCache(cacheKey);
     if (cached) {
-      return { ...cached, needed: true, reason: `${reason} (cached)` };
+      return { ...cached, needed: true, reason: `${reason} (cached)`, routingSource };
     }
   }
 
@@ -215,17 +275,21 @@ export async function smartSearch(
       citations: [],
       reason: 'rate_limited',
       error: 'Too many searches, please wait a moment',
+      routingSource,
     };
   }
 
   recordRequest(userId);
+
+  // Use the classifier's optimized query for better search results
+  const queryForSearch = searchQuery || message;
 
   // Step 4: Try Perplexity first (fast, good answers)
   if (process.env.PERPLEXITY_API_KEY) {
     try {
       console.log('[SmartSearch] Trying Perplexity...');
       const model = preferDeep ? 'sonar-deep-research' : 'sonar';
-      const result = await queryPerplexity(message, { model });
+      const result = await queryPerplexity(queryForSearch, { model });
 
       const searchResult: SmartSearchResult = {
         needed: true,
@@ -235,9 +299,10 @@ export async function smartSearch(
         context: formatPerplexityContext(result),
         citations: result.citations,
         reason,
+        routingSource,
       };
 
-      addToCache(message, searchResult);
+      addToCache(cacheKey, searchResult);
       console.log(`[SmartSearch] Perplexity success: ${result.citations.length} citations`);
       return searchResult;
 
@@ -251,7 +316,7 @@ export async function smartSearch(
   if (process.env.TAVILY_API_KEY) {
     try {
       console.log('[SmartSearch] Trying Tavily fallback...');
-      const result = await searchWeb(message, {
+      const result = await searchWeb(queryForSearch, {
         maxResults: 5,
         searchDepth: preferDeep ? 'advanced' : 'basic',
         includeAnswer: true,
@@ -265,9 +330,10 @@ export async function smartSearch(
         context: formatSearchContext(result),
         citations: result.results.map(r => r.url),
         reason,
+        routingSource,
       };
 
-      addToCache(message, searchResult);
+      addToCache(cacheKey, searchResult);
       console.log(`[SmartSearch] Tavily success: ${result.results.length} results`);
       return searchResult;
 
@@ -286,6 +352,7 @@ export async function smartSearch(
     citations: [],
     reason,
     error: 'Search unavailable, using cached knowledge',
+    routingSource,
   };
 }
 
