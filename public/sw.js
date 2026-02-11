@@ -1,99 +1,32 @@
-const CACHE_NAME = 'soulprint-v1';
-const urlsToCache = [
-  '/',
-  '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-];
+// SoulPrint Service Worker — push notifications only
+// No page caching — let Vercel/browser handle cache with proper headers
 
-// Install event - cache essential assets
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-      .catch((err) => {
-        console.log('Cache install failed:', err);
-      })
-  );
+self.addEventListener('install', () => {
+  // Take over immediately
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
+  // Clear any old caches from previous versions
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then((cacheNames) =>
+      Promise.all(cacheNames.map((name) => caches.delete(name)))
+    )
   );
   self.clients.claim();
 });
 
-// Fetch event - network first, fallback to cache
-self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
-
-  // Skip chrome-extension and other non-http(s) requests
-  if (!event.request.url.startsWith('http')) {
-    return;
-  }
-
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Don't cache non-successful responses
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
-        }
-
-        // Clone the response
-        const responseToCache = response.clone();
-
-        caches.open(CACHE_NAME)
-          .then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-
-        return response;
-      })
-      .catch(() => {
-        // Network failed, try cache
-        return caches.match(event.request)
-          .then((response) => {
-            if (response) {
-              return response;
-            }
-            // Return offline page if available
-            return caches.match('/');
-          });
-      })
-  );
-});
+// No fetch handler — let the browser handle all requests normally
 
 // Handle push notifications
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push received');
-
   let data = { title: 'SoulPrint', body: 'You have a notification', url: '/' };
 
   try {
     if (event.data) {
       data = event.data.json();
     }
-  } catch (e) {
-    // Fallback to text if not JSON
+  } catch {
     data.body = event.data ? event.data.text() : 'New notification from SoulPrint';
   }
 
@@ -102,9 +35,7 @@ self.addEventListener('push', (event) => {
     icon: '/images/soulprintlogomain.png',
     badge: '/icons/icon-72x72.png',
     vibrate: [100, 50, 100],
-    data: {
-      url: data.url || '/',
-    },
+    data: { url: data.url || '/' },
     actions: [
       { action: 'open', title: 'Open' },
       { action: 'dismiss', title: 'Dismiss' },
@@ -118,25 +49,20 @@ self.addEventListener('push', (event) => {
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked');
   event.notification.close();
 
-  if (event.action === 'dismiss') {
-    return;
-  }
+  if (event.action === 'dismiss') return;
 
   const url = event.notification.data?.url || '/';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Try to focus an existing window
       for (const client of clientList) {
         if ('focus' in client) {
           client.navigate(url);
           return client.focus();
         }
       }
-      // Open new window if none exists
       if (clients.openWindow) {
         return clients.openWindow(url);
       }
