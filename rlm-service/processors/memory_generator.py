@@ -43,49 +43,84 @@ Extracted facts:
 """
 
 
-async def generate_memory_section(consolidated_facts: dict, anthropic_client) -> str:
+async def generate_memory_section(consolidated_facts: dict, anthropic_client, max_retries: int = 2) -> str:
     """
     Generate a structured MEMORY section from consolidated facts.
 
     Args:
         consolidated_facts: Dict with preferences, projects, dates, beliefs, decisions
         anthropic_client: AsyncAnthropic client instance
+        max_retries: Number of retries on placeholder content (default 2)
 
     Returns:
         Markdown string with MEMORY section (human-readable, NOT JSON)
         Falls back to minimal MEMORY section on errors
     """
-    try:
-        # Format facts as readable JSON
-        facts_json = json.dumps(consolidated_facts, indent=2)
+    # Format facts as readable JSON
+    facts_json = json.dumps(consolidated_facts, indent=2)
 
-        print(f"[MemoryGenerator] Generating MEMORY section from {consolidated_facts.get('total_count', 0)} facts")
+    print(f"[MemoryGenerator] Generating MEMORY section from {consolidated_facts.get('total_count', 0)} facts")
 
-        # Call Haiku 4.5 to generate MEMORY section
-        response = await anthropic_client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=4096,
-            temperature=0.5,  # Moderate temperature for natural writing
-            messages=[{
-                "role": "user",
-                "content": MEMORY_GENERATION_PROMPT + "\n" + facts_json
-            }]
-        )
+    for attempt in range(max_retries + 1):
+        try:
+            # Call Haiku 4.5 to generate MEMORY section
+            response = await anthropic_client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=4096,
+                temperature=0.5,  # Moderate temperature for natural writing
+                messages=[{
+                    "role": "user",
+                    "content": MEMORY_GENERATION_PROMPT + "\n" + facts_json
+                }]
+            )
 
-        # Extract markdown from response
-        if not response.content or len(response.content) == 0:
-            print("[MemoryGenerator] Empty response from Haiku")
-            return _fallback_memory(consolidated_facts)
+            # Extract markdown from response
+            if not response.content or len(response.content) == 0:
+                print(f"[MemoryGenerator] Attempt {attempt+1}: empty response from Haiku")
+                if attempt == max_retries:
+                    return _fallback_memory(consolidated_facts)
+                continue
 
-        memory_md = response.content[0].text
+            memory_md = response.content[0].text
 
-        print(f"[MemoryGenerator] Generated MEMORY section ({len(memory_md)} chars)")
+            # Validate that content is not placeholder
+            if not _is_placeholder_memory(memory_md):
+                print(f"[MemoryGenerator] Generated MEMORY section ({len(memory_md)} chars)")
+                return memory_md
 
-        return memory_md
+            print(f"[MemoryGenerator] Attempt {attempt+1}: placeholder content detected, retrying...")
 
-    except Exception as e:
-        print(f"[MemoryGenerator] Error generating MEMORY section: {e}")
-        return _fallback_memory(consolidated_facts)
+        except Exception as e:
+            print(f"[MemoryGenerator] Attempt {attempt+1} error: {e}")
+            if attempt == max_retries:
+                return _fallback_memory(consolidated_facts)
+
+    # All attempts produced placeholder content
+    print(f"[MemoryGenerator] All {max_retries + 1} attempts produced placeholder content, using fallback")
+    return _fallback_memory(consolidated_facts)
+
+
+def _is_placeholder_memory(memory_md: str) -> bool:
+    """Check if memory content is placeholder/fallback rather than real generated content."""
+    placeholder_signals = [
+        "Memory generation failed",
+        "No data yet.",
+        "Facts extracted but not yet organized",
+    ]
+    # Check for placeholder signals
+    signal_count = sum(1 for signal in placeholder_signals if signal in memory_md)
+    if signal_count >= 2:
+        return True
+    # Check for suspiciously short content (real memory should be >200 chars)
+    if len(memory_md.strip()) < 200:
+        return True
+    # Check that at least one section has real content (not just headers)
+    lines = [l.strip() for l in memory_md.split('\n') if l.strip() and not l.strip().startswith('#')]
+    content_lines = [l for l in lines if len(l) > 20 and not l.startswith('-')]
+    bullet_lines = [l for l in lines if l.startswith('- ') and len(l) > 10]
+    if len(content_lines) + len(bullet_lines) < 3:
+        return True
+    return False
 
 
 def _fallback_memory(consolidated_facts: dict) -> str:
@@ -100,7 +135,7 @@ def _fallback_memory(consolidated_facts: dict) -> str:
     """
     total_facts = consolidated_facts.get("total_count", 0)
 
-    return f"""# MEMORY
+    return f"""[FALLBACK] # MEMORY
 
 Memory generation failed. Facts extracted but not yet organized.
 
