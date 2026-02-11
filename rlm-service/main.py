@@ -72,6 +72,12 @@ class ImportFullRequest(BaseModel):
     message_count: int = 0
 
 
+class RetryFullPassRequest(BaseModel):
+    user_id: str
+    storage_path: str
+    file_type: str = 'json'
+
+
 async def get_conversation_chunks(user_id: str, recent_only: bool = True) -> List[dict]:
     """Fetch conversation chunks from Supabase"""
     async with httpx.AsyncClient() as client:
@@ -611,6 +617,34 @@ async def import_full(request: ImportFullRequest):
             "status": "accepted",
             "message": "Import processing started",
         },
+    )
+
+
+@app.post("/retry-full-pass")
+async def retry_full_pass(request: RetryFullPassRequest):
+    """Re-trigger a failed full pass using the original storage path.
+    Returns 202 Accepted immediately -- processing happens in background."""
+    from processors.streaming_import import trigger_full_pass
+
+    # Reset status
+    await update_user_profile(request.user_id, {
+        "full_pass_status": "processing",
+        "full_pass_error": None,
+    })
+
+    # Fire-and-forget
+    asyncio.create_task(trigger_full_pass(
+        user_id=request.user_id,
+        storage_path=request.storage_path,
+        conversation_count=0,  # Unknown on retry, full_pass will re-download and count
+        file_type=request.file_type,
+    ))
+
+    print(f"[retry-full-pass] Accepted retry for user {request.user_id}")
+
+    return JSONResponse(
+        status_code=202,
+        content={"status": "accepted", "message": "Full pass retry started"},
     )
 
 

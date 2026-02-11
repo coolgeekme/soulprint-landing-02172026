@@ -90,6 +90,8 @@ export async function POST(request: Request) {
       progress_percent: 0,
       import_stage: 'Starting...',
       processing_started_at: new Date().toISOString(),
+      storage_path: storagePath,
+      file_type: fileType || 'json',
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
 
