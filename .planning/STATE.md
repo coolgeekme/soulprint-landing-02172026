@@ -11,19 +11,19 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Milestone: v3.0 Deep Memory
-Phase: 1 of 4 (Pipeline Reliability)
-Plan: 3 of 3 complete
-Status: Phase complete
-Last activity: 2026-02-11 - Completed 01-03-PLAN.md (Full Pass Retry Mechanism)
+Phase: 2 of 4 (Vector Infrastructure)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-02-11 - Completed 02-01-PLAN.md (HNSW Index and Embeddings)
 
-Progress: [██████████] 100%
+Progress: [████████████░░] 33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 85 (across v1.0-v3.0 milestones)
+- Total plans completed: 86 (across v1.0-v3.0 milestones)
 - Average duration: ~15 min
-- Total execution time: ~22.6 hours across 11 milestones
+- Total execution time: ~23.2 hours across 11 milestones
 
 **By Milestone:**
 
@@ -40,7 +40,7 @@ Progress: [██████████] 100%
 | v2.2 Imports | 3 | 8 | Shipped |
 | v2.3 Uploads | 2 | 2 | Shipped |
 | v2.4 UX Polish | 2 | 2 | Shipped (Phase 2 deferred) |
-| v3.0 Deep Memory | 1 | 3 | Active (Phase 1: complete) |
+| v3.0 Deep Memory | 2 | 4 | Active (Phase 1: complete, Phase 2: in progress) |
 
 *Metrics updated: 2026-02-11*
 
@@ -49,6 +49,11 @@ Progress: [██████████] 100%
 ### Decisions
 
 Recent decisions affecting current work:
+- v3.0 Phase 2 Plan 1: 768 dimensions (not 1024) — reduces storage/search cost, matches Titan v2 efficiency
+- v3.0 Phase 2 Plan 1: HNSW index (not IVFFlat) — better recall for datasets < 1M rows (~250K chunks expected)
+- v3.0 Phase 2 Plan 1: Sequential embedding generation — no batching API in Titan v2, consistent with concurrency=5
+- v3.0 Phase 2 Plan 1: Non-fatal embedding step — chunks saved regardless, embeddings can be backfilled if generation fails
+- v3.0 Phase 2 Plan 1: Manual migration via SQL Editor — safer than auto-apply in production
 - v3.0 Phase 1 Plan 3: Persist storage_path to user_profiles — enables retry without re-upload
 - v3.0 Phase 1 Plan 3: Guard retry with full_pass_status === 'failed' — prevents duplicate triggers
 - v3.0 Phase 1 Plan 3: Fire-and-forget asyncio.create_task for retry — matches /import-full pattern
@@ -86,9 +91,9 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 01-03-PLAN.md (Full Pass Retry Mechanism)
-Resume file: .planning/phases/01-pipeline-reliability/01-03-SUMMARY.md
-Next step: Begin Phase 2 (Deep Memory Search) or address pending todos
+Stopped at: Completed 02-01-PLAN.md (HNSW Index and Embeddings)
+Resume file: .planning/phases/02-vector-infrastructure/02-01-SUMMARY.md
+Next step: Continue Phase 2 (Plan 02: Search API) or address pending todos
 
 ---
-*Last updated: 2026-02-11 -- Phase 1 complete. Error propagation, full pass status UI, and retry mechanism implemented. All 3 plans done. Users can now see full pass status and retry failures without re-uploading.*
+*Last updated: 2026-02-11 -- Phase 2 Plan 1 complete. HNSW index active, Titan Embed v2 embeddings generated automatically during full pass. Vector infrastructure ready for search API development.*
