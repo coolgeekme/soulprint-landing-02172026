@@ -1,82 +1,59 @@
-# Requirements: SoulPrint v2.3 Universal Uploads
+# Requirements: SoulPrint
 
-**Defined:** 2026-02-09
+**Defined:** 2026-02-11
 **Core Value:** The AI must feel like YOUR AI -- genuinely human, deeply personalized, systematically evaluated.
 
-## v2.3 Requirements
+## v2.4 Requirements
 
-Requirements for the Universal Uploads milestone. Replace raw XHR upload with TUS resumable protocol so any file size works on any device/browser. Fix the Supabase Storage transport limit (~50MB on REST endpoint) that blocks large ChatGPT exports.
+Requirements for Import UX Polish milestone. Each maps to roadmap phases.
 
-### Upload Transport
+### Import Progress
 
-- [x] **UPL-01**: User can upload any size ChatGPT export (up to 5GB) via TUS resumable protocol
-- [x] **UPL-02**: User sees accurate upload progress percentage for files of any size
-- [x] **UPL-03**: User's interrupted upload resumes automatically from where it left off on network reconnect
-- [x] **UPL-04**: User's upload retries automatically on transient server errors (5xx, timeout)
+- [ ] **PROG-01**: User sees animated stage-based progress (Upload → Extract → Analyze → Build Profile) during import
+- [ ] **PROG-02**: Each stage has a visual transition animation when moving to the next stage
+- [ ] **PROG-03**: Progress never appears stalled — active stages show movement/animation
+- [ ] **PROG-04**: Stage indicators work smoothly on mobile (iOS Safari, Chrome, Brave)
 
-### Authentication & Security
+### Chat Transition
 
-- [x] **SEC-01**: User's JWT token refreshes automatically during long uploads (no 401 failures after 1hr)
-- [x] **SEC-02**: User can only upload to their own storage folder (RLS enforced via bearer token)
-
-### Compatibility
-
-- [x] **CMP-01**: User can upload from any modern browser (Chrome, Firefox, Safari, Brave, Edge)
-- [x] **CMP-02**: User can upload from mobile devices (iOS Safari, Android Chrome)
-
-### Integration
-
-- [x] **INT-01**: TUS-uploaded files trigger the same RLM processing pipeline as current XHR uploads
-- [x] **INT-02**: Storage path format is identical to current XHR uploads (no backend changes needed)
-
-### Cleanup
-
-- [x] **CLN-01**: Old XHR upload code path and chunked-upload module are removed after TUS is verified
+- [ ] **TRAN-01**: Import-to-chat transition uses a smooth fade instead of jarring redirect
+- [ ] **TRAN-02**: No blank screen or flash during the transition to chat
 
 ## Future Requirements
 
-Deferred to next milestone. Tracked but not in current roadmap.
+### Import Polish (deferred)
 
-### Upload UX Enhancements
-
-- **UXE-01**: User can resume upload after closing and reopening browser (findPreviousUploads on page load)
-- **UXE-02**: User sees upload speed estimation ("X minutes remaining")
-- **UXE-03**: User can manually pause and resume upload
+- **PROG-05**: Adaptive messaging shows context-aware labels ("Uploading 1.1GB..." vs generic)
+- **PROG-06**: Completion celebration animation (confetti/checkmark) on 100%
+- **PROG-07**: Monotonic progress guard (percentage never goes backwards)
+- **PROG-08**: localStorage persistence survives tab reload during import
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Server-side TUS implementation | Supabase handles TUS server natively |
-| Custom chunk sizes | Supabase hardcodes 6MB chunks -- cannot change |
-| Parallel chunk uploads | Complexity without value for single-file upload |
-| Multi-file batch upload | SoulPrint only processes one file at a time |
-| Checksum verification | Not in tus-js-client, Supabase handles integrity |
-| Upload queue management | Single file at a time is sufficient |
-| Feature flag gradual rollout | Unnecessary complexity -- TUS is drop-in replacement |
-| Analytics/monitoring dashboard | No analytics infrastructure exists to track these |
+| SSE streaming for progress | Polling every 3s sufficient for 30s flow; SSE adds complexity for marginal gain |
+| Real-time accuracy progress | Perceived progress matters more than accuracy per UX research |
+| AnimatePresence page transitions | Breaks with Next.js App Router; use template.tsx fade instead |
+| Lottie/custom animation libraries | Framer Motion already installed and sufficient |
+| Backend progress changes | Frontend-only milestone; backend SSE events already adequate |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| UPL-01 | Phase 1 | ✓ Complete |
-| UPL-02 | Phase 1 | ✓ Complete |
-| UPL-03 | Phase 1 | ✓ Complete |
-| UPL-04 | Phase 1 | ✓ Complete |
-| SEC-01 | Phase 1 | ✓ Complete |
-| SEC-02 | Phase 1 | ✓ Complete |
-| CMP-01 | Phase 1 | ✓ Complete |
-| CMP-02 | Phase 1 | ✓ Complete |
-| INT-01 | Phase 1 | ✓ Complete |
-| INT-02 | Phase 1 | ✓ Complete |
-| CLN-01 | Phase 2 | ✓ Complete |
+| PROG-01 | Pending | Pending |
+| PROG-02 | Pending | Pending |
+| PROG-03 | Pending | Pending |
+| PROG-04 | Pending | Pending |
+| TRAN-01 | Pending | Pending |
+| TRAN-02 | Pending | Pending |
 
 **Coverage:**
-- v2.3 requirements: 11 total
-- Mapped to phases: 11/11 (100%)
-- Unmapped: 0
+- v2.4 requirements: 6 total
+- Mapped to phases: 0
+- Unmapped: 6
 
 ---
-*Requirements defined: 2026-02-09*
-*Last updated: 2026-02-10 -- All requirements complete (11/11). Milestone shipped.*
+*Requirements defined: 2026-02-11*
+*Last updated: 2026-02-11 after initial definition*
