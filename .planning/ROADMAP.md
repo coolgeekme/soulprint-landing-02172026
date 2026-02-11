@@ -334,10 +334,11 @@ Plans:
   2. Admin panel displays import costs per user (accessible via /admin or SQL query)
   3. Embedding cost verified under $0.10 per user import (logged for sample imports)
   4. A/B evaluation shows chat quality improvement when full pass complete vs quick_ready only (Opik experiment results)
-**Plans:** TBD
+**Plans:** 2 plans in 1 wave
 
 Plans:
-- [ ] TBD (will be created during planning)
+- [ ] 04-01-PLAN.md — Cost tracking: CostTracker module, pipeline instrumentation, admin endpoint (Wave 1)
+- [ ] 04-02-PLAN.md — Quality evaluation: MemoryDepthJudge, A/B experiment script (Wave 1)
 
 ## Progress
 
@@ -349,7 +350,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Pipeline Reliability | v3.0 | 3/3 | ✓ Complete | 2026-02-11 |
 | 2. Vector Infrastructure | v3.0 | 1/1 | ✓ Complete | 2026-02-11 |
 | 3. Memory in Chat | v3.0 | 2/2 | ✓ Complete | 2026-02-11 |
-| 4. Cost & Quality Measurement | v3.0 | 0/TBD | Not started | - |
+| 4. Cost & Quality Measurement | v3.0 | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-11*
