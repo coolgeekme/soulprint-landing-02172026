@@ -9,11 +9,11 @@ Requirements for v3.0 Deep Memory. Each maps to roadmap phases.
 
 ### Pipeline Reliability
 
-- [ ] **PIPE-01**: Full pass chunk saves raise errors on failure instead of silently swallowing HTTP errors
-- [ ] **PIPE-02**: Fact extraction retries failed chunks with exponential backoff, concurrency reduced from 10 to 3-5
-- [ ] **PIPE-03**: MEMORY section validated before save — reject placeholder/fallback content, retry generation
-- [ ] **PIPE-04**: full_pass_status properly tracked end-to-end with error details surfaced in chat UI
-- [ ] **PIPE-05**: User or system can re-trigger a failed full pass without re-importing
+- [x] **PIPE-01**: Full pass chunk saves raise errors on failure instead of silently swallowing HTTP errors
+- [x] **PIPE-02**: Fact extraction retries failed chunks with exponential backoff, concurrency reduced from 10 to 3-5
+- [x] **PIPE-03**: MEMORY section validated before save — reject placeholder/fallback content, retry generation
+- [x] **PIPE-04**: full_pass_status properly tracked end-to-end with error details surfaced in chat UI
+- [x] **PIPE-05**: User or system can re-trigger a failed full pass without re-importing
 
 ### Memory in Chat
 
@@ -63,11 +63,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PIPE-01 | Phase 1: Pipeline Reliability | Pending |
-| PIPE-02 | Phase 1: Pipeline Reliability | Pending |
-| PIPE-03 | Phase 1: Pipeline Reliability | Pending |
-| PIPE-04 | Phase 1: Pipeline Reliability | Pending |
-| PIPE-05 | Phase 1: Pipeline Reliability | Pending |
+| PIPE-01 | Phase 1: Pipeline Reliability | Done |
+| PIPE-02 | Phase 1: Pipeline Reliability | Done |
+| PIPE-03 | Phase 1: Pipeline Reliability | Done |
+| PIPE-04 | Phase 1: Pipeline Reliability | Done |
+| PIPE-05 | Phase 1: Pipeline Reliability | Done |
 | VSRC-01 | Phase 2: Vector Infrastructure | Pending |
 | VSRC-02 | Phase 2: Vector Infrastructure | Pending |
 | MEM-01 | Phase 3: Memory in Chat | Pending |
