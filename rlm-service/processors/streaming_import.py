@@ -239,6 +239,23 @@ async def trigger_full_pass(user_id: str, storage_path: str, conversation_count:
     except asyncio.TimeoutError:
         error_msg = f"Full pass timed out after {FULL_PASS_TIMEOUT_SECONDS}s"
         print(f"[streaming_import] TIMEOUT: {error_msg} for user {user_id}")
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.patch(
+                    f"{SUPABASE_URL}/rest/v1/user_profiles?user_id=eq.{user_id}",
+                    json={
+                        "full_pass_status": "failed",
+                        "full_pass_error": error_msg,
+                    },
+                    headers={
+                        "apikey": SUPABASE_SERVICE_KEY,
+                        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                        "Content-Type": "application/json",
+                        "Prefer": "return=minimal",
+                    },
+                )
+        except Exception:
+            pass
 
     except Exception as e:
         error_msg = str(e)[:500]

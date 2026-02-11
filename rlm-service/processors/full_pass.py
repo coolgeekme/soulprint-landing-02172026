@@ -22,26 +22,23 @@ async def delete_user_chunks(user_id: str):
     Args:
         user_id: User ID to delete chunks for
 
-    Best-effort: logs errors but doesn't throw
+    Raises:
+        RuntimeError: If delete fails (errors propagate to caller)
     """
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.delete(
-                f"{SUPABASE_URL}/rest/v1/conversation_chunks?user_id=eq.{user_id}",
-                headers={
-                    "apikey": SUPABASE_SERVICE_KEY,
-                    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-                },
-                timeout=30.0,
-            )
+    async with httpx.AsyncClient() as client:
+        response = await client.delete(
+            f"{SUPABASE_URL}/rest/v1/conversation_chunks?user_id=eq.{user_id}",
+            headers={
+                "apikey": SUPABASE_SERVICE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+            },
+            timeout=30.0,
+        )
 
-            if response.status_code not in (200, 204):
-                print(f"[FullPass] Warning: Failed to delete existing chunks: {response.text}")
-            else:
-                print(f"[FullPass] Deleted existing chunks for user {user_id}")
+        if response.status_code not in (200, 204):
+            raise RuntimeError(f"Failed to delete existing chunks ({response.status_code}): {response.text[:200]}")
 
-    except Exception as e:
-        print(f"[FullPass] Error deleting chunks: {e}")
+        print(f"[FullPass] Deleted existing chunks for user {user_id}")
 
 
 async def save_chunks_batch(user_id: str, chunks: List[dict]):
@@ -52,68 +49,65 @@ async def save_chunks_batch(user_id: str, chunks: List[dict]):
         user_id: User ID to associate chunks with
         chunks: List of chunk dicts (conversation_id, title, content, etc.)
 
-    Best-effort: logs errors but doesn't throw
+    Raises:
+        RuntimeError: If chunk save fails (errors propagate to caller)
     """
-    try:
-        # Add user_id and calculate is_recent for each chunk
-        six_months_ago = datetime.utcnow() - timedelta(days=180)
+    # Add user_id and calculate is_recent for each chunk
+    six_months_ago = datetime.utcnow() - timedelta(days=180)
 
-        # Fields that exist in the conversation_chunks table
-        VALID_COLUMNS = {
-            "user_id", "conversation_id", "title", "content",
-            "chunk_tier", "is_recent", "created_at",
-            "message_count",
-        }
+    # Fields that exist in the conversation_chunks table
+    VALID_COLUMNS = {
+        "user_id", "conversation_id", "title", "content",
+        "chunk_tier", "is_recent", "created_at",
+        "message_count",
+    }
 
-        for chunk in chunks:
-            chunk["user_id"] = user_id
+    for chunk in chunks:
+        chunk["user_id"] = user_id
 
-            # Remove fields not in the DB schema (e.g. chunk_index, total_chunks)
-            extra_keys = [k for k in chunk if k not in VALID_COLUMNS]
-            for k in extra_keys:
-                del chunk[k]
+        # Remove fields not in the DB schema (e.g. chunk_index, total_chunks)
+        extra_keys = [k for k in chunk if k not in VALID_COLUMNS]
+        for k in extra_keys:
+            del chunk[k]
 
-            # Set is_recent based on created_at
-            created_at = chunk.get("created_at")
-            if created_at:
-                try:
-                    # Parse ISO timestamp
-                    created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-                    chunk["is_recent"] = created_dt > six_months_ago
-                except Exception:
-                    chunk["is_recent"] = False
-            else:
+        # Set is_recent based on created_at
+        created_at = chunk.get("created_at")
+        if created_at:
+            try:
+                # Parse ISO timestamp
+                created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                chunk["is_recent"] = created_dt > six_months_ago
+            except Exception:
                 chunk["is_recent"] = False
+        else:
+            chunk["is_recent"] = False
 
-            # Ensure chunk_tier is set
-            if "chunk_tier" not in chunk:
-                chunk["chunk_tier"] = "medium"
+        # Ensure chunk_tier is set
+        if "chunk_tier" not in chunk:
+            chunk["chunk_tier"] = "medium"
 
-            # Set message_count from chunk (not used yet, but schema requires it)
-            if "message_count" not in chunk:
-                chunk["message_count"] = 0
+        # Set message_count from chunk (not used yet, but schema requires it)
+        if "message_count" not in chunk:
+            chunk["message_count"] = 0
 
-        # POST batch to Supabase
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{SUPABASE_URL}/rest/v1/conversation_chunks",
-                json=chunks,
-                headers={
-                    "apikey": SUPABASE_SERVICE_KEY,
-                    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-                    "Content-Type": "application/json",
-                    "Prefer": "return=minimal",
-                },
-                timeout=60.0,
-            )
+    # POST batch to Supabase
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/conversation_chunks",
+            json=chunks,
+            headers={
+                "apikey": SUPABASE_SERVICE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
+            },
+            timeout=60.0,
+        )
 
-            if response.status_code not in (200, 201):
-                print(f"[FullPass] Warning: Failed to save chunk batch: {response.text}")
-            else:
-                print(f"[FullPass] Saved batch of {len(chunks)} chunks")
+        if response.status_code not in (200, 201):
+            raise RuntimeError(f"Failed to save chunk batch ({response.status_code}): {response.text[:200]}")
 
-    except Exception as e:
-        print(f"[FullPass] Error saving chunk batch: {e}")
+        print(f"[FullPass] Saved batch of {len(chunks)} chunks")
 
 
 async def run_full_pass_pipeline(
@@ -192,7 +186,7 @@ async def run_full_pass_pipeline(
         hierarchical_reduce
     )
 
-    all_facts = await extract_facts_parallel(chunks, client, concurrency=10)
+    all_facts = await extract_facts_parallel(chunks, client)
     print(f"[FullPass] Extracted facts from {len(chunks)} chunks")
 
     # Step 5: Consolidate facts

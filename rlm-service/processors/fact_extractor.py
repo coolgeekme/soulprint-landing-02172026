@@ -4,6 +4,8 @@ Parallel extraction of durable facts from conversation chunks using Claude Haiku
 """
 import json
 import asyncio
+import random
+import anthropic
 from typing import List, Dict
 
 
@@ -106,15 +108,36 @@ async def extract_facts_from_chunk(chunk_content: str, anthropic_client) -> dict
             print(f"[FactExtractor] Response text: {response_text[:200]}...")
             return empty_facts
 
+    except (anthropic.RateLimitError, anthropic.APIError) as e:
+        # Re-raise API errors so retry wrapper can handle them
+        raise
     except Exception as e:
+        # Other errors (JSON parse, etc.) - return empty facts
         print(f"[FactExtractor] Error extracting facts from chunk: {e}")
         return empty_facts
+
+
+async def _extract_with_retry(chunk_content: str, anthropic_client, max_retries: int = 3) -> dict:
+    """Extract facts with exponential backoff retry on API errors."""
+    empty_facts = {"preferences": [], "projects": [], "dates": [], "beliefs": [], "decisions": []}
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            return await extract_facts_from_chunk(chunk_content, anthropic_client)
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries - 1:
+                wait = (2 ** attempt) + (random.random() * 0.5)  # 1s, 2.5s, 5s with jitter
+                print(f"[FactExtractor] Retry {attempt+1}/{max_retries} after {wait:.1f}s: {e}")
+                await asyncio.sleep(wait)
+    print(f"[FactExtractor] All {max_retries} retries failed: {last_error}")
+    return empty_facts
 
 
 async def extract_facts_parallel(
     chunks: List[dict],
     anthropic_client,
-    concurrency: int = 10
+    concurrency: int = 5
 ) -> List[dict]:
     """
     Extract facts from multiple chunks in parallel with concurrency limit.
@@ -122,7 +145,7 @@ async def extract_facts_parallel(
     Args:
         chunks: List of chunk dicts (each has 'content' field)
         anthropic_client: AsyncAnthropic client instance
-        concurrency: Max number of parallel API calls (default 10)
+        concurrency: Max number of parallel API calls (default 5)
 
     Returns:
         List of fact dicts (one per chunk, in same order)
@@ -133,9 +156,9 @@ async def extract_facts_parallel(
     semaphore = asyncio.Semaphore(concurrency)
 
     async def extract_with_limit(chunk: dict) -> dict:
-        """Extract facts with semaphore limit"""
+        """Extract facts with semaphore limit and retry"""
         async with semaphore:
-            return await extract_facts_from_chunk(chunk["content"], anthropic_client)
+            return await _extract_with_retry(chunk["content"], anthropic_client)
 
     # Create tasks for all chunks
     tasks = [extract_with_limit(chunk) for chunk in chunks]
