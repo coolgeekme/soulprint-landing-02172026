@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { searchMemoryLayered as searchMemory } from '@/lib/memory/query';
+import { getMemoryContext } from '@/lib/memory/query';
 import { extractFacts } from '@/lib/memory/facts';
 import { handleAPIError } from '@/lib/api/error-handler';
 import { parseRequestBody, memoryQuerySchema } from '@/lib/api/schemas';
@@ -38,24 +38,25 @@ export async function POST(request: NextRequest) {
     const { query, topK, includeFacts } = result;
 
     // Search memory
-    const chunks = await searchMemory(user.id, query, topK);
-    reqLog.debug({ chunksFound: chunks.length, topK }, 'Memory search completed');
+    const memoryResult = await getMemoryContext(user.id, query, topK);
+    reqLog.debug({ chunksFound: memoryResult.chunks.length, topK, method: memoryResult.method }, 'Memory search completed');
 
     // Optionally extract facts from retrieved chunks
     let facts = null;
-    if (includeFacts && chunks.length > 0) {
-      facts = await extractFacts(chunks);
+    if (includeFacts && memoryResult.chunks.length > 0) {
+      facts = await extractFacts(memoryResult.chunks);
       reqLog.debug({ factsExtracted: facts ? Object.keys(facts).length : 0 }, 'Facts extracted');
     }
 
     const duration = Date.now() - startTime;
-    reqLog.info({ duration, status: 200, chunksReturned: chunks.length }, 'Memory query completed');
+    reqLog.info({ duration, status: 200, chunksReturned: memoryResult.chunks.length }, 'Memory query completed');
 
     return NextResponse.json({
-      chunks,
+      chunks: memoryResult.chunks,
       facts,
       query,
       userId: user.id,
+      method: memoryResult.method,
     });
   } catch (error) {
     const duration = Date.now() - startTime;

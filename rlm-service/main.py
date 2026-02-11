@@ -90,7 +90,7 @@ async def get_conversation_chunks(user_id: str, recent_only: bool = True) -> Lis
         }
         if recent_only:
             params["is_recent"] = "eq.true"
-        
+
         response = await client.get(
             query,
             params=params,
@@ -102,8 +102,54 @@ async def get_conversation_chunks(user_id: str, recent_only: bool = True) -> Lis
         
         if response.status_code != 200:
             raise Exception(f"Supabase error: {response.text}")
-        
+
         return response.json()
+
+
+async def search_chunks_semantic(user_id: str, query: str, match_count: int = 8, threshold: float = 0.3) -> List[dict]:
+    """Search conversation chunks by semantic similarity using Titan Embed v2 embeddings.
+
+    Uses the embed_text() function from embedding_generator to create a query embedding,
+    then calls the match_conversation_chunks Supabase RPC function for cosine similarity search.
+
+    Falls back to get_conversation_chunks() (timestamp sort) if embedding or RPC fails.
+    """
+    try:
+        from processors.embedding_generator import embed_text
+
+        # Generate query embedding (768-dim Titan Embed v2)
+        query_embedding = embed_text(query)
+
+        # Call Supabase RPC for vector similarity search
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{SUPABASE_URL}/rest/v1/rpc/match_conversation_chunks",
+                json={
+                    "query_embedding": query_embedding,
+                    "match_user_id": user_id,
+                    "match_count": match_count,
+                    "match_threshold": threshold,
+                },
+                headers={
+                    "apikey": SUPABASE_SERVICE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                    "Content-Type": "application/json",
+                },
+                timeout=15.0,
+            )
+
+            if response.status_code != 200:
+                print(f"[SemanticSearch] RPC error {response.status_code}: {response.text[:200]}")
+                # Fall back to timestamp sort
+                return await get_conversation_chunks(user_id, recent_only=True)
+
+            chunks = response.json()
+            print(f"[SemanticSearch] Found {len(chunks)} relevant chunks for user {user_id}")
+            return chunks
+
+    except Exception as e:
+        print(f"[SemanticSearch] Failed, falling back to timestamp sort: {e}")
+        return await get_conversation_chunks(user_id, recent_only=True)
 
 
 async def alert_failure(error: str, user_id: str, message: str):
@@ -661,17 +707,23 @@ async def query(request: QueryRequest):
     start = time.time()
     
     try:
-        # Fetch conversation chunks
-        chunks = await get_conversation_chunks(request.user_id, recent_only=True)
-        
-        # Build context from chunks
+        # Fetch conversation chunks via semantic search
+        chunks = await search_chunks_semantic(request.user_id, request.message, match_count=8, threshold=0.3)
+
+        # Build context from semantically-matched chunks
         conversation_context = ""
-        for chunk in chunks[:50]:  # Limit to 50 most recent
-            conversation_context += f"\n---\n**{chunk.get('title', 'Untitled')}** ({chunk.get('created_at', 'unknown date')})\n"
-            conversation_context += chunk.get('content', '')[:2000]  # Truncate long convos
-        
+        for chunk in chunks[:10]:  # Top 10 most relevant
+            title = chunk.get('title', 'Untitled')
+            similarity = chunk.get('similarity', 0)
+            content = chunk.get('content', '')[:2000]  # Truncate long chunks
+            conversation_context += f"\n---\n**{title}** (relevance: {similarity:.2f})\n{content}"
+
         # Resolve AI name
         ai_name = request.ai_name or "SoulPrint"
+
+        # Log memory availability for debugging
+        has_memory_md = bool(request.sections and request.sections.get("memory"))
+        print(f"[Query] user={request.user_id}, has_memory_md={has_memory_md}, chunks={len(chunks)}")
 
         # Try RLM first
         try:

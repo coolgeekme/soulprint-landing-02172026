@@ -45,11 +45,14 @@ export interface LearnedFactResult {
 // Database row types for proper typing
 interface ChunkRpcRow {
   id: string;
+  user_id: string;
+  conversation_id: string;
   title: string | null;
   content: string;
+  chunk_tier: string;
+  message_count: number;
   created_at: string;
   similarity: number;
-  layer_index: number | null;
 }
 
 interface ChunkTableRow {
@@ -57,7 +60,6 @@ interface ChunkTableRow {
   title: string | null;
   content: string;
   created_at: string;
-  layer_index: number | null;
 }
 
 interface LearnedFactRow {
@@ -138,52 +140,27 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
 }
 
 /**
- * Search conversation_chunks by vector similarity with Layer Filtering (with timeout)
+ * Search conversation_chunks by vector similarity using match_conversation_chunks RPC
  */
-export async function searchMemoryLayered(
+export async function searchChunksSemantic(
   userId: string,
-  query: string,
-  topK: number = 5,
+  queryEmbedding: number[],
+  topK: number = 10,
   minSimilarity: number = 0.3,
-  layerIndex?: number,  // New RLM param
-  queryEmbed?: number[] // Optimization: Reuse embedding if available
 ): Promise<MemoryChunk[]> {
-  // Embed the query if not provided
-  const queryEmbedding = queryEmbed || await embedQuery(query);
-
-  const supabase = await createClient();
+  const supabase = getSupabaseAdmin();
 
   const searchPromise = async (): Promise<MemoryChunk[]> => {
-    // Call the NEW layered search function
-    let rpcName = 'match_conversation_chunks_layered';
-
-    // Try the layered RPC first
-    let { data, error } = await supabase.rpc(rpcName, {
+    const { data, error } = await supabase.rpc('match_conversation_chunks', {
       query_embedding: queryEmbedding,
       match_user_id: userId,
       match_count: topK,
       match_threshold: minSimilarity,
-      match_layer: layerIndex || null // Pass null to search all layers
     });
 
     if (error) {
-      // If function doesn't exist, try the old one (fallback for safety)
-      if (error.code === '42883') { // Undefined function
-        console.warn('[Memory] Layered RPC missing, falling back to basic search');
-        const fallback = await supabase.rpc('match_conversation_chunks', {
-          query_embedding: queryEmbedding,
-          match_user_id: userId,
-          match_count: topK,
-          match_threshold: minSimilarity,
-        });
-        data = fallback.data;
-        error = fallback.error;
-      }
-
-      if (error) {
-        console.error('Memory search error:', error);
-        throw new Error(`Failed to search memory: ${error.message}`);
-      }
+      console.error('[Memory] Semantic search RPC error:', error.message);
+      throw new Error(`Failed to search memory: ${error.message}`);
     }
 
     return (data || []).map((row: ChunkRpcRow) => ({
@@ -192,17 +169,16 @@ export async function searchMemoryLayered(
       content: row.content,
       created_at: row.created_at,
       similarity: row.similarity,
-      layer_index: row.layer_index || 1, // Default to 1 if missing
+      layer_index: 1, // Not used in new approach, kept for interface compat
     }));
   };
 
   const result = await withTimeout(
     searchPromise(),
     MEMORY_SEARCH_TIMEOUT_MS,
-    `searchMemoryLayered(layer=${layerIndex || 'all'})`
+    'searchChunksSemantic'
   );
 
-  // Return empty array on timeout (graceful degradation)
   return result || [];
 }
 
@@ -227,7 +203,7 @@ async function keywordSearch(
 
     const { data, error } = await supabase
       .from('conversation_chunks')
-      .select('id, title, content, created_at, layer_index')
+      .select('id, title, content, created_at')
       .eq('user_id', userId)
       .or(keywords.map(k => `content.ilike.%${k}%`).join(','))
       .order('created_at', { ascending: false })
@@ -244,7 +220,7 @@ async function keywordSearch(
       content: row.content,
       created_at: row.created_at,
       similarity: 0.5 - (i * 0.05),
-      layer_index: row.layer_index || 1,
+      layer_index: 1, // Not used in new approach, kept for interface compat
     }));
   };
 
@@ -293,14 +269,16 @@ async function searchLearnedFacts(
 const MEMORY_CONTEXT_TIMEOUT_MS = 30000;
 
 /**
- * Get Hierarchical (RLM) Context
- * Searches multiple layers to build a deep context window
- * Has overall timeout protection - returns empty context rather than hanging
+ * Get memory context for a chat query via semantic search.
+ * Embeds the query with Titan Embed v2, searches conversation_chunks via cosine
+ * similarity, and formats results as context text for the LLM.
+ *
+ * Falls back to keyword search if embedding/vector search fails.
  */
 export async function getMemoryContext(
   userId: string,
   query: string,
-  maxChunks: number = 5 // Not strictly used for all layers, but as a base
+  maxChunks: number = 10
 ): Promise<{ chunks: MemoryChunk[]; contextText: string; method: string; learnedFacts: LearnedFactResult[] }> {
   const emptyResult = { chunks: [], contextText: '', method: 'timeout', learnedFacts: [] };
 
@@ -308,94 +286,50 @@ export async function getMemoryContext(
     let chunks: MemoryChunk[] = [];
     let learnedFacts: LearnedFactResult[] = [];
     let method = 'none';
-    let queryEmbedding: number[] | null = null;
-    const usedChunksIDs = new Set<string>();
 
     try {
-      queryEmbedding = await embedQuery(query);
+      // Embed query with Titan v2 (768-dim)
+      const queryEmbedding = await embedQuery(query);
 
-      // 1. MACRO Layer (Layer 5) - Get high-level context
-      // Broad, thematic chunks (5000 chars) that set the scene
-      const macroChunks = await searchMemoryLayered(userId, query, 2, 0.25, 5, queryEmbedding);
-      macroChunks.forEach(c => {
-        if (!usedChunksIDs.has(c.id)) {
-          chunks.push(c);
-          usedChunksIDs.add(c.id);
-        }
-      });
+      // Semantic search via match_conversation_chunks RPC
+      chunks = await searchChunksSemantic(userId, queryEmbedding, maxChunks, 0.3);
+      method = chunks.length > 0 ? 'semantic_vector' : 'none';
 
-      // 2. THEMATIC Layer (Layer 3) - Mid-level details
-      // 1000 chars, standard chunks
-      const thematicChunks = await searchMemoryLayered(userId, query, 3, 0.35, 3, queryEmbedding);
-      thematicChunks.forEach(c => {
-        if (!usedChunksIDs.has(c.id)) {
-          chunks.push(c);
-          usedChunksIDs.add(c.id);
-        }
-      });
+      console.log(`[Memory] Semantic search found ${chunks.length} relevant chunks for user ${userId}`);
 
-      // 3. MICRO Layer (Layer 1) - Specific details
-      // 200 chars, very precise matching
-      const microChunks = await searchMemoryLayered(userId, query, 4, 0.45, 1, queryEmbedding);
-      microChunks.forEach(c => {
-        if (!usedChunksIDs.has(c.id)) {
-          chunks.push(c);
-          usedChunksIDs.add(c.id);
-        }
-      });
-
-      // 4. Also get general chunks if we missed stuff (optional, search all layers)
-      if (chunks.length < 3) {
-        const generalChunks = await searchMemoryLayered(userId, query, 3, 0.3, undefined, queryEmbedding); // All layers
-        generalChunks.forEach(c => {
-          if (!usedChunksIDs.has(c.id)) {
-            chunks.push(c);
-            usedChunksIDs.add(c.id);
-          }
-        });
-      }
-
-      method = chunks.length > 0 ? 'hierarchical_vector' : 'none';
-      console.log(`[RLM] Found ${chunks.length} chunks across layers (Macro:${macroChunks.length}, Thematic:${thematicChunks.length}, Micro:${microChunks.length})`);
-
-      // Learned facts
-      if (queryEmbedding) {
-        learnedFacts = await searchLearnedFacts(userId, queryEmbedding, 10, 0.4);
-      }
+      // Also get learned facts
+      learnedFacts = await searchLearnedFacts(userId, queryEmbedding, 10, 0.4);
 
     } catch (error) {
-      console.log('[RLM] Vector search failed:', error);
-      // Fallback
-      chunks = await keywordSearch(userId, query, 5);
+      console.log('[Memory] Vector search failed:', error);
+      // Fallback to keyword search
+      chunks = await keywordSearch(userId, query, maxChunks);
       method = chunks.length > 0 ? 'keyword' : 'none';
     }
-
-    // Deduplicate again just in case
-    // Sort chunks by layer index (High to Low -> 5, then 3, then 1) to provide context from broad to narrow
-    chunks.sort((a, b) => b.layer_index - a.layer_index);
 
     if (chunks.length === 0 && learnedFacts.length === 0) {
       return { chunks: [], contextText: '', method, learnedFacts: [] };
     }
 
-    // Format Context
+    // Format context
     const contextParts: string[] = [];
 
     // Facts first
     if (learnedFacts.length > 0) {
       const factsText = learnedFacts
-        .map(f => `• [Fact] ${f.fact}`)
+        .map(f => `- [Fact] ${f.fact}`)
         .join('\n');
       contextParts.push(`[Learned Facts]\n${factsText}`);
     }
 
-    // Memories organized by layer
+    // Memory chunks (sorted by similarity, highest first)
     if (chunks.length > 0) {
       const formattedChunks = chunks.map(chunk => {
-        const layerName = chunk.layer_index === 5 ? 'MACRO' : chunk.layer_index === 3 ? 'THEME' : chunk.layer_index === 1 ? 'MICRO' : 'MEMORY';
-        // Truncate based on layer size slightly to ensure we don't blow context
-        const maxLen = chunk.layer_index === 5 ? 2000 : 1000;
-        return `[${layerName} Context: ${chunk.title}]\n${chunk.content.slice(0, maxLen)}...`;
+        const maxLen = 2000;
+        const truncated = chunk.content.length > maxLen
+          ? chunk.content.slice(0, maxLen) + '...'
+          : chunk.content;
+        return `[Memory: ${chunk.title}] (relevance: ${chunk.similarity.toFixed(2)})\n${truncated}`;
       }).join('\n\n');
       contextParts.push(formattedChunks);
     }
@@ -406,7 +340,7 @@ export async function getMemoryContext(
       method,
       learnedFacts
     };
-  }; // End of fetchContext
+  };
 
   // Wrap entire memory fetch with overall timeout
   const result = await withTimeout(fetchContext(), MEMORY_CONTEXT_TIMEOUT_MS, 'getMemoryContext');
