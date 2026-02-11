@@ -55,6 +55,7 @@ export default function ChatPage() {
   const [fullPassStatus, setFullPassStatus] = useState<string>('pending');
   const [fullPassError, setFullPassError] = useState<string | null>(null);
   const [fullPassDismissed, setFullPassDismissed] = useState(false);
+  const [retryingFullPass, setRetryingFullPass] = useState(false);
 
   // Conversation management state
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -850,8 +851,41 @@ export default function ChatPage() {
     processQueue();
   }, [messages, processQueue]);
 
+  const retryFullPass = async () => {
+    setRetryingFullPass(true);
+    try {
+      const csrfToken = await getCsrfToken();
+      const res = await fetch('/api/import/retry-full-pass', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+      });
+      if (res.ok) {
+        setFullPassStatus('processing');
+        setFullPassError(null);
+        setFullPassDismissed(false);
+        // Polling will pick up the new 'processing' status on next interval (5s)
+      } else {
+        const data = await res.json().catch(() => ({}));
+        console.error('[Chat] Retry failed:', data.error);
+      }
+    } catch (err) {
+      console.error('[Chat] Retry full pass error:', err);
+    } finally {
+      setRetryingFullPass(false);
+    }
+  };
+
   // FullPassBanner component for showing full pass status
-  function FullPassBanner({ status, error, onDismiss }: { status: string; error: string | null; onDismiss: () => void }) {
+  function FullPassBanner({ status, error, onDismiss, onRetry, retrying }: {
+    status: string;
+    error: string | null;
+    onDismiss: () => void;
+    onRetry?: () => void;
+    retrying?: boolean;
+  }) {
     if (status === 'complete' || status === 'pending') return null;
 
     if (status === 'processing') {
@@ -873,6 +907,15 @@ export default function ChatPage() {
           </div>
           {error && <p className="mt-1 text-xs opacity-75">{error}</p>}
           <p className="mt-1 text-xs opacity-60">Your AI still works with quick-pass data. Deep memory can be retried later.</p>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              disabled={retrying}
+              className="mt-2 rounded-md bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-600 px-3 py-1 text-xs font-medium text-white disabled:opacity-50 transition-colors"
+            >
+              {retrying ? 'Retrying...' : 'Retry deep memory'}
+            </button>
+          )}
         </div>
       );
     }
@@ -935,7 +978,15 @@ export default function ChatPage() {
         </div>
 
         {/* Full Pass Status Banner */}
-        {!fullPassDismissed && <FullPassBanner status={fullPassStatus} error={fullPassError} onDismiss={() => setFullPassDismissed(true)} />}
+        {!fullPassDismissed && (
+          <FullPassBanner
+            status={fullPassStatus}
+            error={fullPassError}
+            onDismiss={() => setFullPassDismissed(true)}
+            onRetry={retryFullPass}
+            retrying={retryingFullPass}
+          />
+        )}
       </motion.div>
 
       {saveError && (
