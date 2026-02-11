@@ -161,12 +161,24 @@ function ImportPageContent() {
         if (isNoConversations) throw extractionError;
 
         console.warn('[Import] Client-side extraction failed, uploading raw ZIP:', extractionError);
+
+        // Re-read the file to get a fresh Blob — after OOM the original File
+        // object may be in a bad state on some mobile browsers
+        try {
+          const freshBlob = file.slice(0, file.size, 'application/zip');
+          uploadBlob = freshBlob;
+        } catch {
+          // slice failed too — use original file reference
+          uploadBlob = file;
+        }
+
         const sizeMB = (file.size / 1024 / 1024).toFixed(1);
         setProgress(5);
         setStage(`Uploading ${sizeMB}MB ZIP (server will extract)...`);
       }
 
-      // 3. Upload via TUS
+      // 3. Upload to storage
+      console.log('[Import] Starting upload:', uploadFilename, uploadContentType, (uploadBlob.size / 1024 / 1024).toFixed(1), 'MB');
       const result = await tusUpload({
         file: uploadBlob,
         userId: user.id,
@@ -207,6 +219,21 @@ function ImportPageContent() {
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Something went wrong';
+      const stack = err instanceof Error ? err.stack : '';
+      console.error('[Import] handleFile error:', msg, stack);
+
+      // Log client-side error to server for debugging
+      fetch('/api/import/log-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          error: msg,
+          stack: stack?.slice(0, 500),
+          fileSize: file.size,
+          fileName: file.name,
+          userAgent: navigator.userAgent,
+        }),
+      }).catch(() => {}); // Fire-and-forget
 
       // Auth errors → redirect to login
       if (msg.toLowerCase().includes('logged in') || msg.toLowerCase().includes('session expired')) {
