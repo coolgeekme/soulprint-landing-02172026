@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Upload, Shield, AlertCircle, Loader2, Lock, ChevronRight, Settings, Mail, Download, FileArchive, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BackgroundBeams } from '@/components/ui/background-beams';
-import { RingProgress } from '@/components/ui/ring-progress';
+import { AnimatedProgressStages } from '@/components/import/animated-progress-stages';
 import { createClient } from '@/lib/supabase/client';
 import JSZip from 'jszip';
 import { tusUpload } from '@/lib/tus-upload';
@@ -27,6 +27,7 @@ function ImportPageContent() {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const lastKnownPercentRef = useRef(0);
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -48,7 +49,10 @@ function ImportPageContent() {
 
         if (pollError || !data) return;
 
-        setProgress(data.progress_percent || 0);
+        const newPercent = data.progress_percent || 0;
+        const effectivePercent = Math.max(newPercent, lastKnownPercentRef.current);
+        lastKnownPercentRef.current = effectivePercent;
+        setProgress(effectivePercent);
         setStage(data.import_stage || 'Processing...');
 
         if (data.import_status === 'quick_ready' || data.import_status === 'complete') {
@@ -90,7 +94,9 @@ function ImportPageContent() {
 
         if (data.status === 'processing') {
           setPhase('processing');
-          setProgress(data.progress_percent ?? 0);
+          const resumePercent = data.progress_percent ?? 0;
+          lastKnownPercentRef.current = resumePercent;
+          setProgress(resumePercent);
           setStage(data.import_stage ?? 'Processing...');
           startPolling(user.id);
           return;
@@ -119,6 +125,7 @@ function ImportPageContent() {
     }
 
     setPhase('processing');
+    lastKnownPercentRef.current = 0;
     setProgress(0);
     setStage('Extracting conversations...');
 
@@ -159,7 +166,8 @@ function ImportPageContent() {
           fileType = 'json';
 
           const sizeMB = (jsonBlob.size / 1024 / 1024).toFixed(1);
-          setProgress(10);
+          lastKnownPercentRef.current = Math.max(10, lastKnownPercentRef.current);
+          setProgress(lastKnownPercentRef.current);
           setStage(`Extracted ${sizeMB}MB — uploading...`);
         } catch (extractionError) {
           // JSZip failed — upload raw ZIP instead
@@ -168,13 +176,15 @@ function ImportPageContent() {
           if (isNoConversations) throw extractionError;
 
           console.warn('[Import] Client-side extraction failed, uploading raw ZIP:', extractionError);
-          setProgress(5);
+          lastKnownPercentRef.current = Math.max(5, lastKnownPercentRef.current);
+          setProgress(lastKnownPercentRef.current);
           setStage(`Uploading ${fileSizeMB}MB ZIP (server will extract)...`);
         }
       } else {
         // Large file — skip JSZip entirely, upload raw ZIP for server-side extraction
         console.log(`[Import] File is ${fileSizeMB}MB (>${FILE_SIZE_LIMIT / 1024 / 1024}MB), skipping client extraction`);
-        setProgress(5);
+        lastKnownPercentRef.current = Math.max(5, lastKnownPercentRef.current);
+        setProgress(lastKnownPercentRef.current);
         setStage(`Uploading ${fileSizeMB}MB ZIP (server will extract)...`);
       }
 
@@ -188,7 +198,9 @@ function ImportPageContent() {
         filename: uploadFilename,
         contentType: uploadContentType,
         onProgress: (pct) => {
-          setProgress(10 + Math.round(pct * 0.4)); // 10-50%
+          const newProgress = 10 + Math.round(pct * 0.4); // 10-50%
+          lastKnownPercentRef.current = Math.max(newProgress, lastKnownPercentRef.current);
+          setProgress(lastKnownPercentRef.current);
           const elapsed = Math.round((Date.now() - uploadStartTime) / 1000);
           const remaining = pct > 5 ? Math.round((elapsed / pct) * (100 - pct)) : null;
           const timeHint = remaining && remaining > 10
@@ -202,7 +214,8 @@ function ImportPageContent() {
         throw new Error(result.error || 'Upload failed');
       }
 
-      setProgress(55);
+      lastKnownPercentRef.current = Math.max(55, lastKnownPercentRef.current);
+      setProgress(lastKnownPercentRef.current);
       setStage('Starting analysis...');
 
       // 4. Trigger RLM
@@ -386,21 +399,12 @@ function ImportPageContent() {
 
           {/* PROCESSING */}
           {phase === 'processing' && (
-            <motion.div key="processing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full max-w-md text-center">
-              <div className="mb-4 flex flex-col items-center">
-                <RingProgress progress={progress} size={80} strokeWidth={6} showPercentage />
-              </div>
-              <h2 className="text-lg font-bold text-white mb-1">{stage || 'Processing...'}</h2>
-              <div className="mt-4 w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <motion.div className="h-full bg-gradient-to-r from-orange-600 to-orange-400 rounded-full" animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
-              </div>
-              {progress >= 55 ? (
-                <p className="text-green-400/80 text-xs mt-3">Safe to close this tab — processing continues in the background</p>
-              ) : progress < 50 ? (
-                <p className="text-orange-400/80 text-xs mt-3">Large exports can take a few minutes to upload — please keep this tab open</p>
-              ) : (
-                <p className="text-orange-400/80 text-xs mt-3">Please keep this tab open until upload completes</p>
-              )}
+            <motion.div key="processing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full max-w-md">
+              <AnimatedProgressStages
+                progress={progress}
+                stage={stage}
+                lastKnownPercent={lastKnownPercentRef.current}
+              />
             </motion.div>
           )}
 

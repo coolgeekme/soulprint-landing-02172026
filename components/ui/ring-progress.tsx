@@ -54,9 +54,6 @@ export function RingProgress({
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           className="transition-all duration-500 ease-out"
-          style={{
-            filter: `drop-shadow(0 0 6px ${color}50)`,
-          }}
         />
       </svg>
       {showPercentage && (
