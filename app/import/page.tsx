@@ -179,7 +179,9 @@ function ImportPageContent() {
       }
 
       // 3. Upload to storage
-      console.log('[Import] Starting upload:', uploadFilename, uploadContentType, (uploadBlob.size / 1024 / 1024).toFixed(1), 'MB');
+      const uploadSizeMB = (uploadBlob.size / 1024 / 1024).toFixed(0);
+      console.log('[Import] Starting upload:', uploadFilename, uploadContentType, uploadSizeMB, 'MB');
+      const uploadStartTime = Date.now();
       const result = await tusUpload({
         file: uploadBlob,
         userId: user.id,
@@ -187,7 +189,12 @@ function ImportPageContent() {
         contentType: uploadContentType,
         onProgress: (pct) => {
           setProgress(10 + Math.round(pct * 0.4)); // 10-50%
-          setStage(`Uploading... ${pct}%`);
+          const elapsed = Math.round((Date.now() - uploadStartTime) / 1000);
+          const remaining = pct > 5 ? Math.round((elapsed / pct) * (100 - pct)) : null;
+          const timeHint = remaining && remaining > 10
+            ? ` — ~${remaining < 60 ? `${remaining}s` : `${Math.round(remaining / 60)}m`} left`
+            : '';
+          setStage(`Uploading ${uploadSizeMB}MB... ${pct}%${timeHint}`);
         },
       });
 
@@ -389,6 +396,8 @@ function ImportPageContent() {
               </div>
               {progress >= 55 ? (
                 <p className="text-green-400/80 text-xs mt-3">Safe to close this tab — processing continues in the background</p>
+              ) : progress < 50 ? (
+                <p className="text-orange-400/80 text-xs mt-3">Large exports can take a few minutes to upload — please keep this tab open</p>
               ) : (
                 <p className="text-orange-400/80 text-xs mt-3">Please keep this tab open until upload completes</p>
               )}
