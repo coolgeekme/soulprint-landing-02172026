@@ -34,6 +34,13 @@ function ImportPageContent() {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
+  // Prefetch chat route as soon as processing starts
+  useEffect(() => {
+    if (phase === 'processing') {
+      router.prefetch('/chat');
+    }
+  }, [phase, router]);
+
   // Poll import status from database
   const startPolling = useCallback((userId: string) => {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -58,8 +65,10 @@ function ImportPageContent() {
         if (data.import_status === 'quick_ready' || data.import_status === 'complete') {
           if (pollRef.current) clearInterval(pollRef.current);
           setProgress(100);
-          setStage('Done! Opening chat...');
-          setTimeout(() => router.push('/chat'), 800);
+          setStage('Your SoulPrint is ready!');
+          // Let the user see the completed state for 1.2s, then navigate.
+          // template.tsx handles the fade-in on the chat page.
+          setTimeout(() => router.push('/chat'), 1200);
         } else if (data.import_status === 'failed') {
           if (pollRef.current) clearInterval(pollRef.current);
           setError(data.import_error || 'Import failed. Please try again.');
