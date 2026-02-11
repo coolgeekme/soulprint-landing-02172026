@@ -12,11 +12,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 
 Milestone: v2.4 Import UX Polish
 Phase: 1 of 2 (Progress State + Stage Animations)
-Plan: 1 of TBD
-Status: In progress
-Last activity: 2026-02-11 — Completed 01-01-PLAN.md (progress mapper + animated stages)
+Plan: 2 of 2
+Status: Phase complete
+Last activity: 2026-02-11 — Completed 01-02-PLAN.md (import page integration)
 
-Progress: [█░░░░░░░░░] 10% (0/2 phases complete, 1 plan in progress)
+Progress: [█████░░░░░] 50% (1/2 phases complete)
 
 ## Performance Metrics
 
@@ -52,6 +52,9 @@ Progress: [█░░░░░░░░░] 10% (0/2 phases complete, 1 plan in p
 ### Decisions
 
 Recent decisions affecting current work:
+- v2.4 (01-02): Use lastKnownPercentRef for monotonic guard across polling and handleFile flows
+- v2.4 (01-02): Keep RingProgress file but remove drop-shadow (may be used elsewhere)
+- v2.4 (01-02): Wrap AnimatedProgressStages in motion.div for AnimatePresence compatibility
 - v2.4 (01-01): Pure function progress mapper with monotonic guard enforces stability client-side
 - v2.4 (01-01): 4-stage model (Upload 0-49%, Extract 50-59%, Analyze 60-79%, Build 80-100%) maps to actual pipeline phases
 - v2.4 (01-01): Framer Motion 300ms transitions for stage changes, pulsing active stage animation
@@ -83,9 +86,9 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 01-01-PLAN.md execution
+Stopped at: Completed 01-02-PLAN.md execution (Phase 1 complete)
 Resume file: None
-Next step: Continue with remaining Phase 1 plans (import page integration, smooth transitions)
+Next step: Phase 2 - Smooth Transitions (template.tsx page transition pattern)
 
 ---
-*Last updated: 2026-02-11 -- Completed 01-01: progress mapper + animated stages component. Ready for integration into import page.*
+*Last updated: 2026-02-11 -- Completed Phase 1: Stage-based animated progress fully integrated into import page with monotonic enforcement and mobile-safe rendering. Ready for Phase 2 (smooth page transitions).*
