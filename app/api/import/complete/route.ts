@@ -3,6 +3,7 @@
  * Called by RLM when processing is done - sends email + push notification
  */
 
+import { timingSafeEqual } from 'crypto';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/email';
@@ -104,6 +105,26 @@ function generateSoulPrintReadyEmail(userName: string, memoryBuilding = false) {
 
 export async function POST(request: Request) {
   try {
+    // Authenticate the RLM callback with a shared webhook secret.
+    // Without this, any actor who knows the URL can trigger emails for arbitrary users.
+    const expectedSecret = process.env.RLM_WEBHOOK_SECRET;
+    if (!expectedSecret) {
+      console.error('[ImportComplete] RLM_WEBHOOK_SECRET env var is not set — rejecting all requests');
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+    }
+
+    const providedSecret = request.headers.get('x-webhook-secret') ?? '';
+    const expectedBuf = Buffer.from(expectedSecret);
+    const providedBuf = Buffer.from(providedSecret);
+
+    // Use constant-time comparison to prevent timing-based secret enumeration
+    if (
+      providedBuf.length !== expectedBuf.length ||
+      !timingSafeEqual(providedBuf, expectedBuf)
+    ) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Parse and validate request body
     const result = await parseRequestBody(request, importCompleteSchema);
     if (result instanceof Response) return result;

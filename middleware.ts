@@ -17,9 +17,6 @@ export async function middleware(request: NextRequest) {
   // Inject correlation ID into request headers (for API routes to read)
   request.headers.set('x-correlation-id', correlationId)
 
-  // Skip CSRF for internal server-to-server calls (e.g., queue-processing → process-server)
-  const isInternalCall = request.headers.get('X-Internal-User-Id') !== null
-
   // Skip CSRF for Next.js server actions (identified by Next-Action header).
   // Server actions are POST requests to the page URL with Content-Type text/plain.
   // The CSRF middleware reads the request body to look for a token, which consumes
@@ -31,8 +28,8 @@ export async function middleware(request: NextRequest) {
   // Skip entirely for server actions to avoid consuming the request body
   const csrfResponse = isServerAction ? null : await csrfMiddleware(request)
 
-  // If CSRF validation failed and this is NOT an internal call, return 403
-  if (csrfResponse && csrfResponse.status === 403 && !isInternalCall) {
+  // If CSRF validation failed, return 403
+  if (csrfResponse && csrfResponse.status === 403) {
     return csrfResponse
   }
 
