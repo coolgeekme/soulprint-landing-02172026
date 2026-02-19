@@ -10,6 +10,14 @@ import { fetchWithRetry } from '@/lib/retry';
 import { AddToHomeScreen } from '@/components/ui/AddToHomeScreen';
 import { getCsrfToken } from '@/lib/csrf';
 import type { CitationMetadata } from '@/components/chat/message-content';
+import { 
+  getWelcomeMessage, 
+  incrementMessageCount, 
+  shouldShowReminder, 
+  getReminderMessage,
+  setNeverAskAgain,
+  getAssessmentStatus
+} from '@/lib/assessment/reminder';
 // BackgroundSync removed - RLM handles all chunk processing server-side
 
 type Message = {
@@ -153,13 +161,13 @@ export default function ChatPage() {
                 })));
                 setHasReceivedAIResponse(true);
               } else {
-                // Empty conversation - show welcome
+                // Empty conversation - show welcome (with assessment reminder if skipped)
                 setMessages([{
                   id: 'welcome',
                   role: 'assistant',
                   content: localGreeting
                     ? localGreeting
-                    : `Hey! I'm ${localAiName || 'your AI'}. I've got your memories loaded. What's on your mind?`,
+                    : getWelcomeMessage(localAiName || 'your AI'),
                   timestamp: new Date(),
                 }]);
                 setHasReceivedAIResponse(true);
@@ -181,13 +189,13 @@ export default function ChatPage() {
               setConversations([newConv]);
               setCurrentConversationIdSync(newConv.id);
 
-              // Show welcome message
+              // Show welcome message (with assessment reminder if skipped)
               setMessages([{
                 id: 'welcome',
                 role: 'assistant',
                 content: localGreeting
                   ? localGreeting
-                  : `Hey! I'm ${localAiName || 'your AI'}. I've got your memories loaded. What's on your mind?`,
+                  : getWelcomeMessage(localAiName || 'your AI'),
                 timestamp: new Date(),
               }]);
               setHasReceivedAIResponse(true);
@@ -594,6 +602,37 @@ export default function ChatPage() {
       }
     }
 
+    // Assessment reminder system
+    const assessmentStatus = getAssessmentStatus();
+    
+    // Check for "never ask again" about assessment
+    if (assessmentStatus === 'skipped' && 
+        /never\s+ask\s+(?:me\s+)?again|stop\s+asking\s+(?:about\s+)?(?:the\s+)?assessment|don'?t\s+(?:want|need)\s+(?:to\s+do\s+)?(?:the\s+)?assessment/i.test(content)) {
+      setNeverAskAgain();
+      const responseMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `Got it! I won't bring up the assessment again. I'll keep learning about you through our conversations instead. 😊`,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, responseMessage]);
+      saveMessage('user', content);
+      saveMessage('assistant', responseMessage.content);
+      return;
+    }
+    
+    // Check for "let's do the assessment" request
+    if (assessmentStatus === 'skipped' && 
+        /(?:let'?s|want\s+to|ready\s+to|can\s+we|start\s+the|do\s+the|take\s+the)\s+(?:do\s+)?(?:the\s+)?assessment|fill\s+out\s+(?:my\s+)?(?:the\s+)?(?:soul\s*print|profile)/i.test(content)) {
+      router.push('/pillars');
+      return;
+    }
+    
+    // Increment message count for reminder tracking (only if skipped)
+    if (assessmentStatus === 'skipped') {
+      incrementMessageCount();
+    }
+
     // Regular chat flow
     saveMessage('user', content);
 
@@ -737,6 +776,19 @@ export default function ChatPage() {
               console.error('[Chat] Auto-title generation failed:', e);
             }
           })();
+        }
+        
+        // Check if we should show assessment reminder
+        if (shouldShowReminder()) {
+          // Add reminder message after a short delay
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              id: `reminder-${Date.now()}`,
+              role: 'assistant',
+              content: getReminderMessage(),
+              timestamp: new Date(),
+            }]);
+          }, 1500);
         }
       }
       setIsGenerating(false);
