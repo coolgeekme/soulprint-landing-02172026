@@ -8,9 +8,6 @@ import { recordReferral } from './referral'
 
 export async function signUp(formData: FormData) {
     const supabase = await createClient()
-    
-    // Sign out any existing session first to prevent data bleeding
-    await supabase.auth.signOut()
 
     const name = formData.get('name') as string
     const email = formData.get('email') as string
@@ -50,9 +47,6 @@ export async function signUp(formData: FormData) {
 
 export async function signIn(formData: FormData) {
     const supabase = await createClient()
-    
-    // Sign out any existing session first to prevent data bleeding
-    await supabase.auth.signOut()
 
     const data = {
         email: formData.get('email') as string,
@@ -90,9 +84,6 @@ export async function signOut() {
 
 export async function signInWithGoogle(referralCode?: string) {
     const supabase = await createClient()
-    
-    // Sign out any existing session first to prevent data bleeding
-    await supabase.auth.signOut()
 
     // Store referral code in a cookie for the OAuth callback
     if (referralCode) {
