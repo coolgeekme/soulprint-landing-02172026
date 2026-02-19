@@ -67,8 +67,8 @@ function ImportPageContent() {
           setProgress(100);
           setStage('Your SoulPrint is ready!');
           // Let the user see the completed state for 1.2s, then navigate.
-          // template.tsx handles the fade-in on the chat page.
-          setTimeout(() => router.push('/chat'), 1200);
+          // Go to pillars assessment first (user can skip to chat from there)
+          setTimeout(() => router.push('/pillars'), 1200);
         } else if (data.import_status === 'failed') {
           if (pollRef.current) clearInterval(pollRef.current);
           setError(data.import_error || 'Import failed. Please try again.');
